@@ -1,0 +1,45 @@
+from app.domains.conversation_intelligence.contracts import (
+    AnalysisConfidence,
+    AnalysisJobStatus,
+    AnalysisPolicyConfig,
+    CorrectionCategory,
+    CorrectionItem,
+    CorrectionSeverity,
+    FeedbackRating,
+    GrammarPointNote,
+    SessionAnalysisResult,
+    TurnAnalysisResult,
+    VocabularyNote,
+)
+from app.domains.conversation_intelligence.models import (
+    AnalysisCorrection,
+    AnalysisJob,
+    AnalysisUserFeedback,
+    GrammarNote,
+    SessionAnalysis,
+    TurnAnalysis,
+    VocabularyNote as VocabularyNoteModel,
+)
+from app.domains.conversation_intelligence.service import ConversationIntelligenceService
+
+__all__ = [
+    "CorrectionCategory",
+    "CorrectionSeverity",
+    "AnalysisConfidence",
+    "AnalysisJobStatus",
+    "FeedbackRating",
+    "CorrectionItem",
+    "GrammarPointNote",
+    "VocabularyNote",
+    "TurnAnalysisResult",
+    "SessionAnalysisResult",
+    "AnalysisPolicyConfig",
+    "TurnAnalysis",
+    "AnalysisCorrection",
+    "GrammarNote",
+    "VocabularyNoteModel",
+    "SessionAnalysis",
+    "AnalysisJob",
+    "AnalysisUserFeedback",
+    "ConversationIntelligenceService",
+]

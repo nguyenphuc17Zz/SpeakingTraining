@@ -1,0 +1,8 @@
+{
+  "name": "@speaking-training/ai-contracts",
+  "version": "0.1.0",
+  "description": "Shared AI provider contracts, model capabilities, and types for Japanese Speaking Training OS",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}

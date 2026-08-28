@@ -1,0 +1,51 @@
+from app.domains.shadowing.contracts import (
+    CandidateCategory,
+    DifficultyReport,
+    ExtractedGrammar,
+    ExtractedVocabulary,
+    NaturalExpression,
+    ShadowingCandidate,
+    ShadowingLesson,
+    ShadowingMode,
+    SpeakingDifficulty,
+    TranscriptQuality,
+    TranscriptSegmentDTO,
+    TranscriptSource,
+    VideoStatus,
+)
+from app.domains.shadowing.models import (
+    ShadowingBookmark,
+    ShadowingImportJob,
+    ShadowingSegment,
+    ShadowingSegmentProgress,
+    ShadowingTranscript,
+    ShadowingVideo,
+    ShadowingVideoProgress,
+)
+from app.domains.shadowing.service import ShadowingService
+from app.domains.shadowing.worker import shadowing_worker
+
+__all__ = [
+    "CandidateCategory",
+    "DifficultyReport",
+    "ExtractedGrammar",
+    "ExtractedVocabulary",
+    "NaturalExpression",
+    "ShadowingCandidate",
+    "ShadowingLesson",
+    "ShadowingMode",
+    "SpeakingDifficulty",
+    "TranscriptQuality",
+    "TranscriptSegmentDTO",
+    "TranscriptSource",
+    "VideoStatus",
+    "ShadowingBookmark",
+    "ShadowingImportJob",
+    "ShadowingSegment",
+    "ShadowingSegmentProgress",
+    "ShadowingTranscript",
+    "ShadowingVideo",
+    "ShadowingVideoProgress",
+    "ShadowingService",
+    "shadowing_worker",
+]

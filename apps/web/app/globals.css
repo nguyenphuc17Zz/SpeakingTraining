@@ -1,0 +1,293 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ==========================================================================
+     Theme 1: Haru Washi 🌸 (Default Light) — Warm Japanese Mulberry Paper
+     ========================================================================== */
+  :root,
+  .theme-haru {
+    --background: 38 45% 97%;       /* #fcf9f2 warm washi base */
+    --foreground: 230 25% 14%;      /* #1c1f2e deep sumi ink text */
+    --card: 0 0% 100%;              /* #ffffff crisp card */
+    --card-foreground: 230 25% 14%;
+    --primary: 158 75% 36%;         /* #059669 deep matcha bamboo green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 38 25% 92%;        /* #f3ecde soft wheat */
+    --secondary-foreground: 230 25% 20%;
+    --muted: 38 20% 92%;
+    --muted-foreground: 225 12% 45%;/* #646a7d */
+    --accent: 43 65% 50%;           /* #d4af37 kintsugi gold */
+    --accent-foreground: 230 25% 14%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 38 18% 86%;           /* #e3dcce delicate washi fiber line */
+    --input: 38 18% 86%;
+    --ring: 158 75% 36%;
+    --radius: 1rem;
+  }
+
+  /* ==========================================================================
+     Theme 2: Matcha Zen & Take 🍵 (Default Dark) — Anti-Eye Strain Zen Tea
+     Soft charcoal Sumi ink, fresh matcha green, kintsugi gold
+     ========================================================================== */
+  .dark,
+  .theme-matcha,
+  .theme-kyoto {
+    --background: 230 14% 7%;       /* #101116 deep warm charcoal ink */
+    --foreground: 45 20% 95%;       /* #f5f4ed warm ivory rice paper text */
+    --card: 230 13% 11%;            /* #181a22 matte kurogane iron stone */
+    --card-foreground: 45 20% 95%;
+    --primary: 158 75% 44%;         /* #10b981 fresh jade matcha green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 230 11% 16%;       /* #232631 subtle charcoal panel */
+    --secondary-foreground: 45 20% 92%;
+    --muted: 230 11% 15%;           /* #21232e */
+    --muted-foreground: 225 10% 64%;/* #9ba0b2 soft silver */
+    --accent: 43 72% 52%;           /* #e0b32d luminous kintsugi gold */
+    --accent-foreground: 230 14% 7%;
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 230 11% 18%;          /* #282b37 elegant subtle separation */
+    --input: 230 11% 18%;
+    --ring: 158 75% 44%;
+  }
+
+  /* ==========================================================================
+     Theme 3: Aizome Ocean 🌊 (Deep Japanese Indigo) — Royal Blue & Fuji Sea
+     Oceanic obsidian navy, traditional royal indigo blue, sky cyan accents
+     ========================================================================== */
+  .theme-aizome {
+    --background: 222 47% 7%;       /* #0b1120 deep oceanic navy */
+    --foreground: 210 35% 96%;      /* #f0f5fa */
+    --card: 222 40% 12%;            /* #111c34 deep navy slate card */
+    --card-foreground: 210 35% 96%;
+    --primary: 217 91% 60%;         /* #3b82f6 royal fuji indigo blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 18%;       /* #1e2c48 */
+    --secondary-foreground: 210 35% 92%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 199 89% 48%;          /* #38bdf8 crystal sky cyan */
+    --accent-foreground: 222 47% 7%;
+    --destructive: 0 78% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 30% 19%;          /* #213252 */
+    --input: 222 30% 19%;
+    --ring: 217 91% 60%;
+  }
+
+  /* ==========================================================================
+     Theme 4: Kohaku Amber 🍂 (Imperial Kyoto) — Warm Caramel & Kintsugi Gold
+     Warm charcoal ink, radiant amber gold, sage bamboo accents
+     ========================================================================== */
+  .theme-kohaku,
+  .theme-tokyo {
+    --background: 230 14% 8%;       /* #121319 warm sumi charcoal */
+    --foreground: 45 25% 96%;       /* #fbf8ee warm rice paper text */
+    --card: 230 12% 13%;            /* #1c1d25 warm slate */
+    --card-foreground: 45 25% 96%;
+    --primary: 38 92% 50%;          /* #f59e0b royal amber gold */
+    --primary-foreground: 230 14% 8%;
+    --secondary: 230 11% 17%;       /* #242530 */
+    --secondary-foreground: 45 20% 92%;
+    --muted: 230 11% 16%;
+    --muted-foreground: 38 10% 64%;
+    --accent: 158 64% 52%;          /* #10b981 fresh bamboo sage */
+    --accent-foreground: 230 14% 8%;
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 230 11% 19%;          /* #292a37 */
+    --input: 230 11% 19%;
+    --ring: 38 92% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/25 selection:text-foreground;
+    font-family: "Plus Jakarta Sans", var(--font-sans), "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Body background treatments per theme */
+  html:not(.dark):not(.theme-kyoto):not(.theme-tokyo):not(.theme-aizome) body,
+  .theme-haru body {
+    background-color: #fcf9f2;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(30, 58, 95, 0.035) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+
+  .dark body,
+  .theme-kyoto body {
+    background-color: #101116;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.02) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+
+  .theme-tokyo body {
+    background-color: #07080e;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.1), transparent),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
+    background-size: 100% 100%, 28px 28px;
+  }
+
+  .theme-aizome body {
+    background-color: #080f1d;
+    background-image:
+      radial-gradient(ellipse 70% 40% at 50% 0%, rgba(59, 130, 246, 0.08), transparent),
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.025) 1px, transparent 0);
+    background-size: 100% 100%, 26px 26px;
+  }
+}
+
+/* Scrollbar — Japanese Minimalist */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+/* ==========================================================================
+   Japanese Cultural Design Utilities
+   ========================================================================== */
+@layer utilities {
+  /* Seigaiha (青海波 - Auspicious Blue Ocean Waves) Background */
+  .seigaiha-pattern {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cg fill='%23d4af37' fill-opacity='0.045'%3E%3Cpath d='M20 0a20 20 0 0 0 20 20h-4a16 16 0 0 1-16-16V0zm0 0a20 20 0 0 1 20 20h-4a16 16 0 0 0-16-16V0zm0 0A20 20 0 0 0 0 20h4A16 16 0 0 1 20 4V0zm0 0A20 20 0 0 1 0 20h4A16 16 0 0 0 20 4V0z'/%3E%3Cpath d='M20 4a16 16 0 0 0 16 16h-4a12 12 0 0 1-12-12V4zm0 0a16 16 0 0 1 16 16h-4a12 12 0 0 0-12-12V4zm0 0A16 16 0 0 0 4 20h4A12 12 0 0 1 20 8V4zm0 0A16 16 0 0 1 4 20h4A12 12 0 0 0 20 8V4z'/%3E%3Cpath d='M20 8a12 12 0 0 0 12 12h-4a8 8 0 0 1-8-8V8zm0 0a12 12 0 0 1 12 12h-4a8 8 0 0 0-8-8V8zm0 0A12 12 0 0 0 8 20h4A8 8 0 0 1 20 12V8zm0 0A12 12 0 0 1 8 20h4A8 8 0 0 0 20 12V8z'/%3E%3Cpath d='M20 12a8 8 0 0 0 8 12h-4a4 4 0 0 1-4-4v-8zm0 0a8 8 0 0 1 8 12h-4a4 4 0 0 0-4-4v-8zm0 0a8 8 0 0 0-8 12h4a4 4 0 0 1 4-4v-8zm0 0a8 8 0 0 1-8 12h4a4 4 0 0 0 4-4v-8z'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 48px 24px;
+  }
+
+  /* Shoji (障子) Grid Lattice Pattern */
+  .shoji-grid {
+    background-image:
+      linear-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 175, 55, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Washi Paper Subtle Texture */
+  .washi-texture {
+    background-image: radial-gradient(circle at 1px 1px, rgba(212, 175, 55, 0.04) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  /* Kintsugi (金継ぎ) Gold Shimmer Border & Text */
+  .kintsugi-border {
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 0 15px -3px rgba(212, 175, 55, 0.15);
+  }
+
+  .kintsugi-gold-text {
+    background: linear-gradient(135deg, #f5eed7 0%, #d4af37 50%, #ebdbae 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Authentic Red Hanko (判子) Seal Stamp */
+  .hanko-badge {
+    font-family: "Shippori Mincho", "Zen Maru Gothic", serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #e84040;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #e84040;
+    background: rgba(232, 64, 64, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(232, 64, 64, 0.15), 0 1px 3px rgba(232, 64, 64, 0.1);
+    transform: rotate(-1.5deg);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hanko-badge:hover {
+    transform: rotate(0deg) scale(1.05);
+  }
+
+  /* Japanese Vertical Text (Tategaki 縦書き) */
+  .tategaki {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: 0.15em;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Global focus visible */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Smooth transition for theme colors */
+html {
+  scrollbar-gutter: stable;
+}
+body,
+header,
+aside,
+main,
+div,
+button,
+a {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Japanese Ruby & Furigana Positioning (Always on top of Kanji) */
+ruby {
+  ruby-position: over !important;
+  -webkit-ruby-position: before !important;
+  ruby-align: center;
+}
+
+ruby rt {
+  font-size: 0.56em;
+  line-height: 1;
+  text-align: center;
+  user-select: none;
+  font-family: var(--font-noto-sans-jp), sans-serif;
+  font-weight: 500;
+  ruby-position: over !important;
+  -webkit-ruby-position: before !important;
+}
