@@ -92,8 +92,8 @@ export function SituationsPromptCard({
 
         {subtitleMode !== "hidden" ? (
           <div className="space-y-1.5 pt-1">
-            <div className="text-xl md:text-2xl font-black font-jp text-foreground tracking-wide leading-relaxed">
-              「{openingDialogue}」
+            <div className="text-lg md:text-xl font-black font-jp text-foreground tracking-wide flex justify-center">
+              <UniversalFurigana text={openingDialogue} fontSize="lg" />
             </div>
             {(subtitleMode === "vietnamese" || dialogueVi) && (
               <div className="text-xs text-muted-foreground italic">

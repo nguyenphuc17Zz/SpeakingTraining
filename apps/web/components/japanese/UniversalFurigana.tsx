@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useFuriganaSettings } from "@/hooks/use-furigana-settings";
 import { cn } from "@/lib/utils";
 
@@ -19,17 +19,7 @@ interface UniversalFuriganaProps {
 }
 
 const KANJI_REGEX = /[\u4E00-\u9FAF\u3400-\u4DBF]/;
-
-// Global memory cache for resolved ruby chunks across components
 const clientRubyCache = new Map<string, RubyChunk[]>();
-
-function fastClientChunk(text: string): RubyChunk[] {
-  if (!text) return [];
-  if (!KANJI_REGEX.test(text)) {
-    return [{ text, reading: null }];
-  }
-  return [{ text, reading: null }];
-}
 
 export function UniversalFurigana({
   text,
@@ -45,7 +35,7 @@ export function UniversalFurigana({
   const [chunks, setChunks] = useState<RubyChunk[]>(() => {
     if (propRuby && propRuby.length > 0) return propRuby;
     if (clientRubyCache.has(text)) return clientRubyCache.get(text)!;
-    return fastClientChunk(text);
+    return [{ text, reading: null }];
   });
 
   useEffect(() => {
@@ -65,7 +55,6 @@ export function UniversalFurigana({
     }
 
     let isMounted = true;
-    // Async fetch from backend resolver
     fetch("http://localhost:8000/api/v1/speech/furigana", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -85,6 +74,8 @@ export function UniversalFurigana({
     };
   }, [text, propRuby]);
 
+  if (!text) return null;
+
   if (displayMode === "hidden") {
     return (
       <span className={cn("text-muted-foreground italic font-sans text-xs select-none", className)}>
@@ -95,49 +86,50 @@ export function UniversalFurigana({
 
   if (displayMode === "kanji") {
     return (
-      <span className={cn("font-jp inline-block leading-normal", className)}>
+      <span className={cn("font-jp inline-block", className)}>
         {text}
       </span>
     );
   }
 
-  // Kanji + Furigana HTML5 <ruby>
+  // Kanji + Furigana (HTML5 Ruby with pure inline ruby layout)
   return (
     <span
       className={cn(
-        "font-jp inline-flex flex-wrap items-end leading-loose tracking-wide",
-        fontSize === "sm" && "text-xs leading-loose",
-        fontSize === "normal" && "text-sm leading-loose",
-        fontSize === "lg" && "text-base leading-loose",
-        fontSize === "xl" && "text-lg md:text-xl leading-loose",
+        "font-jp tracking-wide inline-block leading-[2.2] sm:leading-[2.5]",
+        fontSize === "sm" && "text-xs leading-[2.2]",
+        fontSize === "normal" && "text-sm sm:text-base leading-[2.3]",
+        fontSize === "lg" && "text-base sm:text-lg md:text-xl leading-[2.4]",
+        fontSize === "xl" && "text-xl sm:text-2xl md:text-3xl font-black leading-[2.6]",
         className
       )}
     >
       {chunks.map((c, i) => {
-        if (c.reading) {
+        if (c.reading && KANJI_REGEX.test(c.text)) {
           return (
-            <ruby key={i} className="group inline-flex flex-col items-center px-0.5">
-              <span className="text-foreground font-bold">{c.text}</span>
-              <rp>(</rp>
+            <ruby
+              key={i}
+              className="mx-[0.5px] select-text"
+              style={{ rubyPosition: "over" }}
+            >
+              {c.text}
               <rt
-                style={furiganaStyle}
+                style={{
+                  ...furiganaStyle,
+                  rubyPosition: "over",
+                }}
                 className={cn(
-                  "text-[10px] md:text-[11px] font-normal leading-none select-none tracking-normal font-jp mb-0.5",
+                  "font-jp text-[0.55em] font-medium leading-none select-none tracking-tight text-center transition-colors block",
                   furiganaClass,
                   furiganaClassName
                 )}
               >
                 {c.reading}
               </rt>
-              <rp>)</rp>
             </ruby>
           );
         }
-        return (
-          <span key={i} className="text-foreground">
-            {c.text}
-          </span>
-        );
+        return <span key={i}>{c.text}</span>;
       })}
     </span>
   );

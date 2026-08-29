@@ -126,8 +126,8 @@ export function PitchPromptCard({
             <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Từ Vựng / Câu Mục Tiêu:
             </div>
-            <div className="text-2xl md:text-3xl font-black font-jp text-foreground tracking-wide leading-relaxed">
-              {canonical}
+            <div className="text-xl md:text-2xl font-black font-jp text-foreground tracking-wide flex justify-center">
+              <UniversalFurigana text={canonical} fontSize="xl" />
             </div>
 
             {(subtitleMode === "japanese_reading" || subtitleMode === "vietnamese") && reading && (

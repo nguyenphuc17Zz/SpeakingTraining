@@ -166,8 +166,8 @@ export function KeigoPromptCard({
               {isPlaying && <span className="inline-flex h-2 w-2 rounded-full bg-primary animate-ping" />}
             </div>
 
-            <div className="text-2xl sm:text-3xl md:text-4xl font-black font-jp tracking-tight text-foreground px-2 leading-tight">
-              {prompt}
+            <div className="text-xl sm:text-2xl md:text-3xl font-black font-jp tracking-tight text-foreground px-2 flex justify-center">
+              <UniversalFurigana text={prompt} fontSize="xl" />
             </div>
 
             {displayTranslation && (
