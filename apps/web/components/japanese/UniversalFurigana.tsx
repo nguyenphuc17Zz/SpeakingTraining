@@ -92,44 +92,47 @@ export function UniversalFurigana({
     );
   }
 
-  // Kanji + Furigana (HTML5 Ruby with pure inline ruby layout)
+  // Micro-stacking Architecture: Guarantees Furigana strictly on TOP of Kanji with 100% baseline alignment
   return (
     <span
       className={cn(
-        "font-jp tracking-wide inline-block leading-[2.2] sm:leading-[2.5]",
-        fontSize === "sm" && "text-xs leading-[2.2]",
-        fontSize === "normal" && "text-sm sm:text-base leading-[2.3]",
-        fontSize === "lg" && "text-base sm:text-lg md:text-xl leading-[2.4]",
-        fontSize === "xl" && "text-xl sm:text-2xl md:text-3xl font-black leading-[2.6]",
+        "font-jp tracking-wide inline-flex flex-wrap items-end justify-center gap-y-2 select-text",
+        fontSize === "sm" && "text-xs",
+        fontSize === "normal" && "text-sm sm:text-base",
+        fontSize === "lg" && "text-base sm:text-lg md:text-xl",
+        fontSize === "xl" && "text-xl sm:text-2xl md:text-3xl font-black",
         className
       )}
     >
       {chunks.map((c, i) => {
         if (c.reading && KANJI_REGEX.test(c.text)) {
           return (
-            <ruby
+            <span
               key={i}
-              className="mx-[0.5px] select-text"
-              style={{ rubyPosition: "over" }}
+              className="inline-flex flex-col-reverse items-center justify-end align-bottom mx-[1.5px] relative"
             >
-              {c.text}
-              <rt
-                style={{
-                  ...furiganaStyle,
-                  rubyPosition: "over",
-                }}
+              {/* 1. Base Kanji text at the bottom */}
+              <span className="font-bold text-foreground leading-none">{c.text}</span>
+
+              {/* 2. Furigana reading strictly on TOP */}
+              <span
+                style={furiganaStyle}
                 className={cn(
-                  "font-jp text-[0.55em] font-medium leading-none select-none tracking-tight text-center transition-colors block",
+                  "font-jp text-[0.52em] font-medium leading-none select-none tracking-tight text-center mb-1.5 transition-colors",
                   furiganaClass,
                   furiganaClassName
                 )}
               >
                 {c.reading}
-              </rt>
-            </ruby>
+              </span>
+            </span>
           );
         }
-        return <span key={i}>{c.text}</span>;
+        return (
+          <span key={i} className="inline-block align-bottom leading-none text-foreground">
+            {c.text}
+          </span>
+        );
       })}
     </span>
   );
