@@ -145,3 +145,50 @@ async def select_stt_model(request: STTModelActionRequest):
         "models": whisper_model_manager.get_available_models_info(active_model=model_id),
     }
 
+
+# ── Universal Furigana Resolver Endpoints ──
+
+class RubyChunkDTO(BaseModel):
+    text: str
+    reading: str | None = None
+
+class FuriganaRequest(BaseModel):
+    text: str
+
+class FuriganaResponse(BaseModel):
+    text: str
+    hiragana: str
+    ruby: list[RubyChunkDTO]
+
+class BatchFuriganaRequest(BaseModel):
+    texts: list[str]
+
+class BatchFuriganaResponse(BaseModel):
+    results: list[FuriganaResponse]
+
+@router.post("/furigana", response_model=FuriganaResponse)
+async def resolve_furigana(
+    request: FuriganaRequest,
+):
+    """Resolves Japanese text into structured Ruby tokens with Hiragana readings."""
+    from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
+    text = request.text or ""
+    hiragana = JapaneseReadingResolver.to_hiragana(text)
+    ruby_raw = JapaneseReadingResolver.to_ruby_chunks(text)
+    ruby_dtos = [RubyChunkDTO(text=c.get("text", ""), reading=c.get("reading")) for c in ruby_raw]
+    return FuriganaResponse(text=text, hiragana=hiragana, ruby=ruby_dtos)
+
+@router.post("/furigana/batch", response_model=BatchFuriganaResponse)
+async def resolve_batch_furigana(
+    request: BatchFuriganaRequest,
+):
+    """Resolves multiple Japanese sentences into structured Ruby tokens."""
+    from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
+    results = []
+    for text in request.texts:
+        hiragana = JapaneseReadingResolver.to_hiragana(text)
+        ruby_raw = JapaneseReadingResolver.to_ruby_chunks(text)
+        ruby_dtos = [RubyChunkDTO(text=c.get("text", ""), reading=c.get("reading")) for c in ruby_raw]
+        results.append(FuriganaResponse(text=text, hiragana=hiragana, ruby=ruby_dtos))
+    return BatchFuriganaResponse(results=results)
+

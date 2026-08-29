@@ -271,3 +271,65 @@ async def update_game_settings(
         difficulty_preference=settings.difficulty_preference,
         show_xp_popups=settings.show_xp_popups,
     )
+
+from pydantic import BaseModel
+
+class GenerateBossRequest(BaseModel):
+    topic: str | None = None
+    difficulty: str = "normal"
+    required_level: int = 3
+
+class EvaluateTurnRequest(BaseModel):
+    round_index: int = 1
+    user_speech: str
+    latency_ms: float = 2000.0
+
+@router.post("/bosses/generate", response_model=BossDTO)
+async def generate_dynamic_boss(
+    payload: GenerateBossRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generates a dynamic high-stakes speaking boss challenge using Gemini AI."""
+    from app.domains.gamification.application.dynamic_boss_generator import DynamicBossGenerator
+    generator = DynamicBossGenerator(db)
+    boss = await generator.generate_boss(
+        topic=payload.topic,
+        difficulty=payload.difficulty,
+        required_level=payload.required_level,
+        user_id=user_id,
+    )
+    return BossDTO(
+        id=boss.id,
+        key=boss.key,
+        name=boss.name,
+        subtitle=boss.subtitle,
+        description=boss.description,
+        difficulty=boss.difficulty,
+        required_level=boss.required_level,
+        is_unlocked=True,
+        pass_score_threshold=boss.pass_score_threshold,
+        xp_reward=boss.xp_reward,
+        title_reward=boss.title_reward,
+        objectives=boss.objectives_json or [],
+        personal_best_score=None,
+        cleared=False,
+        total_attempts=0,
+    )
+
+@router.post("/bosses/{boss_id}/evaluate-turn")
+async def evaluate_arena_turn(
+    boss_id: str,
+    payload: EvaluateTurnRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Evaluates a live turn in the Dojo Boss Arena."""
+    service = BossService(db)
+    return await service.evaluate_arena_turn(
+        user_id=user_id,
+        boss_id=boss_id,
+        round_index=payload.round_index,
+        user_speech=payload.user_speech,
+        latency_ms=payload.latency_ms,
+    )

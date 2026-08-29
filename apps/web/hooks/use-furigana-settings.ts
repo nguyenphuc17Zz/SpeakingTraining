@@ -89,23 +89,25 @@ export const FURIGANA_COLORS: FuriganaColorOption[] = [
   },
 ];
 
+export type FuriganaDisplayMode = "kanji_reading" | "kanji" | "hidden";
+
 const STORAGE_KEY = "shadowing_furigana_color";
 const STORAGE_CUSTOM_HEX_KEY = "shadowing_furigana_custom_hex";
+const STORAGE_DISPLAY_MODE_KEY = "hanasu_furigana_display_mode";
 
 export function useFuriganaSettings() {
   const [colorId, setColorId] = useState<FuriganaColorId>("matcha");
   const [customHex, setCustomHex] = useState<string>("#34d399");
+  const [displayMode, setDisplayModeState] = useState<FuriganaDisplayMode>("kanji_reading");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as FuriganaColorId;
       const savedCustom = localStorage.getItem(STORAGE_CUSTOM_HEX_KEY);
-      if (savedCustom) {
-        setCustomHex(savedCustom);
-      }
-      if (saved) {
-        setColorId(saved);
-      }
+      const savedMode = localStorage.getItem(STORAGE_DISPLAY_MODE_KEY) as FuriganaDisplayMode;
+      if (savedCustom) setCustomHex(savedCustom);
+      if (saved) setColorId(saved);
+      if (savedMode) setDisplayModeState(savedMode);
     } catch {
       // ignore SSR or storage errors
     }
@@ -114,17 +116,21 @@ export function useFuriganaSettings() {
       try {
         const current = localStorage.getItem(STORAGE_KEY) as FuriganaColorId;
         const currentCustom = localStorage.getItem(STORAGE_CUSTOM_HEX_KEY);
+        const currentMode = localStorage.getItem(STORAGE_DISPLAY_MODE_KEY) as FuriganaDisplayMode;
         if (currentCustom) setCustomHex(currentCustom);
         if (current) setColorId(current);
+        if (currentMode) setDisplayModeState(currentMode);
       } catch {}
     };
 
     window.addEventListener("storage", handleStorage);
     window.addEventListener("furigana-color-changed", handleStorage);
+    window.addEventListener("furigana-mode-changed", handleStorage);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("furigana-color-changed", handleStorage);
+      window.removeEventListener("furigana-mode-changed", handleStorage);
     };
   }, []);
 
@@ -146,6 +152,14 @@ export function useFuriganaSettings() {
     } catch {}
   };
 
+  const setDisplayMode = (mode: FuriganaDisplayMode) => {
+    setDisplayModeState(mode);
+    try {
+      localStorage.setItem(STORAGE_DISPLAY_MODE_KEY, mode);
+      window.dispatchEvent(new CustomEvent("furigana-mode-changed", { detail: mode }));
+    } catch {}
+  };
+
   const presetOption = FURIGANA_COLORS.find((c) => c.id === colorId);
   const activeHex = colorId === "custom" ? customHex : (presetOption?.hex || "#34d399");
   const furiganaClass = presetOption?.className || "";
@@ -155,6 +169,8 @@ export function useFuriganaSettings() {
     colorId,
     customHex,
     activeHex,
+    displayMode,
+    setDisplayMode,
     changeColor,
     changeCustomColor,
     furiganaClass,

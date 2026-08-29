@@ -5,6 +5,7 @@ import { useHealth } from "@/hooks/use-health";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WeatherToggle } from "@/components/ui/weather-toggle";
+import { GlobalFuriganaControl } from "@/components/japanese/GlobalFuriganaControl";
 import { GlobalKeybindingsModal } from "./global-keybindings-modal";
 import { Search, Command, Keyboard } from "lucide-react";
 import { soundFX } from "@/lib/sound-fx";
@@ -101,6 +102,7 @@ export function TopNav({ onOpenCommand }: { onOpenCommand?: () => void }) {
             <span className="hidden xl:inline">Phím tắt</span>
           </button>
 
+          <GlobalFuriganaControl />
           <WeatherToggle />
           <ThemeToggle />
         </div>

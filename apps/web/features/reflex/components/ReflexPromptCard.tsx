@@ -1,5 +1,7 @@
 "use client";
 
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
+
 import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Volume2, Sparkles, ArrowRight, BookOpen, Headphones, HelpCircle } from "lucide-react";
@@ -153,8 +155,8 @@ export function ReflexPromptCard({ exercise, subtitleMode = "japanese", onPlayAu
               <span className="inline-block text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                 Động từ gốc
               </span>
-              <div className="text-3xl md:text-4xl font-black font-jp tracking-tight text-foreground">
-                {verb || prompt}
+              <div className="text-2xl md:text-3xl font-black font-jp tracking-tight text-foreground flex justify-center">
+                <UniversalFurigana text={verb || prompt} fontSize="xl" />
               </div>
 
               {displayTranslation && subtitleMode === "vietnamese" && (
@@ -186,8 +188,8 @@ export function ReflexPromptCard({ exercise, subtitleMode = "japanese", onPlayAu
                 <p>Nội dung đề bài được ẩn để rèn luyện phản xạ thính giác 100%</p>
               </div>
             ) : (
-              <div className="text-xl md:text-2xl font-bold font-jp leading-relaxed text-foreground tracking-tight">
-                {prompt}
+              <div className="text-lg md:text-xl font-bold font-jp leading-relaxed text-foreground tracking-tight flex justify-center">
+                <UniversalFurigana text={prompt} fontSize="lg" />
               </div>
             )}
 
@@ -226,4 +228,3 @@ export function ReflexPromptCard({ exercise, subtitleMode = "japanese", onPlayAu
     </div>
   );
 }
-

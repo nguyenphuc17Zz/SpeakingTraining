@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
+import json
 from typing import Any
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
+from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
+from app.domains.ai.router import AIRouter
 from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
 from app.domains.gamification.domain.contracts import GameEventSource, GameEventType, XPCategory
 from app.domains.gamification.domain.game_event import GameEvent
@@ -21,6 +24,7 @@ class BossService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.ai_router = AIRouter(db)
 
     async def get_bosses_dto(self, user_id: str) -> list[BossDTO]:
         """Returns all boss challenges with unlock status and user personal bests."""
@@ -215,3 +219,78 @@ class BossService:
             weak_points=weak_points,
             recommended_training="Review key grammar patterns and try an interactive roleplay drill.",
         )
+
+    async def evaluate_arena_turn(
+        self,
+        user_id: str,
+        boss_id: str,
+        round_index: int,
+        user_speech: str,
+        latency_ms: float = 2000.0,
+    ) -> dict[str, Any]:
+        """Evaluates a live turn in the Dojo Boss Arena, deals damage to Boss HP, and gets AI response."""
+        boss_stmt = select(BossDefinition).where(BossDefinition.id == boss_id)
+        boss_res = await self.db.execute(boss_stmt)
+        boss = boss_res.scalar_one_or_none()
+        if not boss:
+            raise NotFoundException(f"Boss '{boss_id}' not found.")
+
+        # AI prompt to evaluate learner speech and produce NPC rebuttal
+        prompt = f"""Bạn là Giám khảo Trận Đấu Dojo kiêm Boss đối thoại tiếng Nhật '{boss.name}'.
+Bối cảnh: {boss.description}
+Mục tiêu thử thách: {', '.join(boss.objectives_json or [])}
+Độ khó: {boss.difficulty}
+
+Lượt đấu hiện tại: Hiệp {round_index}/3
+Câu nói của học viên: "{user_speech}"
+Tốc độ phản xạ: {int(latency_ms)}ms
+
+Yêu cầu xuất ra đúng định dạng JSON (không markdown, không ```json):
+{{
+  "turn_score": (Điểm hiệp này từ 0 đến 100 dựa trên Kính ngữ, sự thuyết phục, từ vựng và tốc độ),
+  "keigo_accuracy": (Điểm Kính ngữ 0-100),
+  "fluency_score": (Điểm Trôi chảy 0-100),
+  "feedback_vi": "Nhận xét nhanh 1 câu bằng tiếng Việt về câu trả lời vừa rồi",
+  "boss_rebuttal_ja": "Câu đáp trả hoặc câu hỏi tiếp theo của Boss bằng tiếng Nhật (kèm kanji)",
+  "boss_rebuttal_vi": "Bản dịch tiếng Việt của câu đáp trả"
+}}"""
+
+        req = AIRequest(
+            messages=[AIMessage(role=AIMessageRole.USER, content=prompt)],
+            system_instruction="Bạn là Boss Game Master chấm điểm và đối đáp áp lực. Luôn trả về đúng định dạng JSON.",
+            temperature=0.6,
+        )
+
+        try:
+            resp = await self.ai_router.generate(task=AITask.EXERCISE_EVALUATION, request=req, user_id=user_id)
+            raw = resp.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            res_data = json.loads(raw.strip())
+        except Exception as e:
+            logger.warning(f"[BossService] Arena turn AI fallback: {e}")
+            score = max(50.0, min(95.0, round(90.0 - (latency_ms / 3000.0 * 20.0), 1)))
+            res_data = {
+                "turn_score": score,
+                "keigo_accuracy": 80.0,
+                "fluency_score": score,
+                "feedback_vi": "Phản xạ câu tốt, hãy chú ý chọn từ trang trọng hơn.",
+                "boss_rebuttal_ja": "なるほど、おっしゃることは分かりました。では次の点についてはいかがでしょうか。",
+                "boss_rebuttal_vi": "Tôi hiểu ý bạn rồi. Vậy về điểm tiếp theo bạn nghĩ sao?",
+            }
+
+        turn_score = float(res_data.get("turn_score", 75.0))
+        damage = max(15, min(45, int(turn_score * 0.40)))
+
+        return {
+            "round_index": round_index,
+            "turn_score": turn_score,
+            "damage_dealt": damage,
+            "keigo_accuracy": res_data.get("keigo_accuracy", 80.0),
+            "fluency_score": res_data.get("fluency_score", 75.0),
+            "feedback_vi": res_data.get("feedback_vi", "Phản xạ tốt!"),
+            "boss_rebuttal_ja": res_data.get("boss_rebuttal_ja", ""),
+            "boss_rebuttal_vi": res_data.get("boss_rebuttal_vi", ""),
+        }
