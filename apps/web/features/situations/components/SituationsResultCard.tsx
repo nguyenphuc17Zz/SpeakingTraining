@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +13,10 @@ import {
   Sparkles,
   Volume2,
   Clock,
+  Lightbulb,
 } from "lucide-react";
 import { SituationsExercise, SituationsResult } from "../services/situations-api";
-import { speakJapaneseText } from "@/features/speaking/services/web-speech";
+import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,7 @@ export function SituationsResultCard({
   onAskCoach,
   onCancelAutoNext,
 }: SituationsResultCardProps) {
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
   const isPerfect = result.isPerfect || (result.score ?? 0) >= 90;
   const isSuccess = result.success;
   const isTimeout = result.timedOut;
@@ -42,8 +45,29 @@ export function SituationsResultCard({
   const latency = result.reactionLatencyMs ?? 0;
 
   const sc = exercise?.extra_metadata?.situational_config || {};
+  const sData = exercise?.situationalData || sc.situational_data || {};
   const canonical = sc.canonical || exercise?.canonical || "";
   const metrics = result.metrics || {};
+  const culturalTip = result.culturalTip || sc.cultural_tip || sData.cultural_tip || exercise?.culturalTip || "";
+
+  // Auto-play model answer TTS on result show
+  useEffect(() => {
+    if (!canonical) return;
+
+    setIsTTSPlaying(true);
+    const timer = setTimeout(() => {
+      speakJapaneseText(canonical, {
+        rate: 0.95,
+        onEnd: () => setIsTTSPlaying(false),
+        onError: () => setIsTTSPlaying(false),
+      });
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      stopWebSpeech();
+    };
+  }, [canonical, result.exerciseId]);
 
   const taskCompletion = metrics.task_completion ?? score;
   const pragmatics = metrics.pragmatics ?? 88;
@@ -51,7 +75,7 @@ export function SituationsResultCard({
   const naturalness = metrics.naturalness ?? 87;
 
   return (
-    <div className="p-6 rounded-3xl border border-border/80 bg-card shadow-md washi-texture space-y-6 animate-in fade-in zoom-in-95 duration-200">
+    <div className="p-5 md:p-6 rounded-3xl border border-border/80 bg-card shadow-md washi-texture space-y-5 animate-in fade-in zoom-in-95 duration-200">
       {/* Status Banner */}
       <div
         className={cn(
@@ -95,13 +119,14 @@ export function SituationsResultCard({
                 : "⚠️ CẦN BỔ SUNG MỤC TIÊU"}
             </h3>
             <p className="text-xs opacity-85">
-              {isPerfect
-                ? "Câu trả lời đúng ngữ cảnh, đạt trọn vẹn mục tiêu và tốc độ phản xạ tự nhiên!"
-                : isSuccess
-                ? "Bạn đã hoàn thành tốt tình huống giao tiếp."
-                : isTimeout
-                ? "Hãy bấm 'Thử lại (R)' để phản xạ nhanh hơn trong ngưỡng thời gian."
-                : "Chú ý xử lý sự cố phát sinh và sử dụng mẫu câu tự nhiên hơn."}
+              {result.feedback ||
+                (isPerfect
+                  ? "Câu trả lời đúng ngữ cảnh, đạt trọn vẹn mục tiêu và tốc độ phản xạ tự nhiên!"
+                  : isSuccess
+                  ? "Bạn đã hoàn thành tốt tình huống giao tiếp."
+                  : isTimeout
+                  ? "Hãy bấm 'Thử lại (R)' để phản xạ nhanh hơn trong ngưỡng thời gian."
+                  : "Chú ý xử lý sự cố phát sinh và sử dụng mẫu câu tự nhiên hơn.")}
             </p>
           </div>
         </div>
@@ -152,8 +177,14 @@ export function SituationsResultCard({
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>🗣️ Câu đối đáp của bạn:</span>
           </div>
-          <div className="p-3 rounded-xl bg-card border border-border/80 text-base font-bold font-jp text-foreground">
-            {result.userTranscript || "(Đã ghi âm giọng nói)"}
+          <div className="p-3 rounded-xl bg-card border border-border/80 text-base font-bold font-jp text-foreground min-h-[3rem] flex items-center">
+            {result.userTranscript ? (
+              <UniversalFurigana text={result.userTranscript} fontSize="lg" />
+            ) : (
+              <span className="text-xs text-muted-foreground italic font-sans font-normal">
+                (Đã ghi âm giọng nói)
+              </span>
+            )}
           </div>
         </div>
 
@@ -174,11 +205,22 @@ export function SituationsResultCard({
               </button>
             )}
           </div>
-          <div className="p-3 rounded-xl bg-card border border-emerald-500/30 text-base font-bold font-jp text-foreground">
-            {canonical || "すみません、これをお願いします。"}
+          <div className="p-3 rounded-xl bg-card border border-emerald-500/30 text-base font-bold font-jp text-foreground min-h-[3rem] flex items-center">
+            <UniversalFurigana text={canonical || "すみません、これをお願いします。"} fontSize="lg" />
           </div>
         </div>
       </div>
+
+      {/* Cultural Nuance Pragmatics Tip */}
+      {culturalTip && (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+          <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold">Mẹo văn hóa thực chiến Nhật Bản:</span>
+            <p className="leading-relaxed">{culturalTip}</p>
+          </div>
+        </div>
+      )}
 
       {/* Action Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">

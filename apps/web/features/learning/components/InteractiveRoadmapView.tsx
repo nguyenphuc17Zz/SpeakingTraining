@@ -68,38 +68,38 @@ export function InteractiveRoadmapView({
   const progressPercent = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Roadmap Overview Card */}
-      <div className="p-6 rounded-3xl border border-border bg-card washi-texture shadow-sm space-y-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 h-40 w-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="p-4 sm:p-5 rounded-2xl border border-border bg-card washi-texture shadow-2xs space-y-3 relative overflow-hidden">
+        <div className="absolute top-0 right-0 h-32 w-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Badge variant="kintsugi" size="sm" className="font-bold">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-10">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5">
+              <Badge variant="kintsugi" size="sm" className="font-bold text-[10px]">
                 AI DYNAMIC ROADMAP
               </Badge>
-              <Badge variant="outline" size="sm" className="text-xs font-semibold">
+              <Badge variant="outline" size="sm" className="text-[10px] font-semibold">
                 {roadmap.level_label || roadmap.level}
               </Badge>
-              <Badge variant="matcha" size="sm" className="text-xs font-semibold">
+              <Badge variant="matcha" size="sm" className="text-[10px] font-semibold">
                 {roadmap.target_goal_label || roadmap.target_goal}
               </Badge>
             </div>
 
-            <h2 className="text-xl md:text-2xl font-black text-foreground tracking-tight">
+            <h2 className="text-lg md:text-xl font-black text-foreground tracking-tight">
               {roadmap.title}
             </h2>
-            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+            <p className="text-xs text-muted-foreground max-w-2xl leading-snug">
               {roadmap.description}
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
             <div className="text-right">
-              <div className="text-xs font-bold text-muted-foreground">Tiến độ toàn khóa</div>
-              <div className="text-xl font-black font-mono text-primary">
-                {progressPercent}% <span className="text-xs text-muted-foreground font-normal">({completedNodes}/{totalNodes} bài)</span>
+              <div className="text-[10px] font-bold text-muted-foreground">Tiến độ toàn khóa</div>
+              <div className="text-lg font-black font-mono text-primary">
+                {progressPercent}% <span className="text-[10px] text-muted-foreground font-normal">({completedNodes}/{totalNodes} bài)</span>
               </div>
             </div>
 
@@ -110,16 +110,16 @@ export function InteractiveRoadmapView({
                 soundFX.playFurin();
                 onOpenOnboarding();
               }}
-              className="text-xs font-bold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 h-9"
+              className="text-xs font-bold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 h-8 px-2.5"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles className="h-3 w-3" />
               <span>Tinh chỉnh AI</span>
             </Button>
           </div>
         </div>
 
         {/* Global Progress Bar */}
-        <div className="w-full h-2 rounded-full bg-muted/60 overflow-hidden">
+        <div className="w-full h-1.5 rounded-full bg-muted/60 overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-primary via-emerald-500 to-amber-500 transition-all duration-500 rounded-full"
             style={{ width: `${progressPercent}%` }}
@@ -128,7 +128,7 @@ export function InteractiveRoadmapView({
       </div>
 
       {/* 4 Milestone Stages */}
-      <div className="space-y-6">
+      <div className="space-y-3">
         {roadmap.stages?.map((stage: CurriculumStage, stageIdx: number) => {
           const stageCompleted = stage.nodes?.filter((n) => n.is_completed).length || 0;
           const stageTotal = stage.nodes?.length || 0;
@@ -137,10 +137,10 @@ export function InteractiveRoadmapView({
           return (
             <div
               key={stage.stage_number || stageIdx}
-              className="p-6 rounded-3xl border border-border bg-card washi-texture shadow-sm space-y-4 relative"
+              className="p-4 sm:p-5 rounded-2xl border border-border bg-card washi-texture shadow-2xs space-y-3 relative"
             >
               {/* Stage Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
                 <div className="flex items-center gap-2.5">
                   <span className={cn(
                     "h-8 w-8 rounded-xl font-bold font-mono text-xs flex items-center justify-center border shadow-2xs",

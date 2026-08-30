@@ -66,37 +66,79 @@ export function ReflexResultCard({
   const latencyRatio = latency != null ? Math.min(1, latency / timerLimit) : 1;
 
   // Resolve Canonical Answer & Vocabulary Context
-  const isVocab = exercise?.exercise_type === "reflex_vocabulary";
+  const isVocab = exercise?.exercise_type === "reflex_vocabulary" || result.direction !== undefined;
   const isKeigoVocab = exercise?.exercise_type === "reflex_keigo_vocab";
   const rc = exercise?.extra_metadata?.reflex_config || {};
-  const vocabDirection = rc.direction || "ja_to_vi";
-  const promptText = rc.prompt || "";
-  const wordReading = rc.word_reading || rc.prompt_reading || "";
-  const wordMeaningVi = rc.word_meaning_vi || rc.prompt_translation || "";
+  const vocabDirection = result.direction || rc.direction || "ja_to_vi";
+  const promptText = result.promptText || rc.prompt || exercise?.prompt || "";
+  const wordReading = result.promptReading || rc.word_reading || rc.prompt_reading || "";
+  const wordMeaningVi = result.promptTranslation || rc.word_meaning_vi || rc.prompt_translation || "";
+  const vocabCollocationJa = result.collocationJa || rc.collocation_ja || exercise?.collocationJa || "";
+  const vocabCollocationVi = result.collocationVi || rc.collocation_vi || exercise?.collocationVi || "";
+  const vocabExampleJa = result.exampleJa || rc.example_ja || exercise?.exampleJa || "";
+  const vocabExampleVi = result.exampleVi || rc.example_vi || exercise?.exampleVi || "";
+  const vocabTypeLabel = result.wordTypeLabel || rc.word_type_label || exercise?.wordTypeLabel || "";
 
-  const keigoTargetType = rc.target_type || "sonkeigo";
-  const keigoTargetLabel = rc.target_label_vi || "Kính ngữ";
-  const tripletSonkeigo = rc.triplet_sonkeigo || "";
-  const tripletKenjougo = rc.triplet_kenjougo || "";
-  const explanationVi = rc.explanation_vi || "";
+  const keigoTargetType = result.targetType || rc.target_type || "sonkeigo";
+  const keigoTargetLabel = result.targetLabel || rc.target_label_vi || "Kính ngữ";
+  const tripletSonkeigo = result.tripletSonkeigo || rc.triplet_sonkeigo || "";
+  const tripletKenjougo = result.tripletKenjougo || rc.triplet_kenjougo || "";
+  const explanationVi = result.explanationVi || rc.explanation_vi || "";
+  const keigoFormula = rc.formula || exercise?.formula || "";
+  const keigoExampleJa = rc.example_ja || exercise?.exampleJa || result.exampleJa || "";
+  const keigoExampleVi = rc.example_vi || exercise?.exampleVi || result.exampleVi || "";
+  const keigoSubjectHint = rc.subject_hint_vi || exercise?.subjectHintVi || "";
+  const isTransformation = exercise?.exercise_type === "reflex_transformation" || rc.sub_mode === "reflex_transformation";
+  const transformSource = exercise?.source || rc.source || promptText || "";
+  const transformTargetLabel = exercise?.targetLabel || rc.target_label || rc.targetLabel || exercise?.task || rc.task || "";
+  const transformFormula = exercise?.formula || rc.formula || "";
+  const transformGrammarNote = exercise?.grammarNote || rc.grammar_note || rc.grammarNote || "";
+
+  const isContext = exercise?.exercise_type === "reflex_context" || rc.sub_mode === "reflex_context";
+  const contextRole = exercise?.role || rc.role || rc.relationship || exercise?.relationship || "Đối phương";
+  const contextSpeakerJa = exercise?.speakerJa || rc.speaker_ja || promptText || "";
+  const contextSpeakerVi = exercise?.speakerVi || rc.speaker_vi || "";
+  const contextIntent = exercise?.intent || rc.intent || "";
+  const contextCulturalNote = exercise?.culturalNote || rc.cultural_note || rc.culturalNote || "";
+
+  const isQna = exercise?.exercise_type === "reflex_qna" || rc.sub_mode === "reflex_qna";
+  const multiAnswers =
+    exercise?.multiAnswers ||
+    rc.multi_answers ||
+    rc.multiAnswers ||
+    (exercise as any)?.multi_answers ||
+    (exercise as any)?.multiAnswers ||
+    (result as any)?.multiAnswers ||
+    (result as any)?.extra_metadata?.reflex_config?.multi_answers ||
+    null;
 
   const canonical =
     result.canonicalAnswer ||
     exercise?.canonical ||
+    rc.canonical ||
+    rc.expected ||
+    rc.target ||
     (exercise?.target_patterns && exercise.target_patterns.length > 0 ? exercise.target_patterns[0] : "") ||
     "";
 
-  // For TTS: if ja_to_vi, the Japanese word to pronounce is promptText (e.g. 食べる)
-  const ttsText = (isVocab && vocabDirection === "ja_to_vi") ? (promptText || canonical) : canonical;
+  const vocabWord = rc.word || exercise?.word || canonical || "";
 
-  const playedExerciseIdRef = useRef<string | null>(null);
+  const effectiveMultiAnswers =
+    multiAnswers ||
+    ((isQna || isContext) && canonical
+      ? {
+          positive: { ja: canonical, vi: isContext ? "Nhận lời / Khẳng định chuẩn mực" : "Trả lời khẳng định / Tích cực" },
+          negative: { ja: "いいえ、実はあまり...", vi: isContext ? "Từ chối khéo / Đàm phán" : "Khéo léo từ chối / Khác biệt" },
+          extended: { ja: `${canonical}。`, vi: isContext ? "Mở rộng thêm giải pháp" : "Mở rộng thêm cảm xúc / Lý do" },
+        }
+      : null);
+
+  // TTS ALWAYS speaks the MODEL ANSWER (canonical), NEVER the question (promptText)!
+  const ttsText = canonical;
 
   // Auto-play model answer TTS when result is first shown
   useEffect(() => {
     if (!ttsText) return;
-    const currentId = result.exerciseId || (exercise as any)?.id || "result";
-    if (playedExerciseIdRef.current === currentId) return;
-    playedExerciseIdRef.current = currentId;
 
     setIsTTSPlaying(true);
     const timer = setTimeout(() => {
@@ -105,12 +147,13 @@ export function ReflexResultCard({
         onEnd: () => setIsTTSPlaying(false),
         onError: () => setIsTTSPlaying(false),
       });
-    }, 100);
+    }, 200);
 
     return () => {
       clearTimeout(timer);
+      stopWebSpeech();
     };
-  }, [result.exerciseId, (exercise as any)?.id, ttsText]);
+  }, [ttsText]);
 
   // Resolve acceptable variants
   const variants =
@@ -250,7 +293,7 @@ export function ReflexResultCard({
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-foreground">
             <Zap className="h-3.5 w-3.5 text-amber-500" />
             <span>Phản xạ: {Math.round(latency)}ms</span>
-            <span className="text-muted-foreground font-normal">/ {timerLimit / 1000}s</span>
+            <span className="text-muted-foreground font-normal">/ {timerLimit > 0 ? `${timerLimit / 1000}s` : "∞"}</span>
           </div>
         )}
       </div>
@@ -393,86 +436,358 @@ export function ReflexResultCard({
               </div>
             )}
 
-            {/* Keigo Word Special 3-Way Layout */}
-            {isKeigoVocab ? (
+            {/* 1. SPEED Q&A & CONTEXTUAL REACTION: 3-Way Multi-Angle Model Answers */}
+            {(isQna || isContext) && effectiveMultiAnswers ? (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                    keigoTargetType === "sonkeigo"
-                      ? "bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400"
-                      : keigoTargetType === "kenjougo"
-                      ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
-                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
-                  }`}>
-                    {keigoTargetLabel}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>{isContext ? "3 Hướng Phản Hồi Thực Tế (Multi-Angle):" : "3 Hướng Trả Lời Đa Chiều (Multi-Angle):"}</span>
                   </span>
-                  {rc.jlpt_level && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                      JLPT {rc.jlpt_level}
+                  <span className="text-[10px] text-muted-foreground font-semibold">Bấm 🔈 để Shadowing</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Positive / Direct Answer */}
+                  {effectiveMultiAnswers.positive && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-start justify-between gap-2 text-left shadow-2xs">
+                      <div className="space-y-0.5 min-w-0">
+                        <span className="inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                          {isContext ? "🟢 Nhận lời / Khẳng định chuẩn mực" : "🟢 Khẳng định / Tích cực (Positive)"}
+                        </span>
+                        <p className="text-xs md:text-sm font-bold font-jp text-foreground leading-snug">
+                          {effectiveMultiAnswers.positive.ja}
+                        </p>
+                        {effectiveMultiAnswers.positive.vi && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {effectiveMultiAnswers.positive.vi}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(effectiveMultiAnswers.positive.ja, { rate: 0.95 })}
+                        className="p-1.5 rounded-lg bg-card border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shrink-0 shadow-2xs transition-colors"
+                        title="Nghe câu trả lời khẳng định"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Negative / Polite Refusal / Negotiation */}
+                  {(effectiveMultiAnswers.negative || (effectiveMultiAnswers as any).negotiation) && (
+                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start justify-between gap-2 text-left shadow-2xs">
+                      <div className="space-y-0.5 min-w-0">
+                        <span className="inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                          {isContext ? "🟡 Từ chối khéo / Đàm phán lùi hạn" : "🔴 Phủ định / Khéo léo từ chối (Refusal)"}
+                        </span>
+                        <p className="text-xs md:text-sm font-bold font-jp text-foreground leading-snug">
+                          {(effectiveMultiAnswers as any).negotiation?.ja || effectiveMultiAnswers.negative?.ja}
+                        </p>
+                        {((effectiveMultiAnswers as any).negotiation?.vi || effectiveMultiAnswers.negative?.vi) && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {(effectiveMultiAnswers as any).negotiation?.vi || effectiveMultiAnswers.negative?.vi}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText((effectiveMultiAnswers as any).negotiation?.ja || effectiveMultiAnswers.negative?.ja, { rate: 0.95 })}
+                        className="p-1.5 rounded-lg bg-card border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 shrink-0 shadow-2xs transition-colors"
+                        title="Nghe câu trả lời từ chối/đàm phán"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Extended / Reason */}
+                  {effectiveMultiAnswers.extended && (
+                    <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-start justify-between gap-2 text-left shadow-2xs">
+                      <div className="space-y-0.5 min-w-0">
+                        <span className="inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">
+                          {isContext ? "🔵 Mở rộng / Báo cáo giải trình" : "🔵 Mở rộng tự nhiên / Thêm lý do (Extended)"}
+                        </span>
+                        <p className="text-xs md:text-sm font-bold font-jp text-foreground leading-snug">
+                          {effectiveMultiAnswers.extended.ja}
+                        </p>
+                        {effectiveMultiAnswers.extended.vi && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {effectiveMultiAnswers.extended.vi}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(effectiveMultiAnswers.extended.ja, { rate: 0.95 })}
+                        className="p-1.5 rounded-lg bg-card border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 shrink-0 shadow-2xs transition-colors"
+                        title="Nghe câu trả lời mở rộng"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cultural Nuance Takeaway */}
+                {isContext && contextCulturalNote && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left shadow-2xs space-y-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                      💡 Bí quyết ứng xử văn hóa Nhật:
                     </span>
+                    <p className="text-[11px] font-medium text-amber-900 dark:text-amber-200 leading-relaxed">
+                      {contextCulturalNote}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : isKeigoVocab ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md border ${
+                      keigoTargetType === "sonkeigo"
+                        ? "bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                        : keigoTargetType === "kenjougo"
+                        ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
+                        : "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                    }`}>
+                      {keigoTargetLabel}
+                    </span>
+                    {rc.jlpt_level && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                        JLPT {rc.jlpt_level}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => speakJapaneseText(canonical, { rate: 0.95 })}
+                    className="p-1.5 rounded-lg bg-card border border-border/80 text-foreground hover:bg-muted shrink-0 shadow-2xs transition-colors flex items-center gap-1 text-[11px] font-bold"
+                    title="Nghe phát âm từ kính ngữ"
+                  >
+                    <Volume2 className="h-3.5 w-3.5 text-primary" />
+                    <span>Nghe từ</span>
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-card border border-border/80 space-y-2 shadow-2xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xl md:text-2xl font-black font-jp text-primary leading-tight">
+                      {canonical || "—"}
+                    </span>
+                    {wordReading && wordReading !== canonical && (
+                      <span className="text-sm font-bold text-muted-foreground font-jp">
+                        ({wordReading})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                    <span>Từ gốc (Plain Form):</span>
+                    <span className="font-bold text-foreground font-jp">{promptText}</span>
+                    {wordMeaningVi && (
+                      <span>• Ý nghĩa: <strong className="text-foreground">{wordMeaningVi}</strong></span>
+                    )}
+                  </div>
+
+                  {keigoFormula && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-muted/60 border border-border/60 text-[11px] font-mono text-muted-foreground">
+                      <span className="font-sans font-bold text-amber-600 dark:text-amber-400 text-[10px]">Công thức:</span>
+                      <span className="font-bold font-jp text-foreground">{keigoFormula}</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="text-xl md:text-2xl font-black font-jp text-primary leading-tight">
-                  {canonical || "—"}
-                </div>
+                {/* 3-Way Triplet Comparison */}
+                {(tripletSonkeigo || tripletKenjougo) && (
+                  <div className="p-2.5 rounded-2xl bg-card border border-border/80 grid grid-cols-2 gap-2 text-xs shadow-2xs">
+                    <div className="space-y-0.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                      <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                        👑 Tôn kính (Sếp / Khách)
+                      </span>
+                      <p className="font-bold font-jp text-foreground">{tripletSonkeigo || "—"}</p>
+                    </div>
+                    <div className="space-y-0.5 p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+                        🙇 Khiêm nhường (Bản thân)
+                      </span>
+                      <p className="font-bold font-jp text-foreground">{tripletKenjougo || "—"}</p>
+                    </div>
+                  </div>
+                )}
 
-                <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
-                  <span>Từ gốc:</span>
-                  <span className="font-bold text-foreground font-jp">{promptText}</span>
-                  {wordReading && wordReading !== promptText && (
-                    <span className="text-primary font-jp">({wordReading})</span>
-                  )}
-                  {wordMeaningVi && (
-                    <span>• {wordMeaningVi}</span>
-                  )}
-                </div>
+                {/* Business Example Sentence with Native TTS Shadowing */}
+                {keigoExampleJa && (
+                  <div className="p-3 rounded-2xl bg-muted/40 border border-border/80 space-y-1.5 text-left shadow-2xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        💬 Câu ví dụ giao tiếp công sở:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(keigoExampleJa, { rate: 0.95 })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-card border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15 text-[10px] font-bold shadow-2xs transition-colors"
+                        title="Nghe câu ví dụ để Shadowing"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                        <span>Shadowing</span>
+                      </button>
+                    </div>
+                    <p className="text-xs md:text-sm font-bold font-jp text-foreground leading-snug">
+                      {keigoExampleJa}
+                    </p>
+                    {keigoExampleVi && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {keigoExampleVi}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {explanationVi && (
                   <p className="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
                     💡 {explanationVi}
                   </p>
                 )}
+              </div>
+            ) : isVocab ? (
+              <div className="space-y-3">
+                {/* Header: Word + Furigana reading + Word Type + Audio */}
+                <div className="p-3 rounded-2xl bg-card border border-border/80 space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl md:text-2xl font-black font-jp text-primary leading-tight">
+                        {canonical || vocabWord || "—"}
+                      </span>
+                      {wordReading && wordReading !== canonical && (
+                        <span className="text-sm font-bold text-muted-foreground font-jp">
+                          ({wordReading})
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {vocabTypeLabel && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                          {vocabTypeLabel}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(canonical || vocabWord, { rate: 0.95 })}
+                        className="p-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/30 transition-colors shadow-2xs"
+                        title="Nghe phát âm từ vựng"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-                {/* 3-Way Triplet Comparison for verbs */}
-                {(tripletSonkeigo || tripletKenjougo) && (
-                  <div className="mt-2 p-2.5 rounded-xl bg-card border border-border/80 grid grid-cols-2 gap-2 text-xs">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                        👑 Tôn kính (Sonkei)
-                      </span>
-                      <p className="font-bold font-jp text-foreground">{tripletSonkeigo || "—"}</p>
+                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                    <span>Nghĩa tiếng Việt:</span>
+                    <span className="font-bold text-foreground">{wordMeaningVi || promptText}</span>
+                  </div>
+
+                  {/* Collocation Blueprint */}
+                  {vocabCollocationJa && (
+                    <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                        <span className="text-[10px] font-extrabold uppercase text-violet-600 dark:text-violet-400">
+                          🔗 Cụm Collocation:
+                        </span>
+                        <span className="font-bold font-jp text-foreground">{vocabCollocationJa}</span>
+                        {vocabCollocationVi && (
+                          <span className="text-muted-foreground">({vocabCollocationVi})</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(vocabCollocationJa, { rate: 0.95 })}
+                        className="p-1 rounded-md bg-card border border-violet-500/30 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 shrink-0"
+                        title="Nghe cụm collocation"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                      </button>
                     </div>
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                        🙇 Khiêm nhường (Kenjou)
+                  )}
+                </div>
+
+                {/* Example Sentence with Native TTS Shadowing */}
+                {vocabExampleJa && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/70 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-primary" />
+                        Câu ví dụ đàm thoại thực tế:
                       </span>
-                      <p className="font-bold font-jp text-foreground">{tripletKenjougo || "—"}</p>
+                      <button
+                        type="button"
+                        onClick={() => speakJapaneseText(vocabExampleJa, { rate: 0.95 })}
+                        className="px-2 py-0.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                        title="Nghe câu ví dụ để Shadowing"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                        Shadowing
+                      </button>
                     </div>
+                    <p className="text-sm font-bold font-jp text-foreground leading-relaxed">
+                      {vocabExampleJa}
+                    </p>
+                    {vocabExampleVi && (
+                      <p className="text-xs text-muted-foreground font-medium">
+                        {vocabExampleVi}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            ) : isVocab ? (
-              <div className="space-y-1">
-                <div className="text-lg md:text-xl font-black font-jp text-primary leading-tight">
-                  {canonical || "—"}
+            ) : isTransformation ? (
+              <div className="space-y-2">
+                {/* Visual Before -> After Diff Box */}
+                <div className="p-3 rounded-2xl bg-card border border-border/80 space-y-2 shadow-2xs">
+                  {/* Before */}
+                  <div className="flex items-start gap-2 text-xs">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold text-[10px] uppercase shrink-0 mt-0.5">
+                      🔻 Câu gốc
+                    </span>
+                    <span className="font-bold font-jp text-muted-foreground text-sm leading-relaxed">
+                      {transformSource || promptText}
+                    </span>
+                  </div>
+
+                  {/* After */}
+                  <div className="flex items-start gap-2 text-xs pt-1 border-t border-border/50">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase shrink-0 mt-0.5">
+                      🟢 Sau biến đổi
+                    </span>
+                    <span className="font-black font-jp text-primary text-base leading-relaxed">
+                      {canonical || "—"}
+                    </span>
+                  </div>
                 </div>
-                {vocabDirection === "ja_to_vi" ? (
-                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
-                    <span>Từ gốc:</span>
-                    <span className="font-bold text-foreground font-jp">{promptText}</span>
-                    {wordReading && wordReading !== promptText && (
-                      <span className="text-primary font-jp">({wordReading})</span>
+
+                {/* Target & Formula badge if present */}
+                {(transformTargetLabel || transformFormula) && (
+                  <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                    {transformTargetLabel && (
+                      <span className="px-2 py-0.5 rounded-lg bg-primary/10 border border-primary/25 text-primary font-bold text-[11px]">
+                        ⚡ {transformTargetLabel}
+                      </span>
+                    )}
+                    {transformFormula && (
+                      <span className="px-2 py-0.5 rounded-lg bg-muted text-muted-foreground font-mono text-[11px]">
+                        💡 {transformFormula}
+                      </span>
                     )}
                   </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
-                    {wordReading && wordReading !== canonical && (
-                      <span className="font-bold text-primary font-jp">({wordReading})</span>
-                    )}
-                    <span>• Nghĩa:</span>
-                    <span className="font-bold text-foreground">{promptText}</span>
-                  </div>
+                )}
+
+                {/* Grammar Note Takeaway */}
+                {transformGrammarNote && (
+                  <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl leading-relaxed">
+                    💡 <strong>Điểm ngữ pháp:</strong> {transformGrammarNote}
+                  </p>
                 )}
               </div>
             ) : (
@@ -503,7 +818,7 @@ export function ReflexResultCard({
             <button
               type="button"
               onClick={handlePlayModelTTS}
-              disabled={!canonical}
+              disabled={!ttsText}
               className={cn(
                 "w-full py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-xs",
                 isTTSPlaying

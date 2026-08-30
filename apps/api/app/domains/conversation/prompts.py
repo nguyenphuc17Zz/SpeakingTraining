@@ -64,6 +64,20 @@ Focus entirely on natural, immersive conversation flow. Do not correct grammar o
 4. Language: Respond in Japanese by default. Match the persona's speaking style ({persona.speaking_style}).
 5. Voice Optimization: Avoid emojis, parenthetical stage directions like (笑) or （ため息）, or formatting that sounds awkward when read aloud by TTS.
 
+[LIVE TURN SCAFFOLDING INSTRUCTION]
+At the very end of your reply (after ---HINT--- if any), ALWAYS append a scaffolding block strictly using this exact format to help the learner answer your question:
+---SCAFFOLD---
+{{
+  "suggestions": [
+    {{"intent": "positive", "ja": "...", "vi": "..."}},
+    {{"intent": "concern", "ja": "...", "vi": "..."}},
+    {{"intent": "question", "ja": "...", "vi": "..."}}
+  ],
+  "key_vocab": [
+    {{"ja": "...", "reading": "...", "vi": "..."}}
+  ]
+}}
+
 {mode_instruction}
 {custom_block}
 """

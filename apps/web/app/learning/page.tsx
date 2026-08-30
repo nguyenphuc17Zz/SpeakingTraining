@@ -33,6 +33,7 @@ import { CurriculumNode, CurriculumRoadmap } from "@/types/learning";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { soundFX } from "@/lib/sound-fx";
+import { cn } from "@/lib/utils";
 
 export default function LearningDashboardPage() {
   const {
@@ -141,6 +142,8 @@ export default function LearningDashboardPage() {
     setIsModalOpen(false);
   };
 
+  const [activeTab, setActiveTab] = useState<"roadmap" | "daily_plan">("roadmap");
+
   const [coachTip, setCoachTip] = useState<string | null>(null);
   useEffect(() => {
     const CK = "coach_tip_learning";
@@ -166,33 +169,30 @@ export default function LearningDashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 max-w-6xl mx-auto pb-16">
+    <div className="space-y-4 animate-in fade-in duration-300 max-w-5xl mx-auto pb-8">
       {/* 1. Header Banner Haru Washi */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 washi-texture shadow-sm space-y-4">
-        <div className="absolute top-0 right-0 h-48 w-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 washi-texture shadow-2xs space-y-3">
+        <div className="absolute top-0 right-0 h-32 w-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="matcha" size="sm" className="font-bold">
+              <Badge variant="matcha" size="sm" className="font-bold text-[10px]">
                 ADAPTIVE CURRICULUM & DAILY PLAN
               </Badge>
-              <span className="text-xs text-muted-foreground font-semibold">
-                Lộ Trình Học Động & Nhiệm Vụ Hôm Nay
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                Lộ Trình Học Động & Nhiệm Vụ Ngày
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
-              <span className="p-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary inline-flex">
-                <Compass className="h-6 w-6" />
+            <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
+              <span className="p-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary inline-flex">
+                <Compass className="h-5 w-5" />
               </span>
               <span>Lộ Trình Luyện Nói Cá Nhân Hóa (学習ロードマップ)</span>
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-              Lộ trình 4 chặng do AI thiết kế riêng cho mục tiêu của bạn. Tự động đồng bộ tiến độ sau mỗi lần luyện nói.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start md:self-auto">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="akane"
               size="sm"
@@ -200,9 +200,9 @@ export default function LearningDashboardPage() {
                 soundFX.playFurin();
                 setIsOnboardingOpen(true);
               }}
-              className="text-xs font-bold gap-1.5 shadow-md rounded-xl h-9 px-4"
+              className="text-xs font-bold gap-1.5 shadow-md rounded-xl h-8 px-3.5"
             >
-              <Wand2 className="h-4 w-4" />
+              <Wand2 className="h-3.5 w-3.5" />
               <span>Tạo Lại Lộ Trình AI</span>
             </Button>
           </div>
@@ -210,9 +210,9 @@ export default function LearningDashboardPage() {
 
         {/* Coach Sensei Tip */}
         {coachTip && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-100">
-            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="leading-relaxed">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-900 dark:text-amber-100">
+            <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="leading-snug truncate">
               <span className="font-bold font-jp">Sensei Tip: </span>
               {coachTip}
             </div>
@@ -220,60 +220,111 @@ export default function LearningDashboardPage() {
         )}
       </div>
 
-      {/* 2. AI Sensei Daily Briefing Letter */}
-      <DailySenseiBriefingCard />
+      {/* 2. Top Segmented Navigation Switcher */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-muted/60 border border-border/80 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playFurin();
+            setActiveTab("roadmap");
+          }}
+          className={cn(
+            "flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2",
+            activeTab === "roadmap"
+              ? "bg-card text-foreground border border-border shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Layers className="h-3.5 w-3.5 text-primary" />
+          <span>🗺️ Lộ Trình Toàn Diện 4 Chặng (Roadmap)</span>
+        </button>
 
-      {/* 3. Interactive Milestone Roadmap (4 Stages & Nodes) */}
-      <InteractiveRoadmapView
-        roadmap={roadmap}
-        onSelectNode={(node) => setSelectedNode(node)}
-        onOpenOnboarding={() => setIsOnboardingOpen(true)}
-        isLoading={roadmapLoading}
-      />
-
-      {/* 4. Today Focus Quests & Priorities Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Daily Plan Column (2 Cols) */}
-        <div className="lg:col-span-2 space-y-6">
-          <DailyPlanCard
-            plan={plan}
-            loading={planLoading}
-            regenerating={planRegenerating}
-            timeBudget={timeBudget}
-            onBudgetChange={setTimeBudget}
-            onStartExercise={handleStartPlanExercise}
-          />
-        </div>
-
-        {/* Priorities & Due Reviews (1 Col) */}
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-              Mục Tiêu Ưu Tiên Khắc Phục (Priorities)
-            </h3>
-            {prioritiesLoading ? (
-              <div className="p-8 text-center text-xs text-muted-foreground">Đang tải gợi ý...</div>
-            ) : priorities.length === 0 ? (
-              <div className="p-6 rounded-2xl border border-border bg-card text-center text-xs text-muted-foreground">
-                Chưa có điểm yếu cần ưu tiên đặc biệt.
-              </div>
-            ) : (
-              priorities.map((item, idx) => (
-                <PriorityCard
-                  key={idx}
-                  priority={item}
-                  onPractice={handleStartPriorityPractice}
-                />
-              ))
-            )}
-          </div>
-
-          <ReviewQueueCard
-            dueReviews={dueReviews}
-            onStartReview={(id) => handleStartPriorityPractice(id)}
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playFurin();
+            setActiveTab("daily_plan");
+          }}
+          className={cn(
+            "flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2",
+            activeTab === "daily_plan"
+              ? "bg-card text-foreground border border-border shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Calendar className="h-3.5 w-3.5 text-emerald-500" />
+          <span>📋 Nhiệm Vụ Hôm Nay (Daily Plan & Focus)</span>
+          {plan?.items && (
+            <Badge variant="matcha" size="sm" className="text-[9px] px-1.5 py-0">
+              {plan.items.filter((i) => i.status === "completed").length}/{plan.items.length}
+            </Badge>
+          )}
+        </button>
       </div>
+
+      {/* Tab 1: Curriculum Roadmap View */}
+      {activeTab === "roadmap" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <InteractiveRoadmapView
+            roadmap={roadmap}
+            onSelectNode={(node) => setSelectedNode(node)}
+            onOpenOnboarding={() => setIsOnboardingOpen(true)}
+            isLoading={roadmapLoading}
+          />
+        </div>
+      )}
+
+      {/* Tab 2: Daily Plan & Today Priorities View */}
+      {activeTab === "daily_plan" && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* AI Sensei Daily Briefing Letter */}
+          <DailySenseiBriefingCard />
+
+          {/* Today Focus Quests & Priorities Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            {/* Daily Plan Column (2 Cols) */}
+            <div className="lg:col-span-2 space-y-4">
+              <DailyPlanCard
+                plan={plan}
+                loading={planLoading}
+                regenerating={planRegenerating}
+                timeBudget={timeBudget}
+                onBudgetChange={setTimeBudget}
+                onStartExercise={handleStartPlanExercise}
+              />
+            </div>
+
+            {/* Priorities & Due Reviews (1 Col) */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Mục Tiêu Ưu Tiên Khắc Phục (Priorities)
+                </h3>
+                {prioritiesLoading ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground">Đang tải gợi ý...</div>
+                ) : priorities.length === 0 ? (
+                  <div className="p-4 rounded-2xl border border-border bg-card text-center text-xs text-muted-foreground">
+                    Chưa có điểm yếu cần ưu tiên đặc biệt.
+                  </div>
+                ) : (
+                  priorities.map((item, idx) => (
+                    <PriorityCard
+                      key={idx}
+                      priority={item}
+                      onPractice={handleStartPriorityPractice}
+                    />
+                  ))
+                )}
+              </div>
+
+              <ReviewQueueCard
+                dueReviews={dueReviews}
+                onStartReview={(id) => handleStartPriorityPractice(id)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <CurriculumOnboardingModal

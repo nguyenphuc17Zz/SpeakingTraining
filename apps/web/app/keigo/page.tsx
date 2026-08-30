@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 export default function KeigoPage() {
   const [subMode, setSubMode] = useState("mixed");
-  const [pressure, setPressure] = useState<"relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
+  const [pressure, setPressure] = useState<"infinite" | "relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
   const [subtitleMode, setSubtitleMode] = useState<"hidden" | "japanese" | "japanese_reading" | "vietnamese">("japanese");
   const [startTrigger, setStartTrigger] = useState<"manual" | "auto">("manual");
   const [transcriptInput, setTranscriptInput] = useState("");
@@ -236,6 +236,14 @@ export default function KeigoPage() {
       } else if (matchesAction(e, "keigoToggleInputMode")) {
         e.preventDefault();
         setShowTextInput((v) => !v);
+      } else if (
+        matchesAction(e, "keigoToggleHint") &&
+        session.phase !== "idle" &&
+        session.phase !== "summary"
+      ) {
+        e.preventDefault();
+        soundFX.playFurin();
+        session.cycleHint();
       } else if (matchesAction(e, "keigoRetry") && session.phase === "result") {
         e.preventDefault();
         soundFX.playSuikinkutsu();
@@ -244,6 +252,23 @@ export default function KeigoPage() {
         e.preventDefault();
         soundFX.playSuikinkutsu();
         session.startNext();
+      } else if (
+        (matchesAction(e, "keigoReplayModel") ||
+          matchesAction(e, "keigoListenPrompt") ||
+          matchesAction(e, "drillReplayAudio")) &&
+        session.phase === "result"
+      ) {
+        e.preventDefault();
+        const canonical =
+          session.result?.canonicalAnswer ||
+          session.exercise?.canonical ||
+          (session.exercise?.target_patterns && session.exercise.target_patterns.length > 0
+            ? session.exercise.target_patterns[0]
+            : "");
+        if (canonical) {
+          soundFX.playFurin();
+          speakJapaneseText(canonical, { rate: 0.95 });
+        }
       } else if (matchesAction(e, "keigoListenPrompt") && session.phase !== "idle") {
         e.preventDefault();
         playPromptAudio(false);
@@ -408,6 +433,8 @@ export default function KeigoPage() {
             subtitleMode={subtitleMode}
             onPlayAudio={() => playPromptAudio(false)}
             phase={session.phase}
+            hintLevel={session.hintLevel}
+            onCycleHint={session.cycleHint}
           />
 
           {isEvaluating && (

@@ -12,11 +12,17 @@ import {
   ShieldAlert,
   Users,
   Building,
+  Volume2,
+  Sparkles,
 } from "lucide-react";
+import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
+import { cn } from "@/lib/utils";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSelectWord?: (word: string) => void;
 }
 
 const KEIGO_VERB_TABLE = [
@@ -37,9 +43,20 @@ const KEIGO_VERB_TABLE = [
   { plain: "思う (Nghĩ)", sonkeigo: "お思いになる", kenjougo: "存じます", teineigo: "思います", example: "結構だと存じます" },
 ];
 
-export function KeigoCheatsheetModal({ isOpen, onClose }: Props) {
+export function KeigoCheatsheetModal({ isOpen, onClose, onSelectWord }: Props) {
   const [activeTab, setActiveTab] = useState<"verbs" | "uchi_soto" | "double_keigo">("verbs");
   const [searchQuery, setSearchQuery] = useState("");
+  const [speakingText, setSpeakingText] = useState<string | null>(null);
+
+  const handleSpeak = (text: string) => {
+    if (!text || text === "—") return;
+    setSpeakingText(text);
+    speakJapaneseText(text, {
+      rate: 0.95,
+      onEnd: () => setSpeakingText(null),
+      onError: () => setSpeakingText(null),
+    });
+  };
 
   const filteredVerbs = KEIGO_VERB_TABLE.filter(
     (v) =>
@@ -53,7 +70,7 @@ export function KeigoCheatsheetModal({ isOpen, onClose }: Props) {
     <Modal isOpen={isOpen} onClose={onClose} title="📖 Sổ Tay Kính Ngữ Công Sở (Pocket Reference)" className="max-w-4xl">
       <div className="space-y-4 text-sm">
         {/* Navigation Tabs */}
-        <div className="flex gap-2 border-b border-border/80 pb-2">
+        <div className="flex flex-wrap gap-2 border-b border-border/80 pb-2">
           <Button
             size="sm"
             variant={activeTab === "verbs" ? "akane" : "ghost"}
@@ -96,21 +113,65 @@ export function KeigoCheatsheetModal({ isOpen, onClose }: Props) {
 
             <div className="max-h-[380px] overflow-y-auto rounded-2xl border border-border/80 bg-card">
               <table className="w-full text-left text-xs border-collapse font-jp">
-                <thead className="sticky top-0 bg-muted/90 backdrop-blur-xs border-b border-border text-[11px] font-bold text-muted-foreground">
+                <thead className="sticky top-0 bg-muted/90 backdrop-blur-xs border-b border-border text-[11px] font-bold text-muted-foreground z-10">
                   <tr>
-                    <th className="p-2.5 font-sans">Động từ gốc (Ý nghĩa)</th>
+                    <th className="p-2.5 font-sans">Động từ gốc</th>
                     <th className="p-2.5 text-rose-600 dark:text-rose-400 font-sans">Tôn Kính (尊敬語) ↑</th>
                     <th className="p-2.5 text-emerald-600 dark:text-emerald-400 font-sans">Khiêm Nhường (謙譲語) ↓</th>
                     <th className="p-2.5 text-muted-foreground hidden md:table-cell font-sans">Ví dụ ứng dụng</th>
+                    <th className="p-2.5 text-right font-sans">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {filteredVerbs.map((v, idx) => (
                     <tr key={idx} className="hover:bg-muted/30 transition-colors">
                       <td className="p-2.5 font-bold text-foreground font-sans">{v.plain}</td>
-                      <td className="p-2.5 font-extrabold text-rose-600 dark:text-rose-400">{v.sonkeigo}</td>
-                      <td className="p-2.5 font-extrabold text-emerald-600 dark:text-emerald-400">{v.kenjougo}</td>
-                      <td className="p-2.5 text-muted-foreground text-[11px] hidden md:table-cell">{v.example}</td>
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1.5 font-extrabold text-rose-600 dark:text-rose-400">
+                          <UniversalFurigana text={v.sonkeigo} fontSize="sm" />
+                          {v.sonkeigo !== "—" && (
+                            <button
+                              onClick={() => handleSpeak(v.sonkeigo)}
+                              className="text-muted-foreground hover:text-rose-600 p-0.5"
+                              title="Nghe phát âm"
+                            >
+                              <Volume2 className={cn("h-3 w-3", speakingText === v.sonkeigo && "animate-bounce text-rose-600")} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1.5 font-extrabold text-emerald-600 dark:text-emerald-400">
+                          <UniversalFurigana text={v.kenjougo} fontSize="sm" />
+                          {v.kenjougo !== "—" && (
+                            <button
+                              onClick={() => handleSpeak(v.kenjougo.split("/")[0].trim())}
+                              className="text-muted-foreground hover:text-emerald-600 p-0.5"
+                              title="Nghe phát âm"
+                            >
+                              <Volume2 className={cn("h-3 w-3", speakingText === v.kenjougo.split("/")[0].trim() && "animate-bounce text-emerald-600")} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2.5 text-muted-foreground text-[11px] hidden md:table-cell">
+                        <UniversalFurigana text={v.example} fontSize="sm" />
+                      </td>
+                      <td className="p-2.5 text-right">
+                        {onSelectWord && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              onSelectWord(v.plain.split(" ")[0]);
+                              onClose();
+                            }}
+                            className="h-6 px-2 text-[10px] font-bold text-primary hover:bg-primary/10"
+                          >
+                            Luyện từ này
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

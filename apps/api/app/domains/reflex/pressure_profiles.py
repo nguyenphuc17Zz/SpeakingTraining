@@ -4,6 +4,7 @@ from enum import Enum
 
 
 class PressureLevel(str, Enum):
+    INFINITE = "infinite"
     RELAXED = "relaxed"
     NORMAL = "normal"
     FAST = "fast"
@@ -12,6 +13,13 @@ class PressureLevel(str, Enum):
 
 
 PRESSURE_PROFILES: dict[str, dict] = {
+    PressureLevel.INFINITE.value: {
+        "label": "Infinite",
+        "label_ja": "無制限",
+        "timer_limit_ms": 0,
+        "description": "Không giới hạn thời gian, tự do luyện tập (∞).",
+        "difficulty": "all",
+    },
     PressureLevel.RELAXED.value: {
         "label": "Relaxed",
         "label_ja": "ゆっくり",
@@ -51,6 +59,7 @@ PRESSURE_PROFILES: dict[str, dict] = {
 
 # Adaptive presets for Learning Engine recommendation
 ADAPTIVE_PRESSURE_ORDER = [
+    PressureLevel.INFINITE.value,
     PressureLevel.RELAXED.value,
     PressureLevel.NORMAL.value,
     PressureLevel.FAST.value,
@@ -69,7 +78,7 @@ def next_pressure_level(current: str, harder: bool = True) -> str:
     try:
         idx = ADAPTIVE_PRESSURE_ORDER.index(current)
     except ValueError:
-        idx = 1  # normal
+        idx = 2  # normal
     if harder:
         return ADAPTIVE_PRESSURE_ORDER[min(len(ADAPTIVE_PRESSURE_ORDER) - 1, idx + 1)]
     return ADAPTIVE_PRESSURE_ORDER[max(0, idx - 1)]

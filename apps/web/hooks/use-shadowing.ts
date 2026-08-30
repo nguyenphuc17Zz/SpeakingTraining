@@ -19,14 +19,115 @@ export function useShadowing(videoId: string) {
   // Playback & Segment State
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [selectedSegment, setSelectedSegment] = useState<TranscriptSegment | null>(null);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
-  const [shadowingMode, setShadowingMode] = useState<ShadowingMode>("shadow");
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
+    if (typeof window === "undefined") return 1.0;
+    try {
+      const saved = localStorage.getItem("speaking_shadowing_speed");
+      return saved ? parseFloat(saved) || 1.0 : 1.0;
+    } catch {
+      return 1.0;
+    }
+  });
+
+  const [shadowingMode, setShadowingMode] = useState<ShadowingMode>(() => {
+    if (typeof window === "undefined") return "repeat";
+    try {
+      const saved = localStorage.getItem("speaking_shadowing_mode");
+      return (saved as ShadowingMode) || "repeat";
+    } catch {
+      return "repeat";
+    }
+  });
+
+  const [displaySubtitleMode, setDisplaySubtitleMode] = useState<
+    "bilingual" | "japanese" | "japanese_reading" | "hidden"
+  >(() => {
+    if (typeof window === "undefined") return "bilingual";
+    try {
+      const saved = localStorage.getItem("speaking_shadowing_sub_mode");
+      return (saved as any) || "bilingual";
+    } catch {
+      return "bilingual";
+    }
+  });
+
   const [isLooping, setIsLooping] = useState(false);
   const [loopRange, setLoopRange] = useState<{ start: number; end: number } | null>(null);
-  const [loopGap, setLoopGap] = useState<number>(0);
+  const [loopGap, setLoopGap] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const saved = localStorage.getItem("speaking_shadowing_loop_gap");
+      return saved ? parseInt(saved, 10) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Auto-Pilot state
+  const [autoPilot, setAutoPilot] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("speaking_shadowing_autopilot") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  // Bookmarked Segment IDs
+  const [bookmarkedSegmentIds, setBookmarkedSegmentIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const saved = localStorage.getItem(`speaking_shadowing_bookmarks_${videoId}`);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Segment Highest Scores Map
+  const [segmentScores, setSegmentScores] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = localStorage.getItem(`speaking_shadowing_scores_${videoId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist preferences
+  useEffect(() => {
+    try {
+      localStorage.setItem("speaking_shadowing_speed", String(playbackSpeed));
+      localStorage.setItem("speaking_shadowing_mode", shadowingMode);
+      localStorage.setItem("speaking_shadowing_sub_mode", displaySubtitleMode);
+      localStorage.setItem("speaking_shadowing_loop_gap", String(loopGap));
+      localStorage.setItem("speaking_shadowing_autopilot", String(autoPilot));
+    } catch {}
+  }, [playbackSpeed, shadowingMode, displaySubtitleMode, loopGap, autoPilot]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        `speaking_shadowing_bookmarks_${videoId}`,
+        JSON.stringify(Array.from(bookmarkedSegmentIds))
+      );
+    } catch {}
+  }, [bookmarkedSegmentIds, videoId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        `speaking_shadowing_scores_${videoId}`,
+        JSON.stringify(segmentScores)
+      );
+    } catch {}
+  }, [segmentScores, videoId]);
 
   // Active Practice & Recording State
-  const [practiceStep, setPracticeStep] = useState<"idle" | "listening" | "prompting" | "recording" | "evaluating">("idle");
+  const [practiceStep, setPracticeStep] = useState<
+    "idle" | "listening" | "prompting" | "recording" | "evaluating"
+  >("idle");
   const [pauseAtTime, setPauseAtTime] = useState<number | null>(null);
   const [currentExerciseId, setCurrentExerciseId] = useState<string | null>(null);
   const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
@@ -69,6 +170,19 @@ export function useShadowing(videoId: string) {
     liveSpeech.resetTranscript();
   };
 
+  // Toggle bookmark
+  const toggleBookmark = (segmentId: string) => {
+    setBookmarkedSegmentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(segmentId)) {
+        next.delete(segmentId);
+      } else {
+        next.add(segmentId);
+      }
+      return next;
+    });
+  };
+
   // Complete release of microphone whenever shadowing is idle or on unmount
   useEffect(() => {
     if (practiceStep === "idle") {
@@ -94,102 +208,7 @@ export function useShadowing(videoId: string) {
     }
   }, [selectedSegment, isLooping]);
 
-  // Set Marker A
-  const setMarkerA = (time?: number) => {
-    const t = Math.max(0, time !== undefined ? time : currentPlaybackTime);
-    setLoopRange((prev) => {
-      const end = prev && prev.end > t ? prev.end : Number((t + 3).toFixed(2));
-      return { start: Number(t.toFixed(2)), end };
-    });
-    setIsLooping(true);
-  };
-
-  // Set Marker B
-  const setMarkerB = (time?: number) => {
-    const t = Math.max(0, time !== undefined ? time : currentPlaybackTime);
-    setLoopRange((prev) => {
-      const start = prev && prev.start < t ? prev.start : Math.max(0, Number((t - 3).toFixed(2)));
-      return { start, end: Number(t.toFixed(2)) };
-    });
-    setIsLooping(true);
-  };
-
-  // Fine tune marker A (±0.5s)
-  const adjustMarkerA = (delta: number) => {
-    setLoopRange((prev) => {
-      if (!prev) {
-        const base = selectedSegment?.start_time || currentPlaybackTime;
-        return { start: Math.max(0, Number((base + delta).toFixed(2))), end: selectedSegment?.end_time || base + 3 };
-      }
-      const newStart = Math.max(0, Math.min(prev.end - 0.2, Number((prev.start + delta).toFixed(2))));
-      return { ...prev, start: newStart };
-    });
-    setIsLooping(true);
-  };
-
-  // Fine tune marker B (±0.5s)
-  const adjustMarkerB = (delta: number) => {
-    setLoopRange((prev) => {
-      if (!prev) {
-        const base = selectedSegment?.end_time || currentPlaybackTime + 3;
-        return { start: selectedSegment?.start_time || 0, end: Math.max(0.5, Number((base + delta).toFixed(2))) };
-      }
-      const newEnd = Math.max(prev.start + 0.2, Number((prev.end + delta).toFixed(2)));
-      return { ...prev, end: newEnd };
-    });
-    setIsLooping(true);
-  };
-
-  // Set exact custom range
-  const setExactLoopRange = (start: number, end: number) => {
-    setLoopRange({
-      start: Number(start.toFixed(2)),
-      end: Number(end.toFixed(2)),
-    });
-    setIsLooping(true);
-  };
-
-  // Expand loop to include the next segment
-  const expandLoopToNextSegment = () => {
-    if (!video?.segments || !selectedSegment) return;
-    const currIdx = video.segments.findIndex((s) => s.id === selectedSegment.id);
-    if (currIdx >= 0 && currIdx < video.segments.length - 1) {
-      const nextSeg = video.segments[currIdx + 1];
-      const start = loopRange ? loopRange.start : selectedSegment.start_time;
-      setLoopRange({
-        start,
-        end: nextSeg.end_time,
-      });
-      setIsLooping(true);
-    }
-  };
-
-  // Expand loop to include the previous segment
-  const expandLoopToPrevSegment = () => {
-    if (!video?.segments || !selectedSegment) return;
-    const currIdx = video.segments.findIndex((s) => s.id === selectedSegment.id);
-    if (currIdx > 0) {
-      const prevSeg = video.segments[currIdx - 1];
-      const end = loopRange ? loopRange.end : selectedSegment.end_time;
-      setLoopRange({
-        start: prevSeg.start_time,
-        end,
-      });
-      setIsLooping(true);
-    }
-  };
-
-  // Direct 1-click select and loop
-  const selectAndLoopSegment = (segment: TranscriptSegment) => {
-    setSelectedSegment(segment);
-    setLoopRange({
-      start: segment.start_time,
-      end: segment.end_time,
-    });
-    setIsLooping(true);
-  };
-
-  // Loop current segment
+  // Toggle Loop on Current Segment (1-Click Sentence Snapping)
   const loopCurrentSegment = () => {
     if (!selectedSegment) return;
     setLoopRange({
@@ -199,7 +218,6 @@ export function useShadowing(videoId: string) {
     setIsLooping(true);
   };
 
-  // Toggle A-B Loop
   const handleToggleLoop = () => {
     if (isLooping) {
       setIsLooping(false);
@@ -210,28 +228,25 @@ export function useShadowing(videoId: string) {
           start: selectedSegment.start_time,
           end: selectedSegment.end_time,
         });
+        setIsLooping(true);
       }
-      setIsLooping(true);
     }
   };
 
-  // Clear loop
   const clearLoop = () => {
     setIsLooping(false);
     setLoopRange(null);
   };
 
-  // Select next segment in timeline
-  // Select next segment in timeline
+  // Select Next/Prev Segment
   const selectNextSegment = () => {
     if (!video?.segments || !selectedSegment) return;
     const currIdx = video.segments.findIndex((s) => s.id === selectedSegment.id);
-    if (currIdx >= 0 && currIdx + 1 < video.segments.length) {
+    if (currIdx >= 0 && currIdx < video.segments.length - 1) {
       handleSelectSegment(video.segments[currIdx + 1]);
     }
   };
 
-  // Select previous segment in timeline
   const selectPrevSegment = () => {
     if (!video?.segments || !selectedSegment) return;
     const currIdx = video.segments.findIndex((s) => s.id === selectedSegment.id);
@@ -240,58 +255,54 @@ export function useShadowing(videoId: string) {
     }
   };
 
-  // Start Shadowing practice for current segment
-  const startRecording = async () => {
-    if (!selectedSegment) return;
-
-    try {
-      setLastFeedback(null);
-      setEvaluationError(null);
-      setIsEvaluating(false);
-      exerciseIdRef.current = null;
-      attemptIdRef.current = null;
-      setCurrentExerciseId(null);
-      setCurrentAttemptId(null);
-
-      liveSpeech.resetTranscript();
-      liveSpeech.startListening();
-      await audioRecorder.startRecording();
-      setPracticeStep("recording");
-
-      // Start Exercise attempt on backend
-      const startRes = await shadowingApi.startPractice(selectedSegment.id, shadowingMode);
-      exerciseIdRef.current = startRes.exercise_id;
-      attemptIdRef.current = startRes.attempt_id;
-      setCurrentExerciseId(startRes.exercise_id);
-      setCurrentAttemptId(startRes.attempt_id);
-    } catch (err: any) {
-      console.error("Microphone or API error:", err);
-      setEvaluationError(err.message || "Không thể khởi động bài luyện. Vui lòng kiểm tra quyền Microphone hoặc kết nối backend!");
-      setPracticeStep("idle");
+  // 4-Step Pedagogical Preset Flow
+  const applyPedagogicalLevel = (level: 1 | 2 | 3 | 4) => {
+    switch (level) {
+      case 1: // Mumbling
+        setPlaybackSpeed(0.8);
+        setShadowingMode("repeat");
+        setDisplaySubtitleMode("bilingual");
+        break;
+      case 2: // Sync Reading
+        setPlaybackSpeed(1.0);
+        setShadowingMode("repeat");
+        setDisplaySubtitleMode("japanese_reading");
+        break;
+      case 3: // Blind Shadowing
+        setPlaybackSpeed(1.0);
+        setShadowingMode("repeat");
+        setDisplaySubtitleMode("hidden");
+        break;
+      case 4: // Pro Impersonation
+        setPlaybackSpeed(1.1);
+        setShadowingMode("listen_shadow");
+        setDisplaySubtitleMode("japanese");
+        break;
     }
   };
 
   // Start Guided Practice depending on shadowingMode
-  const startGuidedPractice = async (player?: { seekTo: (t: number) => void; play: () => void; pause: () => void }) => {
+  const startGuidedPractice = async (player?: {
+    seekTo: (t: number) => void;
+    play: () => void;
+    pause: () => void;
+  }) => {
     if (!selectedSegment) return;
 
     setLastFeedback(null);
     setEvaluationError(null);
 
     if (shadowingMode === "repeat") {
-      // Step 1: Listen to reference sentence. Video pauses at end_time.
       setPracticeStep("listening");
       setPauseAtTime(selectedSegment.end_time);
       player?.seekTo(selectedSegment.start_time);
       player?.play();
     } else if (shadowingMode === "listen_shadow") {
-      // Round 1: Listen. Video pauses at end_time before user speaks.
       setPracticeStep("listening");
       setPauseAtTime(selectedSegment.end_time);
       player?.seekTo(selectedSegment.start_time);
       player?.play();
     } else {
-      // Direct Recording: Strictly pause video so mic records only the user's voice cleanly!
       player?.pause();
       setPracticeStep("recording");
       await startRecording();
@@ -299,22 +310,23 @@ export function useShadowing(videoId: string) {
   };
 
   // Called when video reaches pauseAtTime
-  const handlePauseAtTimeReached = async (player?: { seekTo: (t: number) => void; play: () => void; pause: () => void }) => {
+  const handlePauseAtTimeReached = async (player?: {
+    seekTo: (t: number) => void;
+    play: () => void;
+    pause: () => void;
+  }) => {
     if (!selectedSegment) return;
 
     if (shadowingMode === "repeat") {
-      // Video is now paused in silence! Do NOT auto-activate microphone; wait for user to press Q or click to record.
       setPauseAtTime(null);
       setPracticeStep("prompting");
     } else if (shadowingMode === "listen_shadow") {
       if (practiceStep === "listening") {
-        // Transition from Round 1 (Listen) to Round 2 (Record) - Keep video paused for clean mic recording
         setPauseAtTime(null);
         player?.pause();
         setPracticeStep("recording");
         await startRecording();
       } else if (practiceStep === "recording") {
-        // Round 2 completed!
         setPauseAtTime(null);
         await stopRecording();
       }
@@ -329,6 +341,35 @@ export function useShadowing(videoId: string) {
       audioRecorder.stopRecording();
     }
     liveSpeech.stopListening();
+  };
+
+  // Start Recording
+  const startRecording = async () => {
+    if (audioRecorder.isRecording) return;
+
+    setLastFeedback(null);
+    setEvaluationError(null);
+    liveSpeech.resetTranscript();
+
+    try {
+      await audioRecorder.startRecording();
+      liveSpeech.startListening();
+      setPracticeStep("recording");
+
+      if (selectedSegment) {
+        const startRes = await shadowingApi.startPractice(selectedSegment.id, shadowingMode);
+        exerciseIdRef.current = startRes.exercise_id;
+        attemptIdRef.current = startRes.attempt_id;
+        setCurrentExerciseId(startRes.exercise_id);
+        setCurrentAttemptId(startRes.attempt_id);
+      }
+    } catch (err: any) {
+      console.error("Microphone or API error:", err);
+      setEvaluationError(
+        err.message || "Không thể khởi động bài luyện. Vui lòng kiểm tra quyền Microphone hoặc kết nối backend!"
+      );
+      setPracticeStep("idle");
+    }
   };
 
   // Stop Recording & Submit Evaluation
@@ -363,7 +404,6 @@ export function useShadowing(videoId: string) {
           const base64Audio = (reader.result as string)?.split(",")[1];
 
           if (selectedSegment && base64Audio) {
-            // Always read the latest mutable ref values to avoid stale closures
             let exId = exerciseIdRef.current || currentExerciseId;
             let attId = attemptIdRef.current || currentAttemptId;
             if (!exId || !attId) {
@@ -392,10 +432,19 @@ export function useShadowing(videoId: string) {
             if (!feedbackRes.user_transcript && liveSpeech.fullTranscript) {
               feedbackRes.user_transcript = liveSpeech.fullTranscript;
             }
+
             setLastFeedback(feedbackRes);
             setEvaluationError(null);
 
-            // Reset attempt refs so subsequent attempts are completely clean
+            // Record score in local map
+            if (feedbackRes.score !== undefined) {
+              setSegmentScores((prev) => ({
+                ...prev,
+                [selectedSegment.id]: Math.max(prev[selectedSegment.id] || 0, Math.round(feedbackRes.score)),
+              }));
+            }
+
+            // Reset attempt refs
             exerciseIdRef.current = null;
             attemptIdRef.current = null;
             setCurrentExerciseId(null);
@@ -403,7 +452,9 @@ export function useShadowing(videoId: string) {
           }
         } catch (apiErr: any) {
           console.error("Evaluation API error:", apiErr);
-          setEvaluationError(apiErr.message || "Không thể hoàn thành chấm điểm. Máy chủ Whisper hoặc Backend gặp lỗi!");
+          setEvaluationError(
+            apiErr.message || "Không thể hoàn thành chấm điểm. Máy chủ Whisper hoặc Backend gặp lỗi!"
+          );
         } finally {
           setIsEvaluating(false);
           setPracticeStep("idle");
@@ -431,6 +482,8 @@ export function useShadowing(videoId: string) {
     setPlaybackSpeed,
     shadowingMode,
     setShadowingMode,
+    displaySubtitleMode,
+    setDisplaySubtitleMode,
     practiceStep,
     pauseAtTime,
     setPauseAtTime,
@@ -442,14 +495,6 @@ export function useShadowing(videoId: string) {
     loopGap,
     setLoopGap,
     toggleLoop: handleToggleLoop,
-    setMarkerA,
-    setMarkerB,
-    adjustMarkerA,
-    adjustMarkerB,
-    setExactLoopRange,
-    expandLoopToNextSegment,
-    expandLoopToPrevSegment,
-    selectAndLoopSegment,
     loopCurrentSegment,
     clearLoop,
     selectNextSegment,
@@ -464,5 +509,12 @@ export function useShadowing(videoId: string) {
     volumeLevel: audioRecorder.volumeLevel,
     liveTranscript: liveSpeech.fullTranscript,
     interimTranscript: liveSpeech.interimTranscript,
+    // Enhanced Features
+    bookmarkedSegmentIds,
+    toggleBookmark,
+    segmentScores,
+    autoPilot,
+    setAutoPilot,
+    applyPedagogicalLevel,
   };
 }

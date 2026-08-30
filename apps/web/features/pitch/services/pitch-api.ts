@@ -2,7 +2,23 @@
 
 import { apiClient } from "@/services/api-client";
 
-export type PitchPressureLevel = "relaxed" | "normal" | "fast" | "reflex" | "extreme";
+export type PitchPressureLevel = "infinite" | "relaxed" | "normal" | "fast" | "reflex" | "extreme";
+
+export interface MoraToken {
+  index: number;
+  mora: string;
+  tone: "H" | "L" | string;
+  is_downstep?: boolean;
+}
+
+export interface PitchQuizOption {
+  option_id: string;
+  key: string;
+  word: string;
+  meaning: string;
+  accent_type: string;
+  is_correct: boolean;
+}
 
 export interface PitchExercise {
   id: string;
@@ -26,6 +42,12 @@ export interface PitchExercise {
   prompt?: string;
   reading?: string;
   translation?: string;
+  pitchPattern?: string[];
+  moraBreakdown?: MoraToken[];
+  downstepIndex?: number;
+  downstepNotation?: string;
+  pitfallVi?: string;
+  quizOptions?: PitchQuizOption[];
   extra_metadata?: any;
 }
 
@@ -51,6 +73,9 @@ export interface PitchResult {
   improvements: string[];
   drillScores?: Record<string, number>;
   pitchMetrics?: PitchMetrics;
+  moraBreakdown?: MoraToken[];
+  downstepNotation?: string;
+  pitfallVi?: string;
 }
 
 export interface GeneratePitchParams {
@@ -66,7 +91,7 @@ export async function generateExercise(params: GeneratePitchParams = {}): Promis
     sub_mode: subMode,
     pressure_level: pressureLevel,
   });
-  if (timerLimitMs) q.set("timer_limit_ms", String(timerLimitMs));
+  if (timerLimitMs !== undefined) q.set("timer_limit_ms", String(timerLimitMs));
   if (difficulty) q.set("difficulty", difficulty);
 
   const res = await apiClient.post<any>(`/pitch/exercises/generate?${q.toString()}`);
@@ -75,13 +100,19 @@ export async function generateExercise(params: GeneratePitchParams = {}): Promis
   return {
     ...res,
     subMode: pc.sub_mode || subMode,
-    timerLimitMs: pc.timer_limit_ms || timerLimitMs || 5000,
+    timerLimitMs: pc.timer_limit_ms !== undefined ? pc.timer_limit_ms : (timerLimitMs !== undefined ? timerLimitMs : 5000),
     pressureLevel: pc.pressure_level || pressureLevel,
     canonical: pc.canonical || res.canonicalAnswer || pc.prompt || res.prompt,
     acceptableVariants: pc.accepted || res.acceptableVariants || [],
     prompt: pc.prompt || res.prompt || pc.canonical,
     reading: pc.reading || "",
     translation: pc.translation || res.scenario || "",
+    pitchPattern: pc.pitch_pattern || [],
+    moraBreakdown: pc.mora_breakdown || [],
+    downstepIndex: pc.downstep_index ?? 0,
+    downstepNotation: pc.downstep_notation || "",
+    pitfallVi: pc.pitfall_vi || "",
+    quizOptions: pc.quiz_options || [],
   };
 }
 
@@ -113,5 +144,8 @@ export async function submitAttempt(payload: {
     improvements: res.improvements || [],
     drillScores: res.drillScores || {},
     pitchMetrics: res.pitchMetrics || (res as any).pitch_metrics || {},
+    moraBreakdown: res.moraBreakdown || (res as any).mora_breakdown,
+    downstepNotation: res.downstepNotation || (res as any).downstep_notation,
+    pitfallVi: res.pitfallVi || (res as any).pitfall_vi,
   };
 }

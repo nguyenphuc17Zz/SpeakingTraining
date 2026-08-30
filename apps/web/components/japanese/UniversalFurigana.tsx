@@ -55,7 +55,8 @@ export function UniversalFurigana({
     }
 
     let isMounted = true;
-    fetch("http://localhost:8000/api/v1/speech/furigana", {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    fetch(`${apiBase}/speech/furigana`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),

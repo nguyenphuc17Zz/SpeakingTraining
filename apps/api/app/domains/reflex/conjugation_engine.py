@@ -1,8 +1,16 @@
 """JapaneseConjugationEngine — deterministic conjugation + acceptable variants.
 
-Covers 12 forms: 辞書形, ない形, た形, て形, 可能形, 受身形, 使役形, 使役受身形, 命令形, 意向形, ば形, たら形
+Covers 50 complete forms across:
+- Core 12 forms (辞書, ない, た, て, 可能, 受身, 使役, 使役受身, 命令, 意向, ば, たら)
+- Group 2: Desire (たい, たくない, たかった, たくなかった, たがる)
+- Group 3: Prohibition & Requests (禁止 〜な, ないで, なさい)
+- Group 4: State & Prep (ている, ていない, ていた, ておく, てしまう, てみる)
+- Group 5: Ease & Difficulty (やすい, にくい, づらい)
+- Group 6: Past & Combined (なかった, 受身過去, 使役過去, 使役受身過去, 可能否定, 可能過去, 可能過去否定)
+- Group 7: Conditionals (なければ, なかったら, と, なら)
+- Group 8: Colloquial Slang (なきゃ, ちゃう, ちゃった, とく, といた, てる, てない, てた, ちゃだめ, ちゃいけない, ないと)
+
 Supports ichidan / godan / irregular (する/来る) + 行く special handling.
-No LLM in core; AI fallback only for ambiguity via AIRouter outside this engine.
 """
 
 from __future__ import annotations
@@ -22,22 +30,75 @@ class VerbClass(str, Enum):
 
 
 class ConjugationForm(str, Enum):
-    DICTIONARY = "dictionary"      # 辞書形
-    NAI = "nai"                    # ない形
-    TA = "ta"                      # た形
-    TE = "te"                      # て形
-    POTENTIAL = "potential"        # 可能形
-    PASSIVE = "passive"            # 受身形
-    CAUSATIVE = "causative"        # 使役形
-    CAUSATIVE_PASSIVE = "causative_passive"  # 使役受身形
-    IMPERATIVE = "imperative"      # 命令形
-    VOLITIONAL = "volitional"      # 意向形
-    BA = "ba"                      # ば形
-    TARA = "tara"                  # たら形
+    # Core (12)
+    DICTIONARY = "dictionary"                      # 辞書形
+    NAI = "nai"                                    # ない形
+    TA = "ta"                                      # た形
+    TE = "te"                                      # て形
+    POTENTIAL = "potential"                        # 可能形
+    PASSIVE = "passive"                            # 受身形
+    CAUSATIVE = "causative"                        # 使役形
+    CAUSATIVE_PASSIVE = "causative_passive"        # 使役受身形
+    IMPERATIVE = "imperative"                      # 命令形
+    VOLITIONAL = "volitional"                      # 意向形
+    BA = "ba"                                      # ば形
+    TARA = "tara"                                  # たら形
+
+    # Group 2: Desire (5)
+    TAI = "tai"                                    # たい形
+    TAKUNAI = "takunai"                            # たくない形
+    TAKATTA = "takatta"                            # たかった形
+    TAKUNAKATTA = "takunakatta"                    # たくなかった形
+    TAGARU = "tagaru"                              # たがる形
+
+    # Group 3: Prohibition & Requests (3)
+    PROHIBITIVE = "prohibitive"                    # 禁止形
+    NAIDE = "naide"                                # ないで形
+    NASAI = "nasai"                                # なさい形
+
+    # Group 4: State & Prep (6)
+    TE_IRU = "te_iru"                              # ている形
+    TE_INAI = "te_inai"                            # ていない形
+    TE_ITA = "te_ita"                              # ていた形
+    TE_OKU = "te_oku"                              # ておく形
+    TE_SHIMAU = "te_shimau"                        # てしまう形
+    TE_MIRU = "te_miru"                            # てみる形
+
+    # Group 5: Ease & Difficulty (3)
+    YASUI = "yasui"                                # やすい形
+    NIKUI = "nikui"                                # にくい形
+    ZURAI = "zurai"                                # づらい形
+
+    # Group 6: Past & Combined Forms (7)
+    NAKATTA = "nakatta"                            # なかった形 (Quá khứ phủ định ngắn)
+    PASSIVE_PAST = "passive_past"                  # 受身・過去形
+    CAUSATIVE_PAST = "causative_past"              # 使役・過去形
+    CAUSATIVE_PASSIVE_PAST = "causative_passive_past" # 使役受身・過去形
+    POTENTIAL_NEGATIVE = "potential_negative"      # 可能・否定形
+    POTENTIAL_PAST = "potential_past"              # 可能・過去形
+    POTENTIAL_NEGATIVE_PAST = "potential_negative_past" # 可能・過去否定形
+
+    # Group 7: Conditionals (4)
+    NAKEREBA = "nakereba"                          # なければ形
+    NAKATTARA = "nakattara"                        # なかったら形
+    TO_CONDITIONAL = "to_conditional"              # と形
+    NARA = "nara"                                  # なら形
+
+    # Group 8: Colloquial Slang (11)
+    NAKYA = "nakya"                                # 〜なきゃ形
+    CHAU = "chau"                                  # 〜ちゃう形
+    CHATTA = "chatta"                              # 〜ちゃった形
+    TOKU = "toku"                                  # 〜とく形
+    TOITA = "toita"                                # 〜といた形
+    TERU = "teru"                                  # 〜てる形
+    TENAI = "tenai"                                # 〜てない形
+    TETA = "teta"                                  # 〜てた形
+    CHA_DAME = "cha_dame"                          # 〜ちゃだめ形
+    CHA_IKENAI = "cha_ikenai"                      # 〜ちゃいけない形
+    NAITO = "naito"                                # 〜ないと形
 
 
 # Godan ending maps: dict[ending_kana] -> transforms
-# For godan, we map the kana ending to different stems
 GODAN_A_MAP = {"う": "わ", "く": "か", "ぐ": "が", "す": "さ", "つ": "た", "ぬ": "な", "ぶ": "ば", "む": "ま", "る": "ら"}
 GODAN_I_MAP = {"う": "い", "く": "き", "ぐ": "ぎ", "す": "し", "つ": "ち", "ぬ": "に", "ぶ": "び", "む": "み", "る": "り"}
 GODAN_E_MAP = {"う": "え", "く": "け", "ぐ": "げ", "す": "せ", "つ": "て", "ぬ": "ね", "ぶ": "べ", "む": "め", "る": "れ"}
@@ -45,9 +106,6 @@ GODAN_O_MAP = {"う": "お", "く": "こ", "ぐ": "ご", "す": "そ", "つ": "�
 
 # Special 行く past/te forms
 IKU_EXCEPTIONS = {"行く", "いく", "イク"}
-
-# Common ichidan verbs for detection (heuristic fallback)
-ICHIDAN_ENDINGS = ("える", "られる", "いる", "きる", "みる", "じる", "ける", "げる", "ける", "てる", "でる", "ねる", "れる")
 
 
 @dataclass
@@ -79,7 +137,6 @@ class ConjugationTarget:
 class JapaneseConjugationEngine:
     """Deterministic Japanese verb conjugation engine."""
 
-    # Minimal verb class database for common verbs
     KNOWN_GODAN = {
         "書く", "かく", "行く", "いく", "話す", "はなす", "買う", "かう",
         "待つ", "まつ", "死ぬ", "しぬ", "遊ぶ", "あそぶ", "読む", "よむ",
@@ -95,7 +152,7 @@ class JapaneseConjugationEngine:
         "いる", "着る", "きる", "信じる", "しんじる", "感じる", "かんじる",
         "教える", "おしえる", "覚える", "おぼえる", "出る", "でる", "借りる", "かりる",
         "考える", "かんがえる", "見せる", "みせる", "開ける", "あける", "閉める", "しめる",
-        "食べられる", "たべられる",  # already conjugated but treat as base for test
+        "食べられる", "たべられる",
     }
 
     def identify_verb_class(self, verb: str) -> VerbClass:
@@ -110,19 +167,14 @@ class JapaneseConjugationEngine:
             return VerbClass.ICHIDAN
         # Heuristic: ichidan ends with える/いる with preceding kana containing e/i sound
         if v.endswith("る"):
-            # Check if preceding char is e-row or i-row
             if len(v) >= 2:
-                # Simple heuristic: if ends with える/いる etc, likely ichidan unless known godan
                 pre = v[-2]
-                # e-row / i-row kana
                 e_row = set("えけげせぜてでねへべぺめれ")
                 i_row = set("いきぎしじちぢにひびぴみり")
                 if pre in e_row or pre in i_row:
-                    # Check godan known exceptions (e.g., 帰る, 切る)
                     if v not in self.KNOWN_GODAN:
                         return VerbClass.ICHIDAN
             return VerbClass.GODAN
-        # Default to godan for single kana verbs like 行く
         if len(v) == 1 or v[-1] in GODAN_A_MAP:
             return VerbClass.GODAN
         return VerbClass.GODAN
@@ -156,10 +208,47 @@ class JapaneseConjugationEngine:
             return stem + "して", stem + "した"
         return stem + "って", stem + "った"
 
+    def _get_masu_stem(self, verb: str, vc: VerbClass) -> str:
+        if vc == VerbClass.ICHIDAN:
+            return verb[:-1] if verb.endswith("る") else verb
+        if vc == VerbClass.SURU:
+            return verb[:-2] + "し" if verb.endswith("する") else "し"
+        if vc == VerbClass.KURU:
+            is_compound = verb not in ("来る", "くる") and len(verb) > 2
+            base = verb[:-2] if is_compound else ""
+            return base + ("き" if verb == "くる" else "来")
+        return self._godan_stem(verb, "i")
+
+    def _get_nai_stem(self, verb: str, vc: VerbClass) -> str:
+        if vc == VerbClass.ICHIDAN:
+            return verb[:-1] if verb.endswith("る") else verb
+        if vc == VerbClass.SURU:
+            return verb[:-2] + "し" if verb.endswith("する") else "し"
+        if vc == VerbClass.KURU:
+            is_compound = verb not in ("来る", "くる") and len(verb) > 2
+            base = verb[:-2] if is_compound else ""
+            return base + ("こ" if verb == "くる" else "来")
+        return self._godan_stem(verb, "a")
+
+    def _get_te_ta(self, verb: str, vc: VerbClass) -> tuple[str, str]:
+        if vc == VerbClass.ICHIDAN:
+            stem = verb[:-1] if verb.endswith("る") else verb
+            return stem + "て", stem + "た"
+        if vc == VerbClass.SURU:
+            base = verb[:-2] if verb.endswith("する") else ""
+            return base + "して", base + "した"
+        if vc == VerbClass.KURU:
+            is_compound = verb not in ("来る", "くる") and len(verb) > 2
+            base = verb[:-2] if is_compound else ""
+            k_te = "きて" if verb == "くる" else "来て"
+            k_ta = "きた" if verb == "くる" else "来た"
+            return base + k_te, base + k_ta
+        return self._godan_te_ta(verb)
+
     def conjugate(self, verb: str, form: ConjugationForm | str) -> ConjugationTarget:
         if isinstance(form, str):
-            # Allow Japanese labels or enum values
             form_map = {
+                # Core 12
                 "辞書形": ConjugationForm.DICTIONARY, "dictionary": ConjugationForm.DICTIONARY,
                 "ない形": ConjugationForm.NAI, "ない": ConjugationForm.NAI, "nai": ConjugationForm.NAI,
                 "た形": ConjugationForm.TA, "た": ConjugationForm.TA, "ta": ConjugationForm.TA,
@@ -167,17 +256,69 @@ class JapaneseConjugationEngine:
                 "可能形": ConjugationForm.POTENTIAL, "potential": ConjugationForm.POTENTIAL, "可能": ConjugationForm.POTENTIAL,
                 "受身形": ConjugationForm.PASSIVE, "passive": ConjugationForm.PASSIVE, "受身": ConjugationForm.PASSIVE,
                 "使役形": ConjugationForm.CAUSATIVE, "causative": ConjugationForm.CAUSATIVE, "使役": ConjugationForm.CAUSATIVE,
-                "使役受身形": ConjugationForm.CAUSATIVE_PASSIVE, "causative_passive": ConjugationForm.CAUSATIVE_PASSIVE, "使役受身": ConjugationForm.CAUSATIVE_PASSIVE, "使役受身・過去": ConjugationForm.CAUSATIVE_PASSIVE,
+                "使役受身形": ConjugationForm.CAUSATIVE_PASSIVE, "causative_passive": ConjugationForm.CAUSATIVE_PASSIVE, "使役受身": ConjugationForm.CAUSATIVE_PASSIVE,
                 "命令形": ConjugationForm.IMPERATIVE, "imperative": ConjugationForm.IMPERATIVE, "命令": ConjugationForm.IMPERATIVE,
                 "意向形": ConjugationForm.VOLITIONAL, "volitional": ConjugationForm.VOLITIONAL, "意向": ConjugationForm.VOLITIONAL,
                 "ば形": ConjugationForm.BA, "ba": ConjugationForm.BA, "ば": ConjugationForm.BA,
                 "たら形": ConjugationForm.TARA, "tara": ConjugationForm.TARA, "たら": ConjugationForm.TARA,
+
+                # Group 2: Desire
+                "たい形": ConjugationForm.TAI, "たい": ConjugationForm.TAI, "tai": ConjugationForm.TAI,
+                "たくない形": ConjugationForm.TAKUNAI, "たくない": ConjugationForm.TAKUNAI, "takunai": ConjugationForm.TAKUNAI,
+                "たかった形": ConjugationForm.TAKATTA, "たかった": ConjugationForm.TAKATTA, "takatta": ConjugationForm.TAKATTA,
+                "たくなかった形": ConjugationForm.TAKUNAKATTA, "たくなかった": ConjugationForm.TAKUNAKATTA, "takunakatta": ConjugationForm.TAKUNAKATTA,
+                "たがる形": ConjugationForm.TAGARU, "たがる": ConjugationForm.TAGARU, "tagaru": ConjugationForm.TAGARU,
+
+                # Group 3: Prohibition & Requests
+                "禁止形": ConjugationForm.PROHIBITIVE, "禁止": ConjugationForm.PROHIBITIVE, "prohibitive": ConjugationForm.PROHIBITIVE,
+                "ないで形": ConjugationForm.NAIDE, "ないで": ConjugationForm.NAIDE, "naide": ConjugationForm.NAIDE,
+                "なさい形": ConjugationForm.NASAI, "なさい": ConjugationForm.NASAI, "nasai": ConjugationForm.NASAI,
+
+                # Group 4: State & Prep
+                "ている形": ConjugationForm.TE_IRU, "ている": ConjugationForm.TE_IRU, "te_iru": ConjugationForm.TE_IRU,
+                "ていない形": ConjugationForm.TE_INAI, "ていない": ConjugationForm.TE_INAI, "te_inai": ConjugationForm.TE_INAI,
+                "ていた形": ConjugationForm.TE_ITA, "ていた": ConjugationForm.TE_ITA, "te_ita": ConjugationForm.TE_ITA,
+                "ておく形": ConjugationForm.TE_OKU, "ておく": ConjugationForm.TE_OKU, "te_oku": ConjugationForm.TE_OKU,
+                "てしまう形": ConjugationForm.TE_SHIMAU, "てしまう": ConjugationForm.TE_SHIMAU, "te_shimau": ConjugationForm.TE_SHIMAU,
+                "てみる形": ConjugationForm.TE_MIRU, "てみる": ConjugationForm.TE_MIRU, "te_miru": ConjugationForm.TE_MIRU,
+
+                # Group 5: Ease & Difficulty
+                "やすい形": ConjugationForm.YASUI, "やすい": ConjugationForm.YASUI, "yasui": ConjugationForm.YASUI,
+                "にくい形": ConjugationForm.NIKUI, "にくい": ConjugationForm.NIKUI, "nikui": ConjugationForm.NIKUI,
+                "づらい形": ConjugationForm.ZURAI, "づらい": ConjugationForm.ZURAI, "zurai": ConjugationForm.ZURAI,
+
+                # Group 6: Past & Combined
+                "なかった形": ConjugationForm.NAKATTA, "なかった": ConjugationForm.NAKATTA, "nakatta": ConjugationForm.NAKATTA,
+                "受身・過去形": ConjugationForm.PASSIVE_PAST, "受身過去": ConjugationForm.PASSIVE_PAST, "受身・過去": ConjugationForm.PASSIVE_PAST, "passive_past": ConjugationForm.PASSIVE_PAST,
+                "使役・過去形": ConjugationForm.CAUSATIVE_PAST, "使役過去": ConjugationForm.CAUSATIVE_PAST, "使役・過去": ConjugationForm.CAUSATIVE_PAST, "causative_past": ConjugationForm.CAUSATIVE_PAST,
+                "使役受身・過去形": ConjugationForm.CAUSATIVE_PASSIVE_PAST, "使役受身過去": ConjugationForm.CAUSATIVE_PASSIVE_PAST, "使役受身・過去": ConjugationForm.CAUSATIVE_PASSIVE_PAST, "causative_passive_past": ConjugationForm.CAUSATIVE_PASSIVE_PAST,
+                "可能・否定形": ConjugationForm.POTENTIAL_NEGATIVE, "可能否定": ConjugationForm.POTENTIAL_NEGATIVE, "可能・否定": ConjugationForm.POTENTIAL_NEGATIVE, "potential_negative": ConjugationForm.POTENTIAL_NEGATIVE,
+                "可能・過去形": ConjugationForm.POTENTIAL_PAST, "可能過去": ConjugationForm.POTENTIAL_PAST, "可能・過去": ConjugationForm.POTENTIAL_PAST, "potential_past": ConjugationForm.POTENTIAL_PAST,
+                "可能・過去否定形": ConjugationForm.POTENTIAL_NEGATIVE_PAST, "可能過去否定": ConjugationForm.POTENTIAL_NEGATIVE_PAST, "可能・過去否定": ConjugationForm.POTENTIAL_NEGATIVE_PAST, "potential_negative_past": ConjugationForm.POTENTIAL_NEGATIVE_PAST,
+
+                # Group 7: Conditionals
+                "なければ形": ConjugationForm.NAKEREBA, "なければ": ConjugationForm.NAKEREBA, "nakereba": ConjugationForm.NAKEREBA,
+                "なかったら形": ConjugationForm.NAKATTARA, "なかったら": ConjugationForm.NAKATTARA, "nakattara": ConjugationForm.NAKATTARA,
+                "と形": ConjugationForm.TO_CONDITIONAL, "と": ConjugationForm.TO_CONDITIONAL, "to_conditional": ConjugationForm.TO_CONDITIONAL,
+                "なら形": ConjugationForm.NARA, "なら": ConjugationForm.NARA, "nara": ConjugationForm.NARA,
+
+                # Group 8: Colloquial Slang
+                "なきゃ形": ConjugationForm.NAKYA, "なきゃ": ConjugationForm.NAKYA, "nakya": ConjugationForm.NAKYA,
+                "ちゃう形": ConjugationForm.CHAU, "ちゃう": ConjugationForm.CHAU, "chau": ConjugationForm.CHAU,
+                "ちゃった形": ConjugationForm.CHATTA, "ちゃった": ConjugationForm.CHATTA, "chatta": ConjugationForm.CHATTA,
+                "とく形": ConjugationForm.TOKU, "とく": ConjugationForm.TOKU, "toku": ConjugationForm.TOKU,
+                "といた形": ConjugationForm.TOITA, "といた": ConjugationForm.TOITA, "toita": ConjugationForm.TOITA,
+                "てる形": ConjugationForm.TERU, "てる": ConjugationForm.TERU, "teru": ConjugationForm.TERU,
+                "てない形": ConjugationForm.TENAI, "てない": ConjugationForm.TENAI, "tenai": ConjugationForm.TENAI,
+                "てた形": ConjugationForm.TETA, "てた": ConjugationForm.TETA, "teta": ConjugationForm.TETA,
+                "ちゃだめ形": ConjugationForm.CHA_DAME, "ちゃだめ": ConjugationForm.CHA_DAME, "cha_dame": ConjugationForm.CHA_DAME,
+                "ちゃいけない形": ConjugationForm.CHA_IKENAI, "ちゃいけない": ConjugationForm.CHA_IKENAI, "cha_ikenai": ConjugationForm.CHA_IKENAI,
+                "ないと形": ConjugationForm.NAITO, "ないと": ConjugationForm.NAITO, "naito": ConjugationForm.NAITO,
             }
             form = form_map.get(form, ConjugationForm.DICTIONARY)
 
         vc = self.identify_verb_class(verb)
         canonical, accepted, alternatives, notes = self._generate(verb, vc, form)
-        # Always include canonical in accepted
         if canonical not in accepted:
             accepted = [canonical] + accepted
         return ConjugationTarget(
@@ -198,7 +339,137 @@ class JapaneseConjugationEngine:
         if form == ConjugationForm.DICTIONARY:
             return verb, [verb], [], ["辞書形 = nguyên thể"]
 
-        # SURU handling
+        # Base stems
+        masu_stem = self._get_masu_stem(verb, vc)
+        nai_stem = self._get_nai_stem(verb, vc)
+        te_form, ta_form = self._get_te_ta(verb, vc)
+
+        # Helper for Te-based colloquial endings
+        te_is_de = te_form.endswith("で")
+        te_stem = te_form[:-1]
+
+        # ==========================================
+        # GROUP 2: DESIRE (HỆ TAI)
+        # ==========================================
+        if form == ConjugationForm.TAI:
+            return masu_stem + "たい", [], [], []
+        if form == ConjugationForm.TAKUNAI:
+            return masu_stem + "たくない", [], [], []
+        if form == ConjugationForm.TAKATTA:
+            return masu_stem + "たかった", [], [], []
+        if form == ConjugationForm.TAKUNAKATTA:
+            return masu_stem + "たくなかった", [], [], []
+        if form == ConjugationForm.TAGARU:
+            return masu_stem + "たがる", [], [], []
+
+        # ==========================================
+        # GROUP 3: PROHIBITION & REQUESTS
+        # ==========================================
+        if form == ConjugationForm.PROHIBITIVE:
+            return verb + "な", [], [], ["禁止形 = V-る + な"]
+        if form == ConjugationForm.NAIDE:
+            canon = nai_stem + "ないで"
+            return canon, [canon, canon + "ください"], [], []
+        if form == ConjugationForm.NASAI:
+            return masu_stem + "なさい", [], [], []
+
+        # ==========================================
+        # GROUP 4: STATE & PREPARATION (HỆ TE)
+        # ==========================================
+        if form == ConjugationForm.TE_IRU:
+            canon = te_form + "いる"
+            coll = te_stem + ("でる" if te_is_de else "てる")
+            return canon, [canon, coll], [coll], ["V-ている rút gọn thành 〜てる"]
+        if form == ConjugationForm.TE_INAI:
+            canon = te_form + "いない"
+            coll = te_stem + ("でない" if te_is_de else "てない")
+            return canon, [canon, coll], [coll], ["V-ていない rút gọn thành 〜てない"]
+        if form == ConjugationForm.TE_ITA:
+            canon = te_form + "いた"
+            coll = te_stem + ("でた" if te_is_de else "てた")
+            return canon, [canon, coll], [coll], ["V-ていた rút gọn thành 〜てた"]
+        if form == ConjugationForm.TE_OKU:
+            canon = te_form + "おく"
+            coll = te_stem + ("どく" if te_is_de else "とく")
+            return canon, [canon, coll], [coll], ["V-ておく rút gọn thành 〜とく"]
+        if form == ConjugationForm.TE_SHIMAU:
+            canon = te_form + "しまう"
+            coll = te_stem + ("じゃう" if te_is_de else "ちゃう")
+            return canon, [canon, coll], [coll], ["V-てしまう rút gọn thành 〜ちゃう"]
+        if form == ConjugationForm.TE_MIRU:
+            return te_form + "みる", [], [], []
+
+        # ==========================================
+        # GROUP 5: EASE & DIFFICULTY
+        # ==========================================
+        if form == ConjugationForm.YASUI:
+            return masu_stem + "やすい", [], [], []
+        if form == ConjugationForm.NIKUI:
+            return masu_stem + "にくい", [], [], []
+        if form == ConjugationForm.ZURAI:
+            return masu_stem + "づらい", [], [], []
+
+        # ==========================================
+        # GROUP 6: PAST & COMBINED FORMS
+        # ==========================================
+        if form == ConjugationForm.NAKATTA:
+            return nai_stem + "なかった", [], [], []
+
+        # ==========================================
+        # GROUP 7: CONDITIONALS
+        # ==========================================
+        if form == ConjugationForm.NAKEREBA:
+            canon = nai_stem + "なければ"
+            coll = nai_stem + "なきゃ"
+            coll2 = nai_stem + "なくちゃ"
+            return canon, [canon, coll, coll2], [coll], ["〜なければ rút gọn thành 〜なきゃ"]
+        if form == ConjugationForm.NAKATTARA:
+            return nai_stem + "なかったら", [], [], []
+        if form == ConjugationForm.TO_CONDITIONAL:
+            return verb + "と", [], [], []
+        if form == ConjugationForm.NARA:
+            return verb + "なら", [], [], []
+
+        # ==========================================
+        # GROUP 8: COLLOQUIAL SLANG
+        # ==========================================
+        if form == ConjugationForm.NAKYA:
+            canon = nai_stem + "なきゃ"
+            return canon, [canon, nai_stem + "なくちゃ", nai_stem + "なければ"], [], ["Phải làm = 〜なきゃ / 〜なくちゃ"]
+        if form == ConjugationForm.CHAU:
+            canon = te_stem + ("じゃう" if te_is_de else "ちゃう")
+            return canon, [canon, te_form + "しまう"], [], ["Lỡ làm = 〜ちゃう"]
+        if form == ConjugationForm.CHATTA:
+            canon = te_stem + ("じゃった" if te_is_de else "ちゃった")
+            return canon, [canon, te_form + "しまった"], [], ["Đã lỡ làm = 〜ちゃった"]
+        if form == ConjugationForm.TOKU:
+            canon = te_stem + ("どく" if te_is_de else "とく")
+            return canon, [canon, te_form + "おく"], [], ["Làm sẵn = 〜とく"]
+        if form == ConjugationForm.TOITA:
+            canon = te_stem + ("どいた" if te_is_de else "といた")
+            return canon, [canon, te_form + "おいた"], [], ["Đã làm sẵn = 〜といた"]
+        if form == ConjugationForm.TERU:
+            canon = te_stem + ("でる" if te_is_de else "てる")
+            return canon, [canon, te_form + "いる"], [], ["Đang làm = 〜てる"]
+        if form == ConjugationForm.TENAI:
+            canon = te_stem + ("でない" if te_is_de else "てない")
+            return canon, [canon, te_form + "いない"], [], ["Chưa làm = 〜てない"]
+        if form == ConjugationForm.TETA:
+            canon = te_stem + ("でた" if te_is_de else "てた")
+            return canon, [canon, te_form + "いた"], [], ["Đã đang làm = 〜てた"]
+        if form == ConjugationForm.CHA_DAME:
+            canon = te_stem + ("じゃだめ" if te_is_de else "ちゃだめ")
+            return canon, [canon, te_form + "はだめ", te_stem + ("じゃダメ" if te_is_de else "ちゃダメ")], [], ["Không được làm = 〜ちゃだめ"]
+        if form == ConjugationForm.CHA_IKENAI:
+            canon = te_stem + ("じゃいけない" if te_is_de else "ちゃいけない")
+            return canon, [canon, te_form + "はいけない", te_stem + ("じゃダメ" if te_is_de else "ちゃダメ")], [], ["Không được làm = 〜ちゃいけない"]
+        if form == ConjugationForm.NAITO:
+            canon = nai_stem + "ないと"
+            return canon, [canon, nai_stem + "ないといけない", nai_stem + "ないとだめ"], [], ["Phải làm = 〜ないと"]
+
+        # ==========================================
+        # SURU CLASS HANDLING
+        # ==========================================
         if vc == VerbClass.SURU:
             base = verb[:-2] if verb.endswith("する") else ""
             mapping = {
@@ -206,64 +477,90 @@ class JapaneseConjugationEngine:
                 ConjugationForm.TA: "した",
                 ConjugationForm.TE: "して",
                 ConjugationForm.POTENTIAL: "できる",
+                ConjugationForm.POTENTIAL_NEGATIVE: "できない",
+                ConjugationForm.POTENTIAL_PAST: "できた",
+                ConjugationForm.POTENTIAL_NEGATIVE_PAST: "できなかった",
                 ConjugationForm.PASSIVE: "される",
+                ConjugationForm.PASSIVE_PAST: "された",
                 ConjugationForm.CAUSATIVE: "させる",
+                ConjugationForm.CAUSATIVE_PAST: "させた",
                 ConjugationForm.CAUSATIVE_PASSIVE: "させられる",
+                ConjugationForm.CAUSATIVE_PASSIVE_PAST: "させられた",
                 ConjugationForm.IMPERATIVE: "しろ",
                 ConjugationForm.VOLITIONAL: "しよう",
                 ConjugationForm.BA: "すれば",
                 ConjugationForm.TARA: "したら",
             }
             canon = base + mapping.get(form, verb)
-            # Variants for する
             if form == ConjugationForm.CAUSATIVE_PASSIVE:
                 accepted = [canon, base + "される"] if base else [canon]
                 notes.append("使役受身 của する có thể rút gọn")
-            elif form == ConjugationForm.PASSIVE:
-                notes.append("受身 của する = される")
             elif form == ConjugationForm.IMPERATIVE:
                 alternatives = [base + "せよ"] if base else []
             return canon, accepted, alternatives, notes
 
-        # KURU handling
+        # ==========================================
+        # KURU CLASS HANDLING
+        # ==========================================
         if vc == VerbClass.KURU:
-            # Handle 来る and compounds like 持って来る
             is_compound = verb not in ("来る", "くる") and len(verb) > 2
             base = verb[:-2] if is_compound else ""
-            mapping = {
-                ConjugationForm.NAI: "来ない" if not is_compound else base + "来ない",
-                ConjugationForm.TA: "来た" if not is_compound else base + "来た",
-                ConjugationForm.TE: "来て" if not is_compound else base + "来て",
-                ConjugationForm.POTENTIAL: "来られる" if not is_compound else base + "来られる",
-                ConjugationForm.PASSIVE: "来られる" if not is_compound else base + "来られる",
-                ConjugationForm.CAUSATIVE: "来させる" if not is_compound else base + "来させる",
-                ConjugationForm.CAUSATIVE_PASSIVE: "来させられる" if not is_compound else base + "来させられる",
-                ConjugationForm.IMPERATIVE: "来い" if not is_compound else base + "来い",
-                ConjugationForm.VOLITIONAL: "来よう" if not is_compound else base + "来よう",
-                ConjugationForm.BA: "来れば" if not is_compound else base + "来れば",
-                ConjugationForm.TARA: "来たら" if not is_compound else base + "来たら",
-            }
-            # Also handle hiragana variant
-            if verb == "くる":
+            is_hira = verb == "くる"
+
+            if is_hira:
                 mapping = {
                     ConjugationForm.NAI: "こない",
                     ConjugationForm.TA: "きた",
                     ConjugationForm.TE: "きて",
                     ConjugationForm.POTENTIAL: "こられる",
+                    ConjugationForm.POTENTIAL_NEGATIVE: "こられない",
+                    ConjugationForm.POTENTIAL_PAST: "こられた",
+                    ConjugationForm.POTENTIAL_NEGATIVE_PAST: "こられなかった",
                     ConjugationForm.PASSIVE: "こられる",
+                    ConjugationForm.PASSIVE_PAST: "こられた",
                     ConjugationForm.CAUSATIVE: "こさせる",
+                    ConjugationForm.CAUSATIVE_PAST: "こさせた",
                     ConjugationForm.CAUSATIVE_PASSIVE: "こさせられる",
+                    ConjugationForm.CAUSATIVE_PASSIVE_PAST: "こさせられた",
                     ConjugationForm.IMPERATIVE: "こい",
                     ConjugationForm.VOLITIONAL: "こよう",
                     ConjugationForm.BA: "くれば",
                     ConjugationForm.TARA: "きたら",
                 }
+            else:
+                mapping = {
+                    ConjugationForm.NAI: base + "来ない",
+                    ConjugationForm.TA: base + "来た",
+                    ConjugationForm.TE: base + "来て",
+                    ConjugationForm.POTENTIAL: base + "来られる",
+                    ConjugationForm.POTENTIAL_NEGATIVE: base + "来られない",
+                    ConjugationForm.POTENTIAL_PAST: base + "来られた",
+                    ConjugationForm.POTENTIAL_NEGATIVE_PAST: base + "来られなかった",
+                    ConjugationForm.PASSIVE: base + "来られる",
+                    ConjugationForm.PASSIVE_PAST: base + "来られた",
+                    ConjugationForm.CAUSATIVE: base + "来させる",
+                    ConjugationForm.CAUSATIVE_PAST: base + "来させた",
+                    ConjugationForm.CAUSATIVE_PASSIVE: base + "来させられる",
+                    ConjugationForm.CAUSATIVE_PASSIVE_PAST: base + "来させられた",
+                    ConjugationForm.IMPERATIVE: base + "来い",
+                    ConjugationForm.VOLITIONAL: base + "来よう",
+                    ConjugationForm.BA: base + "来れば",
+                    ConjugationForm.TARA: base + "来たら",
+                }
             canon = mapping.get(form, verb)
-            if form == ConjugationForm.CAUSATIVE_PASSIVE:
-                notes.append("来る causative-passive contracted variant こさせられる vs 来させられる")
+            if form == ConjugationForm.POTENTIAL:
+                accepted = [canon, base + ("これる" if is_hira else "来れる")]
+            elif form == ConjugationForm.POTENTIAL_NEGATIVE:
+                accepted = [canon, base + ("これない" if is_hira else "来れない")]
+            elif form == ConjugationForm.POTENTIAL_PAST:
+                accepted = [canon, base + ("これた" if is_hira else "来れた")]
+            elif form == ConjugationForm.POTENTIAL_NEGATIVE_PAST:
+                accepted = [canon, base + ("これなかった" if is_hira else "来れなかった")]
             return canon, accepted, alternatives, notes
 
-        # ICHIDAN
+        # ==========================================
+        # ICHIDAN CLASS HANDLING
+        # ==========================================
         if vc == VerbClass.ICHIDAN:
             stem = verb[:-1] if verb.endswith("る") else verb
             mapping = {
@@ -271,9 +568,15 @@ class JapaneseConjugationEngine:
                 ConjugationForm.TA: stem + "た",
                 ConjugationForm.TE: stem + "て",
                 ConjugationForm.POTENTIAL: stem + "られる",
+                ConjugationForm.POTENTIAL_NEGATIVE: stem + "られない",
+                ConjugationForm.POTENTIAL_PAST: stem + "られた",
+                ConjugationForm.POTENTIAL_NEGATIVE_PAST: stem + "られなかった",
                 ConjugationForm.PASSIVE: stem + "られる",
+                ConjugationForm.PASSIVE_PAST: stem + "られた",
                 ConjugationForm.CAUSATIVE: stem + "させる",
+                ConjugationForm.CAUSATIVE_PAST: stem + "させた",
                 ConjugationForm.CAUSATIVE_PASSIVE: stem + "させられる",
+                ConjugationForm.CAUSATIVE_PASSIVE_PAST: stem + "させられた",
                 ConjugationForm.IMPERATIVE: stem + "ろ",
                 ConjugationForm.VOLITIONAL: stem + "よう",
                 ConjugationForm.BA: stem + "れば",
@@ -281,40 +584,58 @@ class JapaneseConjugationEngine:
             }
             canon = mapping.get(form, verb)
             if form == ConjugationForm.POTENTIAL:
-                # ら抜き variant
-                alternatives = [stem + "れる"]
-                notes.append("ら抜き言葉 (potential contraction) 可能だが canonical giữ られる")
-            if form == ConjugationForm.CAUSATIVE_PASSIVE:
-                # contracted
-                alternatives = [stem + "される"]
-                notes.append("使役受身 rút gọn: させられる → される (ichidan)")
+                accepted = [canon, stem + "れる"]
+            elif form == ConjugationForm.POTENTIAL_NEGATIVE:
+                accepted = [canon, stem + "れない"]
+            elif form == ConjugationForm.POTENTIAL_PAST:
+                accepted = [canon, stem + "れた"]
+            elif form == ConjugationForm.POTENTIAL_NEGATIVE_PAST:
+                accepted = [canon, stem + "れなかった"]
+            elif form == ConjugationForm.IMPERATIVE:
+                accepted = [canon, stem + "よ"]
             return canon, accepted, alternatives, notes
 
-        # GODAN
-        # stem for a-row etc
+        # ==========================================
+        # GODAN CLASS HANDLING
+        # ==========================================
         if form == ConjugationForm.NAI:
             return self._godan_stem(verb, "a") + "ない", [], [], []
         if form == ConjugationForm.TA:
-            _, ta = self._godan_te_ta(verb)
-            return ta, [], [], []
+            return ta_form, [], [], []
         if form == ConjugationForm.TE:
-            te, _ = self._godan_te_ta(verb)
-            return te, [], [], []
+            return te_form, [], [], []
         if form == ConjugationForm.POTENTIAL:
             canon = self._godan_stem(verb, "e") + "る"
+            return canon, [], [], []
+        if form == ConjugationForm.POTENTIAL_NEGATIVE:
+            canon = self._godan_stem(verb, "e") + "ない"
+            return canon, [], [], []
+        if form == ConjugationForm.POTENTIAL_PAST:
+            canon = self._godan_stem(verb, "e") + "た"
+            return canon, [], [], []
+        if form == ConjugationForm.POTENTIAL_NEGATIVE_PAST:
+            canon = self._godan_stem(verb, "e") + "なかった"
             return canon, [], [], []
         if form == ConjugationForm.PASSIVE:
             canon = self._godan_stem(verb, "a") + "れる"
             return canon, [], [], []
+        if form == ConjugationForm.PASSIVE_PAST:
+            canon = self._godan_stem(verb, "a") + "れた"
+            return canon, [], [], []
         if form == ConjugationForm.CAUSATIVE:
             canon = self._godan_stem(verb, "a") + "せる"
+            return canon, [], [], []
+        if form == ConjugationForm.CAUSATIVE_PAST:
+            canon = self._godan_stem(verb, "a") + "せた"
             return canon, [], [], []
         if form == ConjugationForm.CAUSATIVE_PASSIVE:
             canon = self._godan_stem(verb, "a") + "せられる"
             contracted = self._godan_stem(verb, "a") + "される"
-            accepted = [contracted]
-            notes.append("使役受身 godan có 2 dạng: せられる (canonical) và される (contracted, commonly accepted)")
-            return canon, accepted, [contracted], notes
+            return canon, [canon, contracted], [contracted], ["使役受身 godan chấp nhận cả せられる và される"]
+        if form == ConjugationForm.CAUSATIVE_PASSIVE_PAST:
+            canon = self._godan_stem(verb, "a") + "せられた"
+            contracted = self._godan_stem(verb, "a") + "された"
+            return canon, [canon, contracted], [contracted], ["使役受身過去 godan chấp nhận cả せられた và された"]
         if form == ConjugationForm.IMPERATIVE:
             canon = self._godan_stem(verb, "e")
             return canon, [], [], []
@@ -325,122 +646,53 @@ class JapaneseConjugationEngine:
             canon = self._godan_stem(verb, "e") + "ば"
             return canon, [], [], []
         if form == ConjugationForm.TARA:
-            _, ta = self._godan_te_ta(verb)
-            # ta ends with た/だ, tara = ta + ら but need to handle correctly: た→たら, だ→たら? Actually んだ→んだら
-            if ta.endswith("た"):
-                canon = ta[:-1] + "たら"
-            elif ta.endswith("だ"):
-                canon = ta[:-1] + "だら"
+            if ta_form.endswith("た"):
+                canon = ta_form[:-1] + "たら"
+            elif ta_form.endswith("だ"):
+                canon = ta_form[:-1] + "だら"
             else:
-                canon = ta + "ら"
+                canon = ta_form + "ら"
             return canon, [], [], []
 
         return verb, [], [], []
 
     def validate(self, verb: str, form: ConjugationForm | str, answer: str, normalize: bool = True) -> dict[str, Any]:
-        """Validates user answer against expected conjugation.
-
-        Returns {is_correct, canonical, accepted, matched_form, note}
-        """
+        """Validates user answer against expected conjugation."""
         target = self.conjugate(verb, form)
         ans_norm = self._normalize(answer) if normalize else answer.strip()
         ans_kana = self._to_kana(ans_norm)
 
-        # Also normalize accepted for comparison
         accepted_norm = [self._normalize(a) for a in target.accepted]
-        canonical_norm = self._normalize(target.canonical)
-        alternatives_norm = [self._normalize(a) for a in target.alternatives]
+        accepted_kana = [self._to_kana(a) for a in accepted_norm]
 
-        # Generate phonetic Kana variants for all accepted targets
-        all_norm_variants = accepted_norm + alternatives_norm + [canonical_norm]
-        all_kana_variants = [self._to_kana(v) for v in all_norm_variants]
-
-        all_accepted = set(all_norm_variants + all_kana_variants)
-        # Also accept without normalization check
-        raw_accepted = set(target.accepted + target.alternatives + [target.canonical])
-        is_correct = (
-            ans_norm in all_accepted
-            or ans_kana in all_accepted
-            or answer.strip() in raw_accepted
+        is_match = (
+            ans_norm == self._normalize(target.canonical)
+            or ans_norm in accepted_norm
+            or ans_kana == self._to_kana(self._normalize(target.canonical))
+            or ans_kana in accepted_kana
         )
-        matched = None
-        if is_correct:
-            # Find which form matched
-            for orig in raw_accepted:
-                if (
-                    self._normalize(orig) == ans_norm
-                    or self._to_kana(self._normalize(orig)) == ans_kana
-                    or orig == answer.strip()
-                ):
-                    matched = orig
-                    break
+
         return {
-            "is_correct": is_correct,
+            "is_correct": is_match,
             "canonical": target.canonical,
             "accepted": target.accepted,
-            "alternatives": target.alternatives,
-            "matched": matched or target.canonical,
-            "verb_class": target.verb_class.value,
-            "form": target.form.value,
+            "matched_form": target.form.value,
             "variant_notes": target.variant_notes,
+            "reading": target.reading,
         }
 
-    def _to_kana(self, text: str) -> str:
-        """Converts common Kanji verb stems and Katakana to pure Hiragana."""
-        if not text:
-            return ""
-        t = text
-        kanji_kana_pairs = [
-            ("食べる", "たべる"), ("食べ", "たべ"),
-            ("見る", "みる"), ("見", "み"),
-            ("行く", "いく"), ("行", "い"),
-            ("書く", "かく"), ("書", "か"),
-            ("読む", "よむ"), ("読", "よ"),
-            ("飲む", "のむ"), ("飲", "の"),
-            ("話す", "はなす"), ("話", "はな"),
-            ("買う", "かう"), ("買", "か"),
-            ("待つ", "まつ"), ("待", "ま"),
-            ("立つ", "たつ"), ("立", "た"),
-            ("教える", "おしえる"), ("教え", "おしえ"),
-            ("考える", "かんがえる"), ("考え", "かんがえ"),
-            ("借りる", "かりる"), ("借", "か"),
-            ("出る", "でる"), ("出", "で"),
-            ("泳ぐ", "およぐ"), ("泳", "およ"),
-            ("急ぐ", "いそぐ"), ("急", "いそ"),
-            ("信じる", "しんじる"), ("信じ", "しんじ"),
-            ("感じる", "かんじる"), ("感じ", "かんじ"),
-            ("覚える", "おぼえる"), ("覚え", "おぼえ"),
-            ("届ける", "とどける"), ("届け", "とどけ"),
-            ("調べる", "しらべる"), ("調べ", "しらべ"),
-            ("帰る", "かえる"), ("帰", "かえ"),
-            ("変える", "かえる"), ("変え", "かえ"),
-            ("聞く", "きく"), ("聞", "き"),
-            ("会う", "あう"), ("会", "あ"),
-            ("来る", "くる"), ("来", "き"),
-        ]
-        for k, v in kanji_kana_pairs:
-            t = t.replace(k, v)
-        # Katakana to Hiragana conversion
-        katakana_chars = [chr(i) for i in range(0x30A1, 0x30F7)]
-        for kc in katakana_chars:
-            hc = chr(ord(kc) - 0x60)
-            t = t.replace(kc, hc)
-        return t
-
     def _normalize(self, text: str) -> str:
-        """Normalize Japanese text for comparison: strip spaces/punct, hiragana normalize."""
-        if not text:
-            return ""
         t = text.strip()
-        # Remove spaces and Japanese/ASCII punctuation
-        t = re.sub(r"[。！？、\s\!\?\,\.\u3000]+", "", t)
+        t = re.sub(r"[\s\u3000、。！？!?]+", "", t)
         return t
 
-    def explain(self, verb: str, form: ConjugationForm | str) -> str:
-        target = self.conjugate(verb, form)
-        base = f"{verb} ({target.verb_class.value}) → {target.form.value} = {target.canonical}"
-        if target.accepted and len(target.accepted) > 1:
-            base += f" (cũng chấp nhận: {', '.join(target.accepted)})"
-        if target.variant_notes:
-            base += f" — {'; '.join(target.variant_notes)}"
-        return base
+    def _to_kana(self, text: str) -> str:
+        # Normalize katakana to hiragana
+        result = []
+        for ch in text:
+            code = ord(ch)
+            if 0x30A1 <= code <= 0x30F6:
+                result.append(chr(code - 0x60))
+            else:
+                result.append(ch)
+        return "".join(result)

@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 
 export default function PitchPage() {
   const [subMode, setSubMode] = useState("mixed");
-  const [pressure, setPressure] = useState<"relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
+  const [pressure, setPressure] = useState<"infinite" | "relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
   const [subtitleMode, setSubtitleMode] = useState<"hidden" | "japanese" | "japanese_reading" | "vietnamese">("japanese");
   const [startTrigger, setStartTrigger] = useState<"manual" | "auto">("manual");
   const [transcriptInput, setTranscriptInput] = useState("");
@@ -225,6 +225,23 @@ export default function PitchPage() {
         return;
       }
 
+      if (
+        (session.exercise?.subMode === "pitch_recognition" || session.exercise?.exercise_type === "pitch_recognition") &&
+        (session.phase === "ready" || session.phase === "waiting_for_speech" || session.phase === "recording")
+      ) {
+        if (matchesAction(e, "pitchQuizOption1") || e.code === "Digit1" || e.code === "Numpad1") {
+          e.preventDefault();
+          soundFX.playSuikinkutsu();
+          session.submitQuizChoice(0);
+          return;
+        } else if (matchesAction(e, "pitchQuizOption2") || e.code === "Digit2" || e.code === "Numpad2") {
+          e.preventDefault();
+          soundFX.playSuikinkutsu();
+          session.submitQuizChoice(1);
+          return;
+        }
+      }
+
       if (matchesAction(e, "openKeybindingsModal") || matchesAction(e, "drillToggleHelp")) {
         e.preventDefault();
         setShowKeybindingsModal((v) => !v);
@@ -242,6 +259,21 @@ export default function PitchPage() {
         e.preventDefault();
         soundFX.playSuikinkutsu();
         session.startNext();
+      } else if (
+        (matchesAction(e, "pitchReplayModel") ||
+          matchesAction(e, "pitchListenPrompt") ||
+          matchesAction(e, "drillReplayAudio")) &&
+        session.phase === "result"
+      ) {
+        e.preventDefault();
+        const canonical =
+          session.exercise?.canonical ||
+          (session.exercise?.extra_metadata?.pitch_config as any)?.canonical ||
+          "";
+        if (canonical) {
+          soundFX.playFurin();
+          speakJapaneseText(canonical, { rate: 0.95 });
+        }
       } else if (matchesAction(e, "pitchListenPrompt") && session.phase !== "idle") {
         e.preventDefault();
         playPromptAudio(false);
@@ -404,6 +436,10 @@ export default function PitchPage() {
             subtitleMode={subtitleMode}
             onPlayAudio={() => playPromptAudio(false)}
             phase={session.phase}
+            onSelectQuizChoice={(idx) => {
+              soundFX.playSuikinkutsu();
+              session.submitQuizChoice(idx);
+            }}
           />
 
           {isEvaluating && (

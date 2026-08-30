@@ -49,12 +49,16 @@ async def generate_reflex_exercise_get(
     difficulty: str | None = Query(default=None),
     verb: str | None = Query(default=None),
     conjugation_target: str | None = Query(default=None),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=10000),
+    transformation_category: str | None = Query(default=None),
+    context_category: str | None = Query(default=None),
+    vocab_category: str | None = Query(default=None),
+    keigo_category: str | None = Query(default=None),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=10000),
     learning_item_key: str | None = Query(default=None),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    return await generate_reflex_exercise(sub_mode, pressure_level, difficulty, verb, conjugation_target, timer_limit_ms, learning_item_key, user_id, db)
+    return await generate_reflex_exercise(sub_mode, pressure_level, difficulty, verb, conjugation_target, topic, transformation_category, context_category, vocab_category, keigo_category, timer_limit_ms, learning_item_key, user_id, db)
 
 
 @router.post("/exercises/generate", response_model=ExerciseDTO)
@@ -64,7 +68,12 @@ async def generate_reflex_exercise(
     difficulty: str | None = Query(default=None),
     verb: str | None = Query(default=None),
     conjugation_target: str | None = Query(default=None),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=10000),
+    topic: str | None = Query(default=None),
+    transformation_category: str | None = Query(default=None),
+    context_category: str | None = Query(default=None),
+    vocab_category: str | None = Query(default=None),
+    keigo_category: str | None = Query(default=None),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=10000),
     learning_item_key: str | None = Query(default=None),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -78,7 +87,7 @@ async def generate_reflex_exercise(
         raise ValidationException(f"Invalid sub_mode '{sub_mode}'. Must be one of {sorted(valid_modes)}")
     if pressure_level not in PRESSURE_PROFILES:
         pressure_level = "normal"
-    eff_timer = timer_limit_ms or timer_for_level(pressure_level)
+    eff_timer = timer_limit_ms if timer_limit_ms is not None else timer_for_level(pressure_level)
     eff_diff = difficulty or "all"
 
     # Generate dynamic payload via AIReflexGenerator
@@ -89,6 +98,11 @@ async def generate_reflex_exercise(
         pressure_level=pressure_level,
         verb=verb,
         conjugation_target=conjugation_target,
+        topic=topic,
+        transformation_category=transformation_category,
+        context_category=context_category,
+        vocab_category=vocab_category,
+        keigo_category=keigo_category,
         user_id=user_id,
     )
 
@@ -199,7 +213,32 @@ async def generate_reflex_exercise(
                 "triplet_kenjougo": data.get("triplet_kenjougo"),
                 "explanation_vi": data.get("explanation_vi"),
                 "task": data.get("task"),
+                "target_label": data.get("target_label"),
+                "formula": data.get("formula"),
+                "grammar_note": data.get("grammar_note"),
+                "source": data.get("source"),
+                "transformation_category": data.get("transformation_category"),
+                "context_category": data.get("context_category"),
+                "vocab_category": data.get("vocab_category"),
+                "keigo_category": data.get("keigo_category"),
+                "subject_hint_vi": data.get("subject_hint_vi"),
+                "word": data.get("word"),
+                "collocation_ja": data.get("collocation_ja"),
+                "collocation_vi": data.get("collocation_vi"),
+                "example_ja": data.get("example_ja"),
+                "example_vi": data.get("example_vi"),
+                "word_type_label": data.get("word_type_label"),
+                "speaker_ja": data.get("speaker_ja"),
+                "speaker_vi": data.get("speaker_vi"),
+                "role": data.get("role") or data.get("relationship"),
+                "cultural_note": data.get("cultural_note"),
                 "intent": data.get("intent"),
+                "topic": data.get("topic"),
+                "category": data.get("category"),
+                "key_vocab": data.get("key_vocab", []),
+                "starters": data.get("starters", []),
+                "idea_sparks": data.get("idea_sparks", []),
+                "multi_answers": data.get("multi_answers", {}),
             },
             "priority_score": 0.7,
             "item_type": "reflex",

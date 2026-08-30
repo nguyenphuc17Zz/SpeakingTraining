@@ -58,9 +58,9 @@ async def generate_situational_exercise(
     custom_topic: str | None = Query(default=None),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
-    duration: int = Query(default=5, ge=3, le=30),
+    duration: int = Query(default=5, ge=0, le=30),
     mode: str = Query(default="standard", description="guided|standard|challenge|blind"),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=15000),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=15000),
     seed: str | None = Query(default=None),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -72,7 +72,7 @@ async def generate_situational_exercise(
     if pressure_level not in PRESSURE_PROFILES:
         pressure_level = "normal"
     eff_diff = difficulty or PRESSURE_PROFILES[pressure_level]["difficulty"]
-    eff_timer = timer_limit_ms or timer_for_level(pressure_level) or 6000
+    eff_timer = timer_limit_ms if timer_limit_ms is not None else timer_for_level(pressure_level)
 
     # Generate 100% on-the-fly dynamic situational roleplay via AISituationsGenerator
     ai_gen = AISituationsGenerator(db)
@@ -158,6 +158,9 @@ async def generate_situational_exercise(
                 "prompt": data.get("prompt"),
                 "translation": data.get("translation"),
                 "situational_data": data.get("situational_data", {}),
+                "hints": data.get("situational_data", {}).get("hints"),
+                "quick_starters": data.get("situational_data", {}).get("quick_starters"),
+                "cultural_tip": data.get("situational_data", {}).get("cultural_tip"),
                 "mode": mode,
                 "duration_minutes": duration,
             },

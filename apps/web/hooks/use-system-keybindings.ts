@@ -2,10 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export type KeybindingCategory = "shadowing" | "speaking" | "keigo" | "pitch" | "situations" | "drills" | "system";
+export type KeybindingCategory =
+  | "situations"
+  | "pitch"
+  | "keigo"
+  | "reflex"
+  | "speaking"
+  | "shadowing"
+  | "system";
 
 export interface SystemKeybindings {
-  // 1. Shadowing Studio
+  // 1. Shadowing Studio (/shadowing)
   toggleMic: string;
   replay: string;
   nextSegment: string;
@@ -14,7 +21,7 @@ export interface SystemKeybindings {
   markerA: string;
   markerB: string;
 
-  // 2. Speaking / Conversation
+  // 2. Speaking / Conversation (/speaking)
   speakingMic: string;
   speakingReplay: string;
   speakingHint: string;
@@ -22,34 +29,53 @@ export interface SystemKeybindings {
   speakingMute: string;
   speakingModeToggle: string;
 
-  // 3. Keigo Studio (Mode 2)
+  // 3. Keigo Studio (/keigo)
   keigoSubmitOrNext: string;
   keigoListenPrompt: string;
+  keigoReplayModel: string;
+  keigoToggleHint: string;
   keigoRetry: string;
   keigoSkip: string;
   keigoOpenCheatsheet: string;
   keigoStartVoice: string;
   keigoToggleInputMode: string;
 
-  // 4. Pitch Lab (Mode 3)
+  // 4. Pitch Lab (/pitch)
   pitchSubmitOrNext: string;
   pitchListenPrompt: string;
+  pitchReplayModel: string;
   pitchRetry: string;
   pitchSkip: string;
   pitchOpenCheatsheet: string;
   pitchStartVoice: string;
   pitchToggleInputMode: string;
+  pitchMetronome: string;
+  pitchQuizOption1: string;
+  pitchQuizOption2: string;
 
-  // 5. Situations Studio (Mode 4)
+  // 5. Situations Studio (/situations)
   situationsSubmitOrNext: string;
   situationsListenPrompt: string;
+  situationsReplayModel: string;
+  situationsToggleHint: string;
   situationsRetry: string;
   situationsSkip: string;
   situationsOpenCheatsheet: string;
   situationsStartVoice: string;
   situationsToggleInputMode: string;
 
-  // 6. Drills & Quick Practice (Reflex, Pitch, Situations, Speech)
+  // 6. Reflex Practice (/reflex)
+  reflexSubmitOrNext: string;
+  reflexListenPrompt: string;
+  reflexReplayModel: string;
+  reflexRetry: string;
+  reflexSkip: string;
+  reflexToggleHelp: string;
+  reflexPauseOrResume: string;
+  reflexStartVoice: string;
+  reflexToggleInputMode: string;
+
+  // Generic Drills Aliases (for backward compatibility)
   drillSubmitOrNext: string;
   drillReplayAudio: string;
   drillRetry: string;
@@ -64,6 +90,7 @@ export interface SystemKeybindings {
   openKeybindingsModal: string;
   openDojo: string;
   toggleTheme: string;
+  toggleFurigana: string;
 }
 
 export type ShadowingKeybindings = SystemKeybindings;
@@ -89,6 +116,8 @@ export const DEFAULT_KEYBINDINGS: SystemKeybindings = {
   // Keigo
   keigoSubmitOrNext: "enter",
   keigoListenPrompt: "l",
+  keigoReplayModel: "a",
+  keigoToggleHint: "h",
   keigoRetry: "r",
   keigoSkip: "n",
   keigoOpenCheatsheet: "c",
@@ -98,22 +127,39 @@ export const DEFAULT_KEYBINDINGS: SystemKeybindings = {
   // Pitch
   pitchSubmitOrNext: "enter",
   pitchListenPrompt: "l",
+  pitchReplayModel: "a",
   pitchRetry: "r",
   pitchSkip: "n",
   pitchOpenCheatsheet: "c",
   pitchStartVoice: "space",
   pitchToggleInputMode: "t",
+  pitchMetronome: "m",
+  pitchQuizOption1: "1",
+  pitchQuizOption2: "2",
 
   // Situations
   situationsSubmitOrNext: "enter",
   situationsListenPrompt: "l",
+  situationsReplayModel: "a",
+  situationsToggleHint: "h",
   situationsRetry: "r",
   situationsSkip: "n",
   situationsOpenCheatsheet: "c",
   situationsStartVoice: "space",
   situationsToggleInputMode: "t",
 
-  // Drills
+  // Reflex
+  reflexSubmitOrNext: "enter",
+  reflexListenPrompt: "l",
+  reflexReplayModel: "a",
+  reflexRetry: "r",
+  reflexSkip: "n",
+  reflexToggleHelp: "?",
+  reflexPauseOrResume: "p",
+  reflexStartVoice: "space",
+  reflexToggleInputMode: "t",
+
+  // Generic Drills Aliases
   drillSubmitOrNext: "enter",
   drillReplayAudio: "space",
   drillRetry: "r",
@@ -128,6 +174,7 @@ export const DEFAULT_KEYBINDINGS: SystemKeybindings = {
   openKeybindingsModal: "?",
   openDojo: "d",
   toggleTheme: "t",
+  toggleFurigana: "f",
 };
 
 export const ACTION_CATEGORIES: Record<keyof SystemKeybindings, KeybindingCategory> = {
@@ -151,6 +198,8 @@ export const ACTION_CATEGORIES: Record<keyof SystemKeybindings, KeybindingCatego
   // Keigo
   keigoSubmitOrNext: "keigo",
   keigoListenPrompt: "keigo",
+  keigoReplayModel: "keigo",
+  keigoToggleHint: "keigo",
   keigoRetry: "keigo",
   keigoSkip: "keigo",
   keigoOpenCheatsheet: "keigo",
@@ -160,29 +209,46 @@ export const ACTION_CATEGORIES: Record<keyof SystemKeybindings, KeybindingCatego
   // Pitch
   pitchSubmitOrNext: "pitch",
   pitchListenPrompt: "pitch",
+  pitchReplayModel: "pitch",
   pitchRetry: "pitch",
   pitchSkip: "pitch",
   pitchOpenCheatsheet: "pitch",
   pitchStartVoice: "pitch",
   pitchToggleInputMode: "pitch",
+  pitchMetronome: "pitch",
+  pitchQuizOption1: "pitch",
+  pitchQuizOption2: "pitch",
 
   // Situations
   situationsSubmitOrNext: "situations",
   situationsListenPrompt: "situations",
+  situationsReplayModel: "situations",
+  situationsToggleHint: "situations",
   situationsRetry: "situations",
   situationsSkip: "situations",
   situationsOpenCheatsheet: "situations",
   situationsStartVoice: "situations",
   situationsToggleInputMode: "situations",
 
-  // Drills
-  drillSubmitOrNext: "drills",
-  drillReplayAudio: "drills",
-  drillRetry: "drills",
-  drillSkip: "drills",
-  drillToggleHelp: "drills",
-  drillPauseOrResume: "drills",
-  drillStartQuestion: "drills",
+  // Reflex
+  reflexSubmitOrNext: "reflex",
+  reflexListenPrompt: "reflex",
+  reflexReplayModel: "reflex",
+  reflexRetry: "reflex",
+  reflexSkip: "reflex",
+  reflexToggleHelp: "reflex",
+  reflexPauseOrResume: "reflex",
+  reflexStartVoice: "reflex",
+  reflexToggleInputMode: "reflex",
+
+  // Generic Drills Aliases
+  drillSubmitOrNext: "reflex",
+  drillReplayAudio: "reflex",
+  drillRetry: "reflex",
+  drillSkip: "reflex",
+  drillToggleHelp: "reflex",
+  drillPauseOrResume: "reflex",
+  drillStartQuestion: "reflex",
 
   // System
   globalSearch: "system",
@@ -190,9 +256,10 @@ export const ACTION_CATEGORIES: Record<keyof SystemKeybindings, KeybindingCatego
   openKeybindingsModal: "system",
   openDojo: "system",
   toggleTheme: "system",
+  toggleFurigana: "system",
 };
 
-const STORAGE_KEY = "hanasu_system_keybindings_v5";
+const STORAGE_KEY = "hanasu_system_keybindings_v6";
 
 export function formatKeyDisplay(keyVal: string): string {
   if (!keyVal) return "";
@@ -209,8 +276,8 @@ export function formatKeyDisplay(keyVal: string): string {
 
 export function isKeyMatch(e: KeyboardEvent, targetKey: string): boolean {
   if (!targetKey) return false;
-  const pressed = e.key.toLowerCase();
-  const code = e.code.toLowerCase();
+  const pressed = (e.key || "").toLowerCase();
+  const code = (e.code || "").toLowerCase();
   const target = targetKey.toLowerCase();
 
   if (target === "space") {
@@ -234,8 +301,25 @@ export function isKeyMatch(e: KeyboardEvent, targetKey: string): boolean {
   if (target === "escape" || target === "esc") {
     return pressed === "escape" || code === "escape";
   }
+  if (target === "1") {
+    return pressed === "1" || code === "digit1" || code === "numpad1";
+  }
+  if (target === "2") {
+    return pressed === "2" || code === "digit2" || code === "numpad2";
+  }
+  if (target === "3") {
+    return pressed === "3" || code === "digit3" || code === "numpad3";
+  }
+  if (target === "?") {
+    return pressed === "?" || (pressed === "/" && e.shiftKey);
+  }
 
-  return pressed === target;
+  // Handle single character letter keys (e.g. 'h', 'a', 'l', 'r', 'n', 'c', 't', 'm', 'f', 'p')
+  if (target.length === 1 && target >= "a" && target <= "z") {
+    return pressed === target || code === `key${target}`;
+  }
+
+  return pressed === target || code === target;
 }
 
 export function useSystemKeybindings() {

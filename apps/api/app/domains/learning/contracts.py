@@ -97,6 +97,7 @@ class ExerciseType(str, Enum):
     KEIGO_CONTEXT = "keigo_context"
     KEIGO_DOCTOR = "keigo_doctor"
     KEIGO_NATURALNESS = "keigo_naturalness"
+    KEIGO_VOCAB_BLITZ = "keigo_vocab_blitz"
     PITCH_MINIMAL_PAIR = "pitch_minimal_pair"
     PITCH_MORA_LENGTH = "mora_length"
     PITCH_VOWEL_DEVOICING = "vowel_devoicing"

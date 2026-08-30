@@ -1,11 +1,15 @@
 """Vocabulary Dictionary Pool for Reflex Vocabulary Mode (reflex_vocabulary).
 
-Covers nouns (N5-N1), adjectives (N5-N1), and adverbs for all-word-type recall training.
-Verbs are imported and wrapped from dictionary_pool.py to avoid duplication.
+Organized into 5 practical communicative categories:
+- action_verbs: Động từ hành động & đời sống
+- emotions_adj: Tính từ & Trạng thái cảm xúc
+- adverbs_mimetic: Phó từ & Từ tượng thanh/tượng hình (擬音語・擬態語)
+- workplace_biz: Công sở, Thương mại & Hou-Ren-So
+- daily_life: Sinh hoạt, Mua sắm & Dịch vụ
 
 Usage:
     from app.domains.reflex.vocab_pool import (
-        ALL_VOCAB_WORDS, EASY_VOCAB, NORMAL_VOCAB, HARD_VOCAB, DictWord
+        ALL_VOCAB_WORDS, get_all_vocab_words, get_vocab_by_category, DictWord
     )
 """
 
@@ -16,607 +20,186 @@ from dataclasses import dataclass, field
 
 @dataclass
 class DictWord:
-    word: str             # 学校 / 食べる / きれい
-    reading: str          # がっこう / たべる / きれい
-    word_type: str        # noun | adj_i | adj_na | adverb | verb
-    jlpt: str             # n5 | n4 | n3 | n2 | n1
-    meaning_vi: str       # trường học
-    synonyms_vi: list[str] = field(default_factory=list)  # accepted answer variants
+    word: str             # 連絡 / 諦める / 懐かしい
+    reading: str          # れんらく / あきらめる / なつかしい
+    word_type: str        # verb | noun | adj_i | adj_na | adverb
+    category: str         # action_verbs | emotions_adj | adverbs_mimetic | workplace_biz | daily_life
+    meaning_vi: str       # liên lạc
+    synonyms_vi: list[str] = field(default_factory=list)
+    collocation_ja: str = ""   # 連絡を取る
+    collocation_vi: str = ""   # giữ liên lạc
+    example_ja: str = ""       # 後でLINEで連絡するね！
+    example_vi: str = ""       # Lát nữa mình nhắn qua LINE cho cậu nhé!
+    jlpt: str = ""
 
 
 # =========================================================================
-# NOUNS — N5
+# 1. ACTION VERBS (Động từ hành động & đời sống)
 # =========================================================================
-N5_NOUNS: list[DictWord] = [
-    DictWord("先生", "せんせい", "noun", "n5", "giáo viên", ["thầy giáo", "cô giáo", "thầy cô"]),
-    DictWord("学生", "がくせい", "noun", "n5", "học sinh", ["sinh viên", "học viên"]),
-    DictWord("友達", "ともだち", "noun", "n5", "bạn bè", ["bạn thân", "bạn"]),
-    DictWord("家族", "かぞく", "noun", "n5", "gia đình", []),
-    DictWord("家", "いえ", "noun", "n5", "nhà", ["ngôi nhà", "căn nhà"]),
-    DictWord("会社", "かいしゃ", "noun", "n5", "công ty", ["doanh nghiệp"]),
-    DictWord("電車", "でんしゃ", "noun", "n5", "tàu điện", ["xe điện", "tàu"]),
-    DictWord("バス", "ばす", "noun", "n5", "xe buýt", ["xe bus"]),
-    DictWord("本", "ほん", "noun", "n5", "cuốn sách", ["sách"]),
-    DictWord("映画", "えいが", "noun", "n5", "phim", ["điện ảnh", "phim ảnh"]),
-    DictWord("音楽", "おんがく", "noun", "n5", "âm nhạc", ["nhạc"]),
-    DictWord("時間", "じかん", "noun", "n5", "thời gian", ["giờ"]),
-    DictWord("今日", "きょう", "noun", "n5", "hôm nay", []),
-    DictWord("明日", "あした", "noun", "n5", "ngày mai", ["hôm sau", "ngày hôm sau"]),
-    DictWord("昨日", "きのう", "noun", "n5", "hôm qua", []),
-    DictWord("朝", "あさ", "noun", "n5", "buổi sáng", ["sáng"]),
-    DictWord("昼", "ひる", "noun", "n5", "buổi trưa", ["trưa"]),
-    DictWord("夜", "よる", "noun", "n5", "buổi tối", ["tối", "đêm"]),
-    DictWord("名前", "なまえ", "noun", "n5", "tên", ["họ tên", "danh tính"]),
-    DictWord("日本語", "にほんご", "noun", "n5", "tiếng Nhật", ["tiếng Nhật Bản"]),
-    DictWord("英語", "えいご", "noun", "n5", "tiếng Anh", []),
-    DictWord("国", "くに", "noun", "n5", "đất nước", ["quốc gia", "nước"]),
-    DictWord("仕事", "しごと", "noun", "n5", "công việc", ["việc làm", "nghề nghiệp"]),
-    DictWord("お金", "おかね", "noun", "n5", "tiền", ["tiền bạc"]),
-    DictWord("店", "みせ", "noun", "n5", "cửa hàng", ["tiệm", "shop"]),
-    DictWord("駅", "えき", "noun", "n5", "nhà ga", ["ga tàu", "ga xe lửa"]),
-    DictWord("病院", "びょういん", "noun", "n5", "bệnh viện", []),
-    DictWord("天気", "てんき", "noun", "n5", "thời tiết", []),
-    DictWord("山", "やま", "noun", "n5", "núi", []),
-    DictWord("川", "かわ", "noun", "n5", "sông", []),
-    DictWord("海", "うみ", "noun", "n5", "biển", ["đại dương"]),
-    DictWord("公園", "こうえん", "noun", "n5", "công viên", []),
-    DictWord("食べ物", "たべもの", "noun", "n5", "đồ ăn", ["thức ăn", "ẩm thực"]),
-    DictWord("飲み物", "のみもの", "noun", "n5", "đồ uống", ["thức uống"]),
-    DictWord("水", "みず", "noun", "n5", "nước", []),
-    DictWord("電話", "でんわ", "noun", "n5", "điện thoại", []),
-    DictWord("テレビ", "てれび", "noun", "n5", "tivi", ["ti vi", "truyền hình"]),
-    DictWord("犬", "いぬ", "noun", "n5", "con chó", ["chó"]),
-    DictWord("猫", "ねこ", "noun", "n5", "con mèo", ["mèo"]),
-    DictWord("花", "はな", "noun", "n5", "hoa", ["bông hoa"]),
-    DictWord("木", "き", "noun", "n5", "cây", ["cây cối"]),
-    DictWord("道", "みち", "noun", "n5", "con đường", ["đường", "đường đi"]),
-    DictWord("空", "そら", "noun", "n5", "bầu trời", ["trời"]),
-    DictWord("雨", "あめ", "noun", "n5", "mưa", []),
-    DictWord("雪", "ゆき", "noun", "n5", "tuyết", []),
-    DictWord("子供", "こども", "noun", "n5", "trẻ em", ["trẻ con", "con cái"]),
-    DictWord("男", "おとこ", "noun", "n5", "đàn ông", ["nam giới"]),
-    DictWord("女", "おんな", "noun", "n5", "phụ nữ", ["đàn bà", "nữ giới"]),
-    DictWord("部屋", "へや", "noun", "n5", "phòng", ["căn phòng"]),
-    DictWord("学校", "がっこう", "noun", "n5", "trường học", ["trường"]),
+ACTION_VERBS: list[DictWord] = [
+    DictWord("連絡する", "れんらくする", "verb", "action_verbs", "liên lạc", ["gọi điện", "nhắn tin", "thông báo"], "連絡を取る", "giữ liên lạc", "後でLINEで連絡するね！", "Lát nữa mình nhắn qua LINE cho cậu nhé!"),
+    DictWord("諦める", "あきらめる", "verb", "action_verbs", "bỏ cuộc", ["từ bỏ", "thôi"], "夢を諦めない", "không từ bỏ ước mơ", "最後まで決して諦めないでください。", "Xin đừng bao giờ bỏ cuộc cho tới phút cuối cùng."),
+    DictWord("案内する", "あんないする", "verb", "action_verbs", "hướng dẫn", ["dẫn đường", "chỉ đường", "giới thiệu"], "街を案内する", "dẫn đi tham quan phố", "東京の有名な場所をご案内します。", "Tôi sẽ hướng dẫn bạn tham quan những địa điểm nổi tiếng ở Tokyo."),
+    DictWord("断る", "ことわる", "verb", "action_verbs", "từ chối", ["bác bỏ", "khước từ"], "誘いを断る", "từ chối lời mời", "先約があったので丁寧にお断りしました。", "Vì có hẹn trước nên tôi đã từ chối một cách lịch sự."),
+    DictWord("片付ける", "かたづける", "verb", "action_verbs", "dọn dẹp", ["sắp xếp", "thu dọn"], "部屋を片付ける", "dọn dẹp phòng", "週末に部屋をきれいに片付けました。", "Cuối tuần tôi đã dọn dẹp phòng ốc thật sạch sẽ."),
+    DictWord("届ける", "とどける", "verb", "action_verbs", "giao đến", ["chuyển đến", "đưa tới"], "荷物を届ける", "giao hành lý", "明日午前中に書類をお届けいたします。", "Tôi sẽ giao tài liệu đến vào sáng mai ạ."),
+    DictWord("受け取る", "うけとる", "verb", "action_verbs", "nhận lấy", ["tiếp nhận", "thu nhận"], "荷物を受け取る", "nhận bưu kiện", "先ほど確かに荷物を受け取りました。", "Tôi vừa mới nhận được bưu kiện xong."),
+    DictWord("振り返る", "ふりかえる", "verb", "action_verbs", "nhìn lại", ["ngẫm lại", "quay đầu nhìn"], "過去を振り返る", "nhìn lại quá khứ", "たまには自分の行動を振り返ることも大切です。", "Thỉnh thoảng nhìn nhận lại hành động của bản thân cũng rất quan trọng."),
+    DictWord("思い出す", "おもいだす", "verb", "action_verbs", "nhớ ra", ["hồi tưởng", "nhớ lại"], "昔のことを思い出す", "nhớ lại chuyện xưa", "ふと子供の頃の思い出を思い出しました。", "Bất chợt tôi nhớ lại những kỷ niệm thời thơ ấu."),
+    DictWord("申し込む", "もうしこむ", "verb", "action_verbs", "đăng ký", ["ứng tuyển", "ngỏ lời"], "講座に申し込む", "đăng ký khóa học", "日本語スピーキング講座に申し込みました。", "Tôi đã đăng ký khóa học luyện nói tiếng Nhật."),
+    DictWord("確認する", "かくにんする", "verb", "action_verbs", "xác nhận", ["kiểm tra lại", "rà soát"], "スケジュールを確認する", "kiểm tra lịch trình", "念のためもう一度時間を確認しましょう。", "Để cho chắc chắn, chúng ta cùng kiểm tra lại giờ giấc nhé."),
+    DictWord("相談する", "そうだんする", "verb", "action_verbs", "thảo luận", ["trao đổi", "xin ý kiến", "bàn bạc"], "上司に相談する", "trao đổi với cấp trên", "困ったことがあればいつでも相談してください。", "Nếu có khó khăn gì bạn cứ trao đổi với tôi bất cứ lúc nào nhé."),
+    DictWord("乗り換える", "のりかえる", "verb", "action_verbs", "chuyển tuyến", ["đổi tàu", "đổi xe"], "電車を乗り換える", "đổi tàu điện", "次の駅で山手線に乗り換えます。", "Ở ga tiếp theo chúng ta sẽ chuyển sang tuyến Yamanote."),
+    DictWord("遅れる", "おくれる", "verb", "action_verbs", "trễ", ["muộn", "chậm trễ"], "時間に遅れる", "đến muộn giờ", "事故で電車が15分遅れました。", "Do sự cố nên tàu đã bị trễ 15 phút."),
+    DictWord("手伝う", "てつだう", "verb", "action_verbs", "giúp đỡ", ["phụ giúp", "hỗ trợ"], "仕事を手伝う", "phụ giúp công việc", "何か手伝えることがあれば言ってね。", "Có việc gì cần phụ giúp thì cứ bảo mình nhé."),
+    DictWord("頼む", "たのむ", "verb", "action_verbs", "nhờ vả", ["yêu cầu", "đặt món"], "お願いを頼む", "nhờ vả một việc", "先輩に資料のチェックを頼みました。", "Tôi đã nhờ tiền bối kiểm tra giúp tập tài liệu."),
+    DictWord("誘う", "さそう", "verb", "action_verbs", "rủ rê", ["mời", "rủ đi cùng"], "食事に誘う", "mời đi ăn cơm", "今夜ご飯でも食べに行かないと誘われました。", "Tôi được rủ tối nay đi ăn cơm cùng."),
+    DictWord("見送る", "みおくる", "verb", "action_verbs", "tiễn", ["tiễn đưa", "hoãn lại"], "友達を見送る", "tiễn bạn bè", "空港まで友達を見送りに行きました。", "Tôi đã ra sân bay để tiễn bạn."),
+    DictWord("迎える", "むかえる", "verb", "action_verbs", "đón", ["chào đón", "đón tiếp"], "お客様を迎える", "đón tiếp khách quý", "笑顔でお客様をお迎えしましょう。", "Chúng ta hãy nở nụ cười đón tiếp khách hàng thật chu đáo."),
+    DictWord("片付く", "かたづく", "verb", "action_verbs", "được giải quyết", ["được dọn sạch", "xong xuôi"], "仕事が片付く", "công việc được giải quyết xong", "ようやく急ぎの仕事が片付きました。", "Cuối cùng công việc gấp cũng đã được giải quyết xong xuôi."),
 ]
 
 # =========================================================================
-# NOUNS — N4
+# 2. EMOTIONS & ADJECTIVES (Tính từ & Cảm xúc)
 # =========================================================================
-N4_NOUNS: list[DictWord] = [
-    DictWord("意味", "いみ", "noun", "n4", "ý nghĩa", ["nghĩa"]),
-    DictWord("理由", "りゆう", "noun", "n4", "lý do", ["nguyên nhân"]),
-    DictWord("問題", "もんだい", "noun", "n4", "vấn đề", ["bài toán", "câu hỏi"]),
-    DictWord("答え", "こたえ", "noun", "n4", "câu trả lời", ["đáp án"]),
-    DictWord("例", "れい", "noun", "n4", "ví dụ", []),
-    DictWord("形", "かたち", "noun", "n4", "hình dạng", ["hình", "hình thức"]),
-    DictWord("色", "いろ", "noun", "n4", "màu sắc", ["màu"]),
-    DictWord("計画", "けいかく", "noun", "n4", "kế hoạch", ["dự án"]),
-    DictWord("予定", "よてい", "noun", "n4", "lịch trình", ["kế hoạch", "dự định"]),
-    DictWord("準備", "じゅんび", "noun", "n4", "sự chuẩn bị", ["chuẩn bị"]),
-    DictWord("連絡", "れんらく", "noun", "n4", "liên lạc", ["liên hệ"]),
-    DictWord("会議", "かいぎ", "noun", "n4", "cuộc họp", ["buổi họp"]),
-    DictWord("試験", "しけん", "noun", "n4", "kỳ thi", ["bài kiểm tra", "thi cử"]),
-    DictWord("成績", "せいせき", "noun", "n4", "điểm số", ["thành tích", "kết quả học tập"]),
-    DictWord("授業", "じゅぎょう", "noun", "n4", "buổi học", ["bài học", "lớp học"]),
-    DictWord("宿題", "しゅくだい", "noun", "n4", "bài tập về nhà", []),
-    DictWord("趣味", "しゅみ", "noun", "n4", "sở thích", []),
-    DictWord("旅行", "りょこう", "noun", "n4", "du lịch", ["chuyến đi"]),
-    DictWord("住所", "じゅうしょ", "noun", "n4", "địa chỉ", []),
-    DictWord("経験", "けいけん", "noun", "n4", "kinh nghiệm", ["trải nghiệm"]),
-    DictWord("場所", "ばしょ", "noun", "n4", "địa điểm", ["nơi", "chỗ"]),
-    DictWord("ニュース", "にゅーす", "noun", "n4", "tin tức", ["tin", "thời sự"]),
-    DictWord("情報", "じょうほう", "noun", "n4", "thông tin", []),
-    DictWord("病気", "びょうき", "noun", "n4", "bệnh tật", ["bệnh"]),
-    DictWord("薬", "くすり", "noun", "n4", "thuốc", []),
-    DictWord("医者", "いしゃ", "noun", "n4", "bác sĩ", []),
-    DictWord("交通", "こうつう", "noun", "n4", "giao thông", []),
-    DictWord("地図", "ちず", "noun", "n4", "bản đồ", []),
-    DictWord("番号", "ばんごう", "noun", "n4", "số", ["con số", "số hiệu"]),
-    DictWord("写真", "しゃしん", "noun", "n4", "ảnh", ["hình ảnh"]),
-    DictWord("電気", "でんき", "noun", "n4", "điện", []),
-    DictWord("空港", "くうこう", "noun", "n4", "sân bay", []),
-    DictWord("橋", "はし", "noun", "n4", "cây cầu", ["cầu"]),
-    DictWord("建物", "たてもの", "noun", "n4", "tòa nhà", ["công trình"]),
-    DictWord("台所", "だいどころ", "noun", "n4", "bếp", ["nhà bếp"]),
-    DictWord("試合", "しあい", "noun", "n4", "trận đấu", ["thi đấu"]),
-    DictWord("選手", "せんしゅ", "noun", "n4", "vận động viên", ["cầu thủ", "tuyển thủ"]),
-    DictWord("結婚", "けっこん", "noun", "n4", "kết hôn", ["đám cưới", "hôn nhân"]),
-    DictWord("生活", "せいかつ", "noun", "n4", "cuộc sống", ["sinh hoạt"]),
-    DictWord("文化", "ぶんか", "noun", "n4", "văn hóa", []),
-    DictWord("習慣", "しゅうかん", "noun", "n4", "thói quen", ["tập quán"]),
-    DictWord("食事", "しょくじ", "noun", "n4", "bữa ăn", ["ăn uống"]),
-    DictWord("料理", "りょうり", "noun", "n4", "món ăn", ["nấu ăn", "ẩm thực"]),
-    DictWord("運動", "うんどう", "noun", "n4", "vận động", ["thể dục", "luyện tập"]),
-    DictWord("機会", "きかい", "noun", "n4", "cơ hội", ["dịp"]),
-    DictWord("方法", "ほうほう", "noun", "n4", "phương pháp", ["cách", "cách thức"]),
-    DictWord("声", "こえ", "noun", "n4", "giọng nói", ["tiếng nói", "giọng"]),
-    DictWord("説明", "せつめい", "noun", "n4", "giải thích", ["thuyết minh"]),
-    DictWord("理解", "りかい", "noun", "n4", "sự hiểu biết", ["hiểu"]),
-    DictWord("記念", "きねん", "noun", "n4", "kỷ niệm", []),
-    DictWord("材料", "ざいりょう", "noun", "n4", "nguyên liệu", ["vật liệu"]),
-    DictWord("注意", "ちゅうい", "noun", "n4", "chú ý", ["lưu ý", "cẩn thận"]),
-    DictWord("注文", "ちゅうもん", "noun", "n4", "gọi món", ["đặt hàng"]),
-    DictWord("予約", "よやく", "noun", "n4", "đặt chỗ", ["đặt trước", "đặt phòng"]),
-    DictWord("紹介", "しょうかい", "noun", "n4", "giới thiệu", []),
-    DictWord("挨拶", "あいさつ", "noun", "n4", "chào hỏi", ["lời chào"]),
-    DictWord("感謝", "かんしゃ", "noun", "n4", "lòng biết ơn", ["cảm ơn", "biết ơn"]),
-    DictWord("野菜", "やさい", "noun", "n4", "rau củ", ["rau"]),
-    DictWord("果物", "くだもの", "noun", "n4", "trái cây", ["hoa quả"]),
-    DictWord("服", "ふく", "noun", "n4", "quần áo", ["trang phục"]),
+EMOTIONS_ADJ: list[DictWord] = [
+    DictWord("懐かしい", "なつかしい", "adj_i", "emotions_adj", "nhớ nhung", ["hoài niệm", "thân thương"], "懐かしい思い出", "kỷ niệm thân thương", "この曲を聴くと高校時代が懐かしいです。", "Nghe bài hát này làm tôi nhớ lại thời cấp ba thân thương."),
+    DictWord("悔しい", "くやしい", "adj_i", "emotions_adj", "tiếc nuối", ["cay cú", "ấm ức"], "悔しい思いをする", "trải qua cảm giác tiếc nuối", "あと一歩で負けてしまって本当に悔しいです。", "Chỉ thua trong gang tấc nên tôi cảm thấy vô cùng tiếc nuối."),
+    DictWord("面倒くさい", "めんどうくさい", "adj_i", "emotions_adj", "phiền phức", ["ngại làm", "lười"], "手続きが面倒くさい", "thủ tục phiền phức", "掃除をするのが面倒くさい時は音楽を聴きます。", "Những lúc lười dọn dẹp nhà cửa tôi thường bật nhạc nghe."),
+    DictWord("怪しい", "あやしい", "adj_i", "emotions_adj", "khả nghi", ["đáng ngờ", "kỳ lạ"], "怪しい人物", "người khả nghi", "最近、近所で怪しい人を見かけました。", "Gần đây tôi thấy có người lạ khả nghi quanh khu nhà."),
+    DictWord("羨ましい", "うらやましい", "adj_i", "emotions_adj", "ghen tị", ["ngưỡng mộ", "thèm được như thế"], "才能が羨ましい", "ngưỡng mộ tài năng", "日本語が流暢に話せて本当に羨ましいです！", "Bạn nói tiếng Nhật lưu loát như vậy làm mình ngưỡng mộ thật đấy!"),
+    DictWord("もったいない", "もったいない", "adj_i", "emotions_adj", "lãng phí", ["uổng phí", "tiếc của"], "時間を無駄にするのはもったいない", "lãng phí thời gian thật uổng", "まだ使えるのに捨てるのはもったいないですよ。", "Đồ vẫn còn dùng tốt mà vứt đi thì lãng phí quá."),
+    DictWord("恥ずかしい", "はずかしい", "adj_i", "emotions_adj", "xấu hổ", ["ngượng ngùng", "e thẹn"], "人前で恥ずかしい", "ngại ngùng trước đám đông", "人前で発表するとき少し恥ずかしかったです。", "Khi thuyết trình trước đám đông tôi cảm thấy hơi ngượng ngùng."),
+    DictWord("素晴らしい", "すばらしい", "adj_i", "emotions_adj", "tuyệt vời", ["xuất sắc", "tuyệt diệu"], "素晴らしい景色", "phong cảnh tuyệt đẹp", "富士山の山頂からの眺めは本当に素晴らしかったです。", "Quang cảnh từ đỉnh núi Phú Sĩ thực sự vô cùng tuyệt vời."),
+    DictWord("詳しい", "くわしい", "adj_i", "emotions_adj", "am hiểu", ["tường tận", "chi tiết"], "パソコンに詳しい", "rất rành về máy tính", "彼はITの知識がとても詳しいです。", "Anh ấy rất am hiểu và có kiến thức sâu rộng về mảng IT."),
+    DictWord("険しい", "けわしい", "adj_i", "emotions_adj", "hiểm trở", ["dốc đứng", "nghiêm nghị"], "険しい山道", "đường núi hiểm trở", "山頂までの道はとても険しかったです。", "Đoạn đường leo lên đỉnh núi rất quanh co hiểm trở."),
+    DictWord("頼もしい", "たのもしい", "adj_i", "emotions_adj", "đáng tin cậy", ["vững chãi", "chỗ dựa tốt"], "頼もしい後輩", "hậu bối rất đáng tin cậy", "彼はいつも冷静でとても頼もしい存在です。", "Anh ấy luôn điềm đạm và là chỗ dựa vô cùng vững chãi."),
+    DictWord("惜しい", "おしい", "adj_i", "emotions_adj", "tiếc", ["suýt soát", "uổng"], "惜しいチャンス", "cơ hội suýt soát", "あと少しで満点だったのに、惜しかったです！", "Chỉ thiếu một chút xíu nữa là điểm tuyệt đối rồi, tiếc thật đấy!"),
+    DictWord("苦手な", "にがてな", "adj_na", "emotions_adj", "kém", ["không giỏi", "ngại"], "早起きが苦手", "ngại dậy sớm", "私は人前で話すのが少し苦手です。", "Tôi hơi ngại khi phải phát biểu trước đông người."),
+    DictWord("得意な", "とくいな", "adj_na", "emotions_adj", "giỏi", ["sở trường", "thế mạnh"], "料理が得意", "sở trường nấu ăn", "私の得意な料理はフォーです。", "Món ăn sở trường của tôi là món Phở."),
+    DictWord("大切な", "たいせつな", "adj_na", "emotions_adj", "quan trọng", ["quý giá", "thiết yếu"], "大切な約束", "lời hứa quan trọng", "家族と過ごす時間は私にとって一番大切です。", "Khoảng thời gian bên gia đình là điều quan trọng nhất với tôi."),
+    DictWord("新鮮な", "しんせんな", "adj_na", "emotions_adj", "tươi mới", ["tươi ngon", "trong lành"], "新鮮な魚", "cá tươi ngon", "朝市で新鮮な野菜を買ってきました。", "Tôi vừa ra chợ sớm mua được một mớ rau củ rất tươi ngon."),
+    DictWord("快適な", "かいてきな", "adj_na", "emotions_adj", "thoải mái", ["dễ chịu", "tiện nghi"], "快適なホテル", "khách sạn tiện nghi thoải mái", "この部屋は日当たりが良くてとても快適です。", "Căn phòng này đón nắng tốt nên ở rất thoải mái dễ chịu."),
+    DictWord("不安な", "ふあんな", "adj_na", "emotions_adj", "bất an", ["lo lắng", "lo âu"], "将来が不安", "lo lắng về tương lai", "初めての一人暮らしは少し不安でした。", "Lần đầu sống tự lập một mình tôi cảm thấy hơi lo lắng."),
 ]
 
 # =========================================================================
-# NOUNS — N3
+# 3. ADVERBS & MIMETIC WORDS (Phó từ & Từ tượng thanh/hình)
 # =========================================================================
-N3_NOUNS: list[DictWord] = [
-    DictWord("気持ち", "きもち", "noun", "n3", "cảm xúc", ["cảm giác", "tâm trạng"]),
-    DictWord("感情", "かんじょう", "noun", "n3", "tình cảm", ["cảm xúc"]),
-    DictWord("性格", "せいかく", "noun", "n3", "tính cách", ["cá tính"]),
-    DictWord("才能", "さいのう", "noun", "n3", "tài năng", ["năng khiếu"]),
-    DictWord("能力", "のうりょく", "noun", "n3", "năng lực", ["khả năng"]),
-    DictWord("知識", "ちしき", "noun", "n3", "kiến thức", []),
-    DictWord("記憶", "きおく", "noun", "n3", "ký ức", ["trí nhớ"]),
-    DictWord("夢", "ゆめ", "noun", "n3", "giấc mơ", ["ước mơ", "mơ ước"]),
-    DictWord("目標", "もくひょう", "noun", "n3", "mục tiêu", []),
-    DictWord("目的", "もくてき", "noun", "n3", "mục đích", []),
-    DictWord("希望", "きぼう", "noun", "n3", "hi vọng", ["hy vọng", "mong muốn"]),
-    DictWord("不安", "ふあん", "noun", "n3", "lo lắng", ["lo âu", "bất an"]),
-    DictWord("心配", "しんぱい", "noun", "n3", "sự lo lắng", ["lo ngại"]),
-    DictWord("悩み", "なやみ", "noun", "n3", "nỗi lo", ["băn khoăn", "khó khăn"]),
-    DictWord("原因", "げんいん", "noun", "n3", "nguyên nhân", ["lý do"]),
-    DictWord("結果", "けっか", "noun", "n3", "kết quả", ["hậu quả"]),
-    DictWord("影響", "えいきょう", "noun", "n3", "ảnh hưởng", ["tác động"]),
-    DictWord("変化", "へんか", "noun", "n3", "sự thay đổi", ["biến đổi"]),
-    DictWord("成長", "せいちょう", "noun", "n3", "sự trưởng thành", ["phát triển", "lớn lên"]),
-    DictWord("関係", "かんけい", "noun", "n3", "mối quan hệ", ["liên quan"]),
-    DictWord("社会", "しゃかい", "noun", "n3", "xã hội", []),
-    DictWord("歴史", "れきし", "noun", "n3", "lịch sử", []),
-    DictWord("伝統", "でんとう", "noun", "n3", "truyền thống", []),
-    DictWord("規則", "きそく", "noun", "n3", "quy tắc", ["quy định", "nội quy"]),
-    DictWord("法律", "ほうりつ", "noun", "n3", "luật pháp", ["pháp luật"]),
-    DictWord("政治", "せいじ", "noun", "n3", "chính trị", []),
-    DictWord("経済", "けいざい", "noun", "n3", "kinh tế", []),
-    DictWord("環境", "かんきょう", "noun", "n3", "môi trường", []),
-    DictWord("自然", "しぜん", "noun", "n3", "thiên nhiên", ["tự nhiên"]),
-    DictWord("科学", "かがく", "noun", "n3", "khoa học", []),
-    DictWord("技術", "ぎじゅつ", "noun", "n3", "kỹ thuật", ["công nghệ"]),
-    DictWord("医学", "いがく", "noun", "n3", "y học", ["y khoa"]),
-    DictWord("職業", "しょくぎょう", "noun", "n3", "nghề nghiệp", ["công việc"]),
-    DictWord("収入", "しゅうにゅう", "noun", "n3", "thu nhập", ["lương"]),
-    DictWord("貯金", "ちょきん", "noun", "n3", "tiết kiệm", ["tiền để dành"]),
-    DictWord("費用", "ひよう", "noun", "n3", "chi phí", ["tiền", "kinh phí"]),
-    DictWord("事故", "じこ", "noun", "n3", "tai nạn", ["sự cố"]),
-    DictWord("事件", "じけん", "noun", "n3", "sự kiện", ["vụ việc"]),
-    DictWord("確認", "かくにん", "noun", "n3", "xác nhận", ["kiểm tra"]),
-    DictWord("利用", "りよう", "noun", "n3", "sử dụng", ["dùng"]),
-    DictWord("案内", "あんない", "noun", "n3", "hướng dẫn", ["giới thiệu"]),
-    DictWord("礼儀", "れいぎ", "noun", "n3", "lễ phép", ["lịch sự", "phép tắc"]),
-    DictWord("批判", "ひはん", "noun", "n3", "phê phán", ["chỉ trích", "chê"]),
-    DictWord("特徴", "とくちょう", "noun", "n3", "đặc điểm", ["đặc trưng"]),
-    DictWord("理想", "りそう", "noun", "n3", "lý tưởng", []),
-    DictWord("現実", "げんじつ", "noun", "n3", "thực tế", ["hiện thực"]),
-    DictWord("様子", "ようす", "noun", "n3", "tình hình", ["vẻ ngoài", "tình trạng"]),
-    DictWord("状況", "じょうきょう", "noun", "n3", "tình huống", ["hoàn cảnh"]),
-    DictWord("季節", "きせつ", "noun", "n3", "mùa", []),
-    DictWord("動物", "どうぶつ", "noun", "n3", "động vật", ["con vật", "thú vật"]),
-    DictWord("植物", "しょくぶつ", "noun", "n3", "thực vật", ["cây cỏ"]),
-    DictWord("財布", "さいふ", "noun", "n3", "ví tiền", ["ví"]),
-    DictWord("荷物", "にもつ", "noun", "n3", "hành lý", ["đồ đạc"]),
-    DictWord("上司", "じょうし", "noun", "n3", "cấp trên", ["sếp", "lãnh đạo"]),
-    DictWord("部下", "ぶか", "noun", "n3", "cấp dưới", ["nhân viên dưới quyền"]),
-    DictWord("比較", "ひかく", "noun", "n3", "so sánh", []),
-    DictWord("申し込み", "もうしこみ", "noun", "n3", "đăng ký", ["đăng ký tham gia"]),
-    DictWord("気候", "きこう", "noun", "n3", "khí hậu", []),
-    DictWord("投資", "とうし", "noun", "n3", "đầu tư", []),
-    DictWord("借金", "しゃっきん", "noun", "n3", "nợ", ["nợ nần"]),
-    DictWord("発展", "はってん", "noun", "n3", "sự phát triển", ["phát triển"]),
-    DictWord("想像", "そうぞう", "noun", "n3", "trí tưởng tượng", ["tưởng tượng"]),
-    DictWord("地位", "ちい", "noun", "n3", "địa vị", ["vị trí", "vị thế"]),
-    DictWord("謝罪", "しゃざい", "noun", "n3", "sự xin lỗi", ["xin lỗi"]),
-    DictWord("賞", "しょう", "noun", "n3", "giải thưởng", ["giải"]),
-    DictWord("魚", "さかな", "noun", "n3", "cá", []),
-    DictWord("部長", "ぶちょう", "noun", "n3", "trưởng phòng", ["giám đốc bộ phận"]),
-    DictWord("店長", "てんちょう", "noun", "n3", "quản lý cửa hàng", ["chủ tiệm"]),
-    DictWord("社長", "しゃちょう", "noun", "n3", "giám đốc", ["chủ tịch công ty"]),
-    DictWord("お客さん", "おきゃくさん", "noun", "n3", "khách hàng", ["khách"]),
-    DictWord("世代", "せだい", "noun", "n3", "thế hệ", []),
-    DictWord("地域", "ちいき", "noun", "n3", "địa khu", ["khu vực", "địa phương"]),
-    DictWord("仲間", "なかま", "noun", "n3", "bạn cùng nhóm", ["đồng nghiệp", "đồng đội"]),
-    DictWord("代表", "だいひょう", "noun", "n3", "đại diện", []),
-    DictWord("表現", "ひょうげん", "noun", "n3", "cách diễn đạt", ["biểu hiện"]),
-    DictWord("言語", "げんご", "noun", "n3", "ngôn ngữ", []),
-    DictWord("文章", "ぶんしょう", "noun", "n3", "đoạn văn", ["bài viết", "câu văn"]),
-    DictWord("内容", "ないよう", "noun", "n3", "nội dung", []),
+ADVERBS_MIMETIC: list[DictWord] = [
+    DictWord("ぺらぺら", "ぺらぺら", "adverb", "adverbs_mimetic", "lưu loát", ["trôi chảy", "như gió"], "日本語がぺらぺら", "nói tiếng Nhật lưu loát", "彼は日本語をぺらぺらと話せます。", "Anh ấy có thể bắn tiếng Nhật trôi chảy như gió."),
+    DictWord("ぎりぎり", "ぎりぎり", "adverb", "adverbs_mimetic", "sát nút", ["vừa vặn", "suýt soát"], "ぎりぎり間に合う", "kịp sát nút giờ", "電車が出発する直前、ぎりぎりで間に合いました！", "Ngay trước lúc tàu chạy, tôi đã kịp sát nút trong gang tấc!"),
+    DictWord("うっかり", "うっかり", "adverb", "adverbs_mimetic", "lỡ đễnh", ["sơ ý", "bất cẩn"], "うっかり忘れる", "lỡ đãng quên bẵng mất", "財布を家にうっかり忘れてしまいました。", "Tôi lỡ đãng để quên ví tiền ở nhà mất rồi."),
+    DictWord("ますます", "ますます", "adverb", "adverbs_mimetic", "ngày càng", ["càng ngày càng"], "ますます上達する", "ngày càng tiến bộ", "練習すればするほど、日本語がますます楽しくなります。", "Càng luyện tập nhiều thì học tiếng Nhật lại càng thấy vui."),
+    DictWord("ついに", "ついに", "adverb", "adverbs_mimetic", "cuối cùng thì", ["rốt cuộc"], "ついに完成した", "cuối cùng đã hoàn thành", "1年間の努力が実を結び、ついに合格しました！", "Nỗ lực suốt một năm đã đơm hoa kết trái, cuối cùng tôi đã đỗ!"),
+    DictWord("すっきり", "すっきり", "adverb", "adverbs_mimetic", "sảng khoái", ["nhẹ nhõm", "gọn gàng"], "気分がすっきりする", "tâm trạng sảng khoái nhẹ nhõm", "お風呂に入って気分がすっきりしました。", "Tắm nước nóng xong tâm trạng tôi thấy vô cùng sảng khoái."),
+    DictWord("ばったり", "ばったり", "adverb", "adverbs_mimetic", "tình cờ gặp", ["chạm trán bất ngờ"], "ばったり会う", "tình cờ chạm mặt", "駅前で昔の友達にばったり会いました。", "Tôi tình cờ chạm mặt người bạn cũ ngay trước cửa ga."),
+    DictWord("ぴったり", "ぴったり", "adverb", "adverbs_mimetic", "vừa khít", ["hoàn toàn khớp", "chuẩn xác"], "サイズがぴったり", "kích cỡ vừa vặn hoàn hảo", "この靴は私の足のサイズにぴったりです。", "Đôi giày này đi vừa khít chân tôi luôn."),
+    DictWord("しっかり", "しっかり", "adverb", "adverbs_mimetic", "vững vàng", ["chắc chắn", "chu đáo"], "しっかり食べる", "ăn uống đầy đủ", "明日も早いから、今夜はしっかり寝てくださいね。", "Mai phải dậy sớm nên tối nay bạn nhớ ngủ thật đẫy giấc nhé."),
+    DictWord("どんどん", "どんどん", "adverb", "adverbs_mimetic", "nhanh chóng", ["dồn dập", "liên tục"], "どんどん話す", "nói liên tục tự tin", "間違えてもいいので、どんどん日本語を話しましょう！", "Sai cũng không sao, chúng ta hãy cứ tự tin nói thật nhiều nhé!"),
+    DictWord("だんだん", "だんだん", "adverb", "adverbs_mimetic", "dần dần", ["từng chút một"], "だんだん慣れる", "dần dần quen thuộc", "日本での生活にもだんだん慣れてきました。", "Tôi cũng đã dần dần thích nghi với cuộc sống tại Nhật."),
+    DictWord("わざわざ", "わざわざ", "adverb", "adverbs_mimetic", "cất công", ["không quản công sức"], "わざわざ来てくれる", "cất công lặn lội đến", "遠いところをわざわざお越しいただきありがとうございます。", "Cảm ơn quý khách đã không quản đường xa cất công đến đây ạ."),
+    DictWord("せっかく", "せっかく", "adverb", "adverbs_mimetic", "đã mất công", ["hiếm khi có dịp"], "せっかくの機会", "cơ hội quý giá", "せっかく日本に来たのだから、温泉に行きましょう！", "Đã cất công sang Nhật rồi thì nhất định phải đi tắm Onsen nhé!"),
+    DictWord("たまたま", "たまたま", "adverb", "adverbs_mimetic", "ngẫu nhiên", ["tình cờ"], "たまたま見つける", "tình cờ nhìn thấy", "本屋でたまたま面白い本を見つけました。", "Tôi tình cờ tìm thấy một cuốn sách rất hay ở hiệu sách."),
+    DictWord("やっぱり", "やっぱり", "adverb", "adverbs_mimetic", "quả nhiên", ["đúng như dự đoán"], "やっぱり美味しい", "quả nhiên là ngon tuyệt", "母が作った料理はやっぱり一番美味しいです。", "Cơm mẹ nấu quả nhiên vẫn là ngon số một trên đời."),
 ]
 
 # =========================================================================
-# NOUNS — N2
+# 4. WORKPLACE & BUSINESS (Công sở, Thương mại & Hou-Ren-So)
 # =========================================================================
-N2_NOUNS: list[DictWord] = [
-    DictWord("制度", "せいど", "noun", "n2", "chế độ", ["hệ thống"]),
-    DictWord("条件", "じょうけん", "noun", "n2", "điều kiện", []),
-    DictWord("規模", "きぼ", "noun", "n2", "quy mô", []),
-    DictWord("程度", "ていど", "noun", "n2", "mức độ", ["trình độ"]),
-    DictWord("傾向", "けいこう", "noun", "n2", "xu hướng", ["khuynh hướng"]),
-    DictWord("原則", "げんそく", "noun", "n2", "nguyên tắc", []),
-    DictWord("方針", "ほうしん", "noun", "n2", "chính sách", ["hướng đi", "đường lối"]),
-    DictWord("主張", "しゅちょう", "noun", "n2", "lập luận", ["quan điểm", "ý kiến"]),
-    DictWord("意見", "いけん", "noun", "n2", "ý kiến", ["quan điểm"]),
-    DictWord("提案", "ていあん", "noun", "n2", "đề xuất", ["kiến nghị"]),
-    DictWord("解決", "かいけつ", "noun", "n2", "giải quyết", ["giải pháp"]),
-    DictWord("対応", "たいおう", "noun", "n2", "ứng phó", ["xử lý", "đối phó"]),
-    DictWord("手段", "しゅだん", "noun", "n2", "phương tiện", ["cách thức"]),
-    DictWord("効果", "こうか", "noun", "n2", "hiệu quả", ["tác dụng"]),
-    DictWord("被害", "ひがい", "noun", "n2", "thiệt hại", ["tổn thất"]),
-    DictWord("損害", "そんがい", "noun", "n2", "thiệt hại tài sản", ["tổn thất"]),
-    DictWord("支出", "ししゅつ", "noun", "n2", "chi tiêu", ["chi phí"]),
-    DictWord("貿易", "ぼうえき", "noun", "n2", "thương mại", ["buôn bán"]),
-    DictWord("輸出", "ゆしゅつ", "noun", "n2", "xuất khẩu", []),
-    DictWord("輸入", "ゆにゅう", "noun", "n2", "nhập khẩu", []),
-    DictWord("産業", "さんぎょう", "noun", "n2", "công nghiệp", ["ngành công nghiệp"]),
-    DictWord("農業", "のうぎょう", "noun", "n2", "nông nghiệp", []),
-    DictWord("工業", "こうぎょう", "noun", "n2", "kỹ nghệ", ["công nghiệp"]),
-    DictWord("商業", "しょうぎょう", "noun", "n2", "thương nghiệp", ["thương mại"]),
-    DictWord("政策", "せいさく", "noun", "n2", "chính sách", []),
-    DictWord("改善", "かいぜん", "noun", "n2", "cải thiện", ["cải tiến"]),
-    DictWord("支援", "しえん", "noun", "n2", "hỗ trợ", ["giúp đỡ"]),
-    DictWord("確保", "かくほ", "noun", "n2", "đảm bảo", ["giữ vững"]),
-    DictWord("維持", "いじ", "noun", "n2", "duy trì", ["giữ gìn"]),
-    DictWord("制限", "せいげん", "noun", "n2", "giới hạn", ["hạn chế"]),
-    DictWord("規制", "きせい", "noun", "n2", "quy định", ["kiểm soát", "hạn chế"]),
-    DictWord("禁止", "きんし", "noun", "n2", "cấm đoán", ["cấm"]),
-    DictWord("許可", "きょか", "noun", "n2", "cho phép", ["sự cho phép"]),
-    DictWord("義務", "ぎむ", "noun", "n2", "nghĩa vụ", ["bổn phận"]),
-    DictWord("権利", "けんり", "noun", "n2", "quyền lợi", ["quyền"]),
-    DictWord("責任", "せきにん", "noun", "n2", "trách nhiệm", []),
-    DictWord("信頼", "しんらい", "noun", "n2", "sự tin tưởng", ["tin cậy"]),
-    DictWord("評価", "ひょうか", "noun", "n2", "đánh giá", []),
-    DictWord("課題", "かだい", "noun", "n2", "nhiệm vụ", ["bài toán", "vấn đề"]),
-    DictWord("基準", "きじゅん", "noun", "n2", "tiêu chuẩn", []),
-    DictWord("需要", "じゅよう", "noun", "n2", "nhu cầu", []),
-    DictWord("供給", "きょうきゅう", "noun", "n2", "cung cấp", []),
-    DictWord("競争", "きょうそう", "noun", "n2", "cạnh tranh", []),
-    DictWord("協力", "きょうりょく", "noun", "n2", "hợp tác", ["cộng tác"]),
-    DictWord("連携", "れんけい", "noun", "n2", "phối hợp", ["liên kết"]),
-    DictWord("分析", "ぶんせき", "noun", "n2", "phân tích", []),
-    DictWord("調査", "ちょうさ", "noun", "n2", "điều tra", ["khảo sát", "nghiên cứu"]),
-    DictWord("研究", "けんきゅう", "noun", "n2", "nghiên cứu", []),
-    DictWord("開発", "かいはつ", "noun", "n2", "phát triển", ["khai phát"]),
-    DictWord("製品", "せいひん", "noun", "n2", "sản phẩm", []),
-    DictWord("品質", "ひんしつ", "noun", "n2", "chất lượng", []),
-    DictWord("価格", "かかく", "noun", "n2", "giá cả", ["giá"]),
-    DictWord("市場", "しじょう", "noun", "n2", "thị trường", []),
-    DictWord("消費", "しょうひ", "noun", "n2", "tiêu thụ", []),
-    DictWord("生産", "せいさん", "noun", "n2", "sản xuất", []),
-    DictWord("輸送", "ゆそう", "noun", "n2", "vận chuyển", ["chuyên chở"]),
-    DictWord("通信", "つうしん", "noun", "n2", "truyền thông", ["liên lạc"]),
-    DictWord("心理", "しんり", "noun", "n2", "tâm lý", []),
-    DictWord("意識", "いしき", "noun", "n2", "ý thức", ["nhận thức"]),
-    DictWord("印象", "いんしょう", "noun", "n2", "ấn tượng", []),
-    DictWord("雰囲気", "ふんいき", "noun", "n2", "bầu không khí", ["không khí"]),
-    DictWord("表情", "ひょうじょう", "noun", "n2", "nét mặt", ["biểu cảm"]),
-    DictWord("反応", "はんのう", "noun", "n2", "phản ứng", []),
-    DictWord("判断", "はんだん", "noun", "n2", "phán đoán", ["đánh giá", "quyết định"]),
-    DictWord("決定", "けってい", "noun", "n2", "quyết định", []),
-    DictWord("選択", "せんたく", "noun", "n2", "lựa chọn", ["chọn lựa"]),
-    DictWord("交流", "こうりゅう", "noun", "n2", "giao lưu", ["trao đổi"]),
-    DictWord("統計", "とうけい", "noun", "n2", "thống kê", []),
-    DictWord("割合", "わりあい", "noun", "n2", "tỷ lệ", ["tỉ lệ"]),
-    DictWord("規格", "きかく", "noun", "n2", "tiêu chuẩn", ["quy cách"]),
-    DictWord("手順", "てじゅん", "noun", "n2", "trình tự", ["quy trình", "bước"]),
+WORKPLACE_BIZ: list[DictWord] = [
+    DictWord("書類", "しょるい", "noun", "workplace_biz", "tài liệu", ["hồ sơ", "giấy tờ"], "書類を提出する", "nộp hồ sơ tài liệu", "会議の前に書類に目を通しておいてください。", "Trước cuộc họp bạn hãy xem qua tập tài liệu này nhé."),
+    DictWord("納期", "のうき", "noun", "workplace_biz", "hạn giao hàng", ["deadline", "thời hạn giao việc"], "納期を守る", "đảm bảo đúng hạn giao", "クオリティを保ちながら納期に間に合わせます。", "Chúng tôi sẽ đảm bảo chất lượng và giao đúng thời hạn ạ."),
+    DictWord("担当", "たんとう", "noun", "workplace_biz", "phụ trách", ["người chịu trách nhiệm"], "プロジェクトを担当する", "phụ trách dự án", "この案件は私が担当させていただきます。", "Dự án này sẽ do tôi trực tiếp phụ trách ạ."),
+    DictWord("検討", "けんとう", "noun", "workplace_biz", "xem xét", ["cân nhắc", "nghiên cứu"], "前向きに検討する", "tích cực xem xét", "ご提案いただいた件、社内で前向きに検討いたします。", "Về đề xuất của quý công ty, chúng tôi sẽ tích cực bàn bạc nội bộ."),
+    DictWord("対応", "たいおう", "noun", "workplace_biz", "xử lý", ["đối ứng", "giải quyết"], "迅速に対応する", "xử lý nhanh chóng", "お客様からのご質問に迅速に対応いたします。", "Chúng tôi sẽ giải đáp nhanh chóng thắc mắc của khách hàng."),
+    DictWord("打ち合わせ", "うちあわせ", "noun", "workplace_biz", "cuộc họp trao đổi", ["buổi thảo luận", "họp bàn"], "打ち合わせを行う", "tiến hành cuộc họp trao đổi", "明日の午後2時からクライアントと打ち合わせがあります。", "2 giờ chiều mai tôi có buổi họp trao đổi cùng khách hàng."),
+    DictWord("議事録", "ぎじろく", "noun", "workplace_biz", "biên bản cuộc họp", ["bản ghi chép họp"], "議事録を作成する", "soạn biên bản cuộc họp", "本日の会議の議事録をまとめてメールで共有します。", "Tôi sẽ tổng hợp biên bản họp hôm nay và gửi qua email cho mọi người."),
+    DictWord("見積もり", "みつもり", "noun", "workplace_biz", "báo giá", ["bản ước tính chi phí"], "見積もりを出す", "lập bản báo giá", "本日中にお見積もり書を作成してお送りいたします。", "Tôi sẽ hoàn thành bản báo giá và gửi cho quý khách trong hôm nay."),
+    DictWord("請求書", "せいきゅうしょ", "noun", "workplace_biz", "hóa đơn thanh toán", ["giấy đòi tiền"], "請求書を発行する", "xuất hóa đơn thanh toán", "月末までに請求書をお送りいただけますでしょうか？", "Quý công ty gửi hóa đơn thanh toán trước cuối tháng giúp tôi nhé?"),
+    DictWord("契約", "けいやく", "noun", "workplace_biz", "hợp đồng", ["giao kèo", "ký kết"], "契約を結ぶ", "ký kết hợp đồng", "無事に新しい取引先と契約を結ぶことができました。", "Chúng tôi đã thuận lợi ký kết hợp đồng với đối tác mới."),
+    DictWord("進捗", "しんちょく", "noun", "workplace_biz", "tiến độ", ["tình hình tiến triển"], "進捗を報告する", "báo cáo tiến độ", "現在の進捗状況についてご報告させていただきます。", "Tôi xin phép được báo cáo về tiến độ công việc hiện tại."),
+    DictWord("残業", "ざんぎょう", "noun", "workplace_biz", "làm thêm giờ", ["tăng ca", "OT"], "残業をする", "làm thêm giờ", "今日は納期が近いので1時間だけ残業します。", "Hôm nay sắp đến hạn giao việc nên tôi làm thêm 1 tiếng."),
+    DictWord("出張", "しゅっちょう", "noun", "workplace_biz", "đi công tác", ["chuyến công tác"], "出張に行く", "đi công tác xa", "来週の月曜日から3日間、大阪へ出張に行きます。", "Từ thứ Hai tuần sau tôi sẽ đi công tác ở Osaka 3 ngày."),
+    DictWord("名刺", "めいし", "noun", "workplace_biz", "danh thiếp", ["card visit"], "名刺を交換する", "trao đổi danh thiếp", "初めまして、名刺を交換させていただけますか？", "Lần đầu gặp mặt, xin phép được trao đổi danh thiếp cùng quý vị ạ?"),
+    DictWord("引き継ぎ", "ひきつぎ", "noun", "workplace_biz", "bàn giao công việc", ["chuyển giao nhiệm vụ"], "業務を引き継ぐ", "chuyển giao công việc", "有給休暇を取る前にしっかり引き継ぎをしておきます。", "Trước khi nghỉ phép tôi sẽ bàn giao công việc thật chu đáo."),
 ]
 
 # =========================================================================
-# NOUNS — N1
+# 5. DAILY LIFE & SERVICE (Sinh hoạt, Mua sắm & Dịch vụ)
 # =========================================================================
-N1_NOUNS: list[DictWord] = [
-    DictWord("概念", "がいねん", "noun", "n1", "khái niệm", []),
-    DictWord("原理", "げんり", "noun", "n1", "nguyên lý", ["nguyên tắc"]),
-    DictWord("理念", "りねん", "noun", "n1", "lý tưởng", ["lý niệm"]),
-    DictWord("思想", "しそう", "noun", "n1", "tư tưởng", []),
-    DictWord("哲学", "てつがく", "noun", "n1", "triết học", []),
-    DictWord("論理", "ろんり", "noun", "n1", "logic", ["lô-gic"]),
-    DictWord("価値観", "かちかん", "noun", "n1", "hệ giá trị", ["quan niệm giá trị"]),
-    DictWord("世界観", "せかいかん", "noun", "n1", "thế giới quan", []),
-    DictWord("観点", "かんてん", "noun", "n1", "quan điểm", ["góc nhìn"]),
-    DictWord("視点", "してん", "noun", "n1", "góc nhìn", ["quan điểm"]),
-    DictWord("立場", "たちば", "noun", "n1", "lập trường", ["vị trí", "quan điểm"]),
-    DictWord("姿勢", "しせい", "noun", "n1", "thái độ", ["tư thế"]),
-    DictWord("態度", "たいど", "noun", "n1", "thái độ", []),
-    DictWord("戦略", "せんりゃく", "noun", "n1", "chiến lược", []),
-    DictWord("対策", "たいさく", "noun", "n1", "biện pháp", ["giải pháp", "đối sách"]),
-    DictWord("予防", "よぼう", "noun", "n1", "phòng ngừa", ["phòng tránh"]),
-    DictWord("保護", "ほご", "noun", "n1", "bảo vệ", []),
-    DictWord("権威", "けんい", "noun", "n1", "quyền uy", ["uy tín"]),
-    DictWord("権力", "けんりょく", "noun", "n1", "quyền lực", []),
-    DictWord("公正", "こうせい", "noun", "n1", "công bằng", []),
-    DictWord("格差", "かくさ", "noun", "n1", "khoảng cách", ["chênh lệch"]),
-    DictWord("矛盾", "むじゅん", "noun", "n1", "mâu thuẫn", []),
-    DictWord("偏見", "へんけん", "noun", "n1", "định kiến", ["thành kiến"]),
-    DictWord("差別", "さべつ", "noun", "n1", "phân biệt đối xử", ["kỳ thị"]),
-    DictWord("平等", "びょうどう", "noun", "n1", "bình đẳng", []),
-    DictWord("組織", "そしき", "noun", "n1", "tổ chức", []),
-    DictWord("秩序", "ちつじょ", "noun", "n1", "trật tự", []),
-    DictWord("混乱", "こんらん", "noun", "n1", "hỗn loạn", []),
-    DictWord("危機", "きき", "noun", "n1", "khủng hoảng", []),
-    DictWord("緊張", "きんちょう", "noun", "n1", "căng thẳng", []),
-    DictWord("安定", "あんてい", "noun", "n1", "ổn định", []),
-    DictWord("持続", "じぞく", "noun", "n1", "duy trì", ["bền vững"]),
-    DictWord("克服", "こくふく", "noun", "n1", "vượt qua", []),
-    DictWord("挑戦", "ちょうせん", "noun", "n1", "thử thách", []),
-    DictWord("革新", "かくしん", "noun", "n1", "cách tân", ["đổi mới"]),
-    DictWord("創造", "そうぞう", "noun", "n1", "sáng tạo", []),
-    DictWord("革命", "かくめい", "noun", "n1", "cách mạng", []),
-    DictWord("普及", "ふきゅう", "noun", "n1", "phổ biến", []),
-    DictWord("展開", "てんかい", "noun", "n1", "triển khai", ["phát triển"]),
-    DictWord("拡大", "かくだい", "noun", "n1", "mở rộng", []),
-    DictWord("廃止", "はいし", "noun", "n1", "bãi bỏ", ["xóa bỏ"]),
-    DictWord("違反", "いはん", "noun", "n1", "vi phạm", []),
-    DictWord("裁判", "さいばん", "noun", "n1", "xét xử", ["tòa án"]),
-    DictWord("判決", "はんけつ", "noun", "n1", "phán quyết", ["bản án"]),
-    DictWord("促進", "そくしん", "noun", "n1", "thúc đẩy", ["khuyến khích"]),
-    DictWord("統合", "とうごう", "noun", "n1", "thống nhất", ["tích hợp"]),
-    DictWord("遵守", "じゅんしゅ", "noun", "n1", "tuân thủ", []),
-    DictWord("把握", "はあく", "noun", "n1", "nắm bắt", ["hiểu rõ"]),
-    DictWord("整備", "せいび", "noun", "n1", "sắp xếp", ["bảo trì"]),
-    DictWord("抑制", "よくせい", "noun", "n1", "kiềm chế", ["hạn chế"]),
-    DictWord("縮小", "しゅくしょう", "noun", "n1", "thu hẹp", []),
+DAILY_LIFE: list[DictWord] = [
+    DictWord("お会計", "おかいけい", "noun", "daily_life", "thanh toán", ["tính tiền", "hóa đơn"], "お会計をお願いする", "gọi tính tiền", "すみません、お会計をお願いします。", "Xin lỗi, làm ơn tính tiền giúp tôi với ạ."),
+    DictWord("割引", "わりびき", "noun", "daily_life", "giảm giá", ["chiết khấu", "khuyến mãi"], "割引クーポン", "mã giảm giá khuyến mãi", "このクーポンを使うと20パーセント割引になります。", "Dùng mã giảm giá này bạn sẽ được giảm 20%."),
+    DictWord("予約", "よやく", "noun", "daily_life", "đặt chỗ", ["đặt bàn", "booking"], "席を予約する", "đặt trước bàn ăn", "金曜日の夜7時にレストランを予約しました。", "Tôi đã đặt bàn ở nhà hàng lúc 7 giờ tối thứ Sáu."),
+    DictWord("領収書", "りょうしゅうしょ", "noun", "daily_life", "hóa đơn đỏ", ["hóa đơn thanh toán", "biên lai"], "領収書をもらう", "xin cấp hóa đơn đỏ", "会社名義で領収書をいただけますでしょうか？", "Cho tôi xin hóa đơn đỏ ghi tên công ty được không ạ?"),
+    DictWord("注文", "ちゅうもん", "noun", "daily_life", "gọi món", ["đặt hàng", "order"], "注文を取る", "nhận order gọi món", "ご注文が決まりましたらお呼びください。", "Khi nào quý khách chọn xong món xin hãy gọi tôi nhé ạ."),
+    DictWord("営業時間", "えいぎょうじかん", "noun", "daily_life", "giờ mở cửa", ["thời gian làm việc"], "営業時間を調べる", "tra cứu giờ mở cửa", "このカフェの営業時間は夜10時までです。", "Quán cà phê này mở cửa phục vụ đến 10 giờ tối."),
+    DictWord("定休日", "ていきゅうび", "noun", "daily_life", "ngày nghỉ định kỳ", ["ngày đóng cửa"], "毎週月曜日が定休日", "nghỉ cố định vào thứ Hai", "あのお店は水曜日が定休日なので気をつけてね。", "Quán đó đóng cửa cố định vào thứ Tư nên bạn lưu ý nhé."),
+    DictWord("在庫", "ざいこ", "noun", "daily_life", "hàng tồn kho", ["hàng có sẵn"], "在庫を確認する", "kiểm tra hàng trong kho", "あいにくこちらの商品の在庫は切れております。", "Rất tiếc sản phẩm mẫu này hiện tại trong kho đã hết hàng ạ."),
+    DictWord("禁煙席", "きんえんせき", "noun", "daily_life", "ghế không hút thuốc", ["khu vực cấm thuốc"], "禁煙席を希望する", "chọn bàn không hút thuốc", "2名ですが、禁煙席は空いていますでしょうか？", "Chúng tôi đi 2 người, bàn khu vực không hút thuốc còn trống không ạ?"),
+    DictWord("試着", "しちゃく", "noun", "daily_life", "mặc thử đồ", ["thử quần áo"], "試着室に入る", "vào phòng thử đồ", "この服を着てみたいのですが、試着してもいいですか？", "Tôi muốn mặc thử chiếc áo này xem có vừa không được chứ ạ?"),
+    DictWord("配送料", "はいそうりょう", "noun", "daily_life", "phí vận chuyển", ["tiền ship", "cước gửi"], "配送料が無料", "miễn phí vận chuyển", "5,000円以上のお買い上げで配送料が無料になります。", "Đơn hàng trên 5.000 Yên sẽ được miễn phí vận chuyển."),
+    DictWord("返品", "へんぴん", "noun", "daily_life", "đổi trả hàng", ["trả lại đồ đã mua"], "商品を返品する", "đổi trả sản phẩm", "レシートがあれば1週間以内なら返品可能です。", "Nếu còn giữ hóa đơn mua hàng thì có thể đổi trả trong vòng 1 tuần."),
+    DictWord("終電", "しゅうでん", "noun", "daily_life", "chuyến tàu cuối", ["chuyến xe chót"], "終電を逃す", "lỡ chuyến tàu cuối cùng", "終電に乗り遅れないように急いで駅に向かいました。", "Để không bị lỡ chuyến tàu cuối tôi đã vội vàng chạy ra ga."),
+    DictWord("忘れ物", "わすれもの", "noun", "daily_life", "đồ bỏ quên", ["vật đánh rơi"], "忘れ物を届ける", "giao đồ bỏ quên cho quầy", "電車の中に傘を忘れ物をしてしまいました。", "Tôi lỡ bỏ quên cây dù ở trên tàu điện mất rồi."),
+    DictWord("両替", "りょうがえ", "noun", "daily_life", "đổi tiền", ["đổi ngoại tệ", "đổi tiền lẻ"], "外貨を両替する", "đổi ngoại tệ", "空港の両替所で日本円をベトナムドンに両替しました。", "Tôi đã đổi tiền Yên sang Đồng Việt Nam tại quầy đổi tiền ở sân bay."),
 ]
 
-# =========================================================================
-# ADJECTIVES — N5 (adj-i + adj-na)
-# =========================================================================
-N5_ADJ: list[DictWord] = [
-    # adj-i
-    DictWord("いい", "いい", "adj_i", "n5", "tốt", ["hay", "tốt lành"]),
-    DictWord("悪い", "わるい", "adj_i", "n5", "xấu", ["tồi", "tệ"]),
-    DictWord("大きい", "おおきい", "adj_i", "n5", "to lớn", ["lớn", "to"]),
-    DictWord("小さい", "ちいさい", "adj_i", "n5", "nhỏ bé", ["nhỏ", "bé"]),
-    DictWord("新しい", "あたらしい", "adj_i", "n5", "mới", []),
-    DictWord("古い", "ふるい", "adj_i", "n5", "cũ", ["cũ kỹ"]),
-    DictWord("高い", "たかい", "adj_i", "n5", "cao / đắt", ["đắt tiền", "đắt"]),
-    DictWord("安い", "やすい", "adj_i", "n5", "rẻ", ["rẻ tiền"]),
-    DictWord("暑い", "あつい", "adj_i", "n5", "nóng", ["nóng bức"]),
-    DictWord("寒い", "さむい", "adj_i", "n5", "lạnh", []),
-    DictWord("暖かい", "あたたかい", "adj_i", "n5", "ấm áp", ["ấm"]),
-    DictWord("涼しい", "すずしい", "adj_i", "n5", "mát mẻ", ["mát"]),
-    DictWord("難しい", "むずかしい", "adj_i", "n5", "khó", ["khó khăn"]),
-    DictWord("易しい", "やさしい", "adj_i", "n5", "dễ", ["dễ dàng"]),
-    DictWord("楽しい", "たのしい", "adj_i", "n5", "vui", ["vui vẻ", "thú vị"]),
-    DictWord("面白い", "おもしろい", "adj_i", "n5", "thú vị", ["hay", "hấp dẫn", "buồn cười"]),
-    DictWord("忙しい", "いそがしい", "adj_i", "n5", "bận rộn", ["bận"]),
-    DictWord("速い", "はやい", "adj_i", "n5", "nhanh", []),
-    DictWord("遅い", "おそい", "adj_i", "n5", "chậm", ["trễ"]),
-    DictWord("近い", "ちかい", "adj_i", "n5", "gần", []),
-    DictWord("遠い", "とおい", "adj_i", "n5", "xa", []),
-    DictWord("長い", "ながい", "adj_i", "n5", "dài", []),
-    DictWord("短い", "みじかい", "adj_i", "n5", "ngắn", []),
-    # adj-na
-    DictWord("好き", "すき", "adj_na", "n5", "thích", ["yêu thích"]),
-    DictWord("嫌い", "きらい", "adj_na", "n5", "ghét", ["không thích"]),
-    DictWord("きれい", "きれい", "adj_na", "n5", "đẹp / sạch", ["xinh đẹp", "sạch sẽ"]),
-    DictWord("静か", "しずか", "adj_na", "n5", "yên tĩnh", ["yên lặng"]),
-    DictWord("にぎやか", "にぎやか", "adj_na", "n5", "nhộn nhịp", ["ồn ào", "sầm uất"]),
-    DictWord("元気", "げんき", "adj_na", "n5", "khỏe mạnh", ["khỏe", "năng động"]),
-    DictWord("便利", "べんり", "adj_na", "n5", "tiện lợi", ["thuận tiện"]),
-]
-
-# =========================================================================
-# ADJECTIVES — N4
-# =========================================================================
-N4_ADJ: list[DictWord] = [
-    # adj-i
-    DictWord("嬉しい", "うれしい", "adj_i", "n4", "vui mừng", ["hạnh phúc", "vui"]),
-    DictWord("悲しい", "かなしい", "adj_i", "n4", "buồn", ["đau buồn"]),
-    DictWord("怖い", "こわい", "adj_i", "n4", "đáng sợ", ["sợ hãi", "ghê"]),
-    DictWord("痛い", "いたい", "adj_i", "n4", "đau", []),
-    DictWord("眠い", "ねむい", "adj_i", "n4", "buồn ngủ", []),
-    DictWord("寂しい", "さびしい", "adj_i", "n4", "cô đơn", ["cô quạnh"]),
-    DictWord("珍しい", "めずらしい", "adj_i", "n4", "hiếm có", ["lạ", "độc đáo"]),
-    DictWord("かわいい", "かわいい", "adj_i", "n4", "đáng yêu", ["dễ thương", "cute"]),
-    DictWord("正しい", "ただしい", "adj_i", "n4", "đúng", ["chính xác", "đúng đắn"]),
-    DictWord("危ない", "あぶない", "adj_i", "n4", "nguy hiểm", []),
-    DictWord("優しい", "やさしい", "adj_i", "n4", "tốt bụng", ["hiền lành", "dịu dàng"]),
-    DictWord("重い", "おもい", "adj_i", "n4", "nặng", []),
-    DictWord("軽い", "かるい", "adj_i", "n4", "nhẹ", []),
-    DictWord("細かい", "こまかい", "adj_i", "n4", "tỉ mỉ", ["chi tiết"]),
-    # adj-na
-    DictWord("丁寧", "ていねい", "adj_na", "n4", "lịch sự", ["cẩn thận", "lịch thiệp"]),
-    DictWord("必要", "ひつよう", "adj_na", "n4", "cần thiết", ["cần"]),
-    DictWord("特別", "とくべつ", "adj_na", "n4", "đặc biệt", []),
-    DictWord("普通", "ふつう", "adj_na", "n4", "bình thường", ["thường"]),
-    DictWord("幸せ", "しあわせ", "adj_na", "n4", "hạnh phúc", []),
-    DictWord("有名", "ゆうめい", "adj_na", "n4", "nổi tiếng", ["danh tiếng"]),
-    DictWord("親切", "しんせつ", "adj_na", "n4", "thân thiện", ["tử tế", "ân cần"]),
-    DictWord("大事", "だいじ", "adj_na", "n4", "quan trọng", []),
-    DictWord("重要", "じゅうよう", "adj_na", "n4", "quan trọng", ["thiết yếu"]),
-    DictWord("素直", "すなお", "adj_na", "n4", "thật thà", ["ngoan ngoãn"]),
-    DictWord("真剣", "しんけん", "adj_na", "n4", "nghiêm túc", ["chân thành"]),
-    DictWord("複雑", "ふくざつ", "adj_na", "n4", "phức tạp", []),
-    DictWord("明らか", "あきらか", "adj_na", "n4", "rõ ràng", ["hiển nhiên"]),
-    DictWord("積極的", "せっきょくてき", "adj_na", "n4", "tích cực", []),
-    DictWord("消極的", "しょうきょくてき", "adj_na", "n4", "tiêu cực", ["thụ động"]),
-    DictWord("自由", "じゆう", "adj_na", "n4", "tự do", []),
-]
-
-# =========================================================================
-# ADJECTIVES — N3
-# =========================================================================
-N3_ADJ: list[DictWord] = [
-    DictWord("恥ずかしい", "はずかしい", "adj_i", "n3", "xấu hổ", ["ngại", "mắc cỡ"]),
-    DictWord("羨ましい", "うらやましい", "adj_i", "n3", "ghen tị", ["đố kỵ", "thèm"]),
-    DictWord("苦しい", "くるしい", "adj_i", "n3", "đau khổ", ["khổ sở"]),
-    DictWord("辛い", "つらい", "adj_i", "n3", "vất vả", ["gian khó", "khó khăn"]),
-    DictWord("懐かしい", "なつかしい", "adj_i", "n3", "hoài niệm", ["nhớ nhung"]),
-    DictWord("温かい", "あたたかい", "adj_i", "n3", "ấm áp (tình cảm)", ["ấm lòng"]),
-    DictWord("冷たい", "つめたい", "adj_i", "n3", "lạnh lùng", ["lạnh nhạt", "lạnh"]),
-    DictWord("激しい", "はげしい", "adj_i", "n3", "dữ dội", ["mãnh liệt", "mạnh mẽ"]),
-    DictWord("素晴らしい", "すばらしい", "adj_i", "n3", "tuyệt vời", ["xuất sắc"]),
-    DictWord("怪しい", "あやしい", "adj_i", "n3", "đáng ngờ", ["khả nghi"]),
-    DictWord("鋭い", "するどい", "adj_i", "n3", "sắc bén", ["nhạy bén", "nhọn"]),
-    DictWord("深い", "ふかい", "adj_i", "n3", "sâu sắc", ["sâu"]),
-    DictWord("硬い", "かたい", "adj_i", "n3", "cứng", []),
-    DictWord("柔らかい", "やわらかい", "adj_i", "n3", "mềm", ["mềm mại"]),
-    DictWord("汚い", "きたない", "adj_i", "n3", "bẩn thỉu", ["dơ bẩn", "dơ"]),
-    # adj-na
-    DictWord("安全", "あんぜん", "adj_na", "n3", "an toàn", []),
-    DictWord("危険", "きけん", "adj_na", "n3", "nguy hiểm", []),
-    DictWord("正直", "しょうじき", "adj_na", "n3", "thành thật", ["thật thà", "trung thực"]),
-    DictWord("熱心", "ねっしん", "adj_na", "n3", "nhiệt tình", ["tận tâm"]),
-    DictWord("不便", "ふべん", "adj_na", "n3", "bất tiện", []),
-    DictWord("迷惑", "めいわく", "adj_na", "n3", "phiền toái", ["phiền hà"]),
-    DictWord("大胆", "だいたん", "adj_na", "n3", "táo bạo", ["can đảm"]),
-    DictWord("慎重", "しんちょう", "adj_na", "n3", "thận trọng", ["cẩn thận"]),
-    DictWord("冷静", "れいせい", "adj_na", "n3", "bình tĩnh", ["điềm tĩnh"]),
-    DictWord("残念", "ざんねん", "adj_na", "n3", "đáng tiếc", ["tiếc"]),
-    DictWord("不思議", "ふしぎ", "adj_na", "n3", "kỳ diệu", ["lạ", "huyền bí"]),
-    DictWord("清潔", "せいけつ", "adj_na", "n3", "sạch sẽ", ["vệ sinh"]),
-    DictWord("孤独", "こどく", "adj_na", "n3", "cô đơn", ["cô lẻ"]),
-    DictWord("独特", "どくとく", "adj_na", "n3", "độc đáo", ["đặc biệt"]),
-    DictWord("柔軟", "じゅうなん", "adj_na", "n3", "linh hoạt", ["mềm dẻo"]),
-    DictWord("有効", "ゆうこう", "adj_na", "n3", "có hiệu lực", ["hiệu quả"]),
-    DictWord("公平", "こうへい", "adj_na", "n3", "công bằng", []),
-    DictWord("上品", "じょうひん", "adj_na", "n3", "thanh lịch", ["tao nhã"]),
-    DictWord("健全", "けんぜん", "adj_na", "n3", "lành mạnh", []),
-    DictWord("穏やか", "おだやか", "adj_na", "n3", "nhẹ nhàng", ["điềm tĩnh", "bình tĩnh"]),
-]
-
-# =========================================================================
-# ADJECTIVES — N2
-# =========================================================================
-N2_ADJ: list[DictWord] = [
-    DictWord("厳しい", "きびしい", "adj_i", "n2", "nghiêm khắc", ["khắt khe"]),
-    DictWord("凄い", "すごい", "adj_i", "n2", "kinh ngạc", ["tuyệt vời", "ghê", "ấn tượng"]),
-    DictWord("賢い", "かしこい", "adj_i", "n2", "thông minh", ["khôn ngoan"]),
-    DictWord("微妙", "びみょう", "adj_na", "n2", "tinh tế", ["tế nhị"]),
-    DictWord("効率的", "こうりつてき", "adj_na", "n2", "hiệu quả", []),
-    DictWord("具体的", "ぐたいてき", "adj_na", "n2", "cụ thể", []),
-    DictWord("抽象的", "ちゅうしょうてき", "adj_na", "n2", "trừu tượng", []),
-    DictWord("適切", "てきせつ", "adj_na", "n2", "phù hợp", ["thích hợp"]),
-    DictWord("合理的", "ごうりてき", "adj_na", "n2", "hợp lý", []),
-    DictWord("現実的", "げんじつてき", "adj_na", "n2", "thực tế", []),
-    DictWord("理想的", "りそうてき", "adj_na", "n2", "lý tưởng", []),
-    DictWord("客観的", "きゃっかんてき", "adj_na", "n2", "khách quan", []),
-    DictWord("主観的", "しゅかんてき", "adj_na", "n2", "chủ quan", []),
-    DictWord("徹底的", "てっていてき", "adj_na", "n2", "triệt để", []),
-    DictWord("専門的", "せんもんてき", "adj_na", "n2", "chuyên môn", []),
-    DictWord("曖昧", "あいまい", "adj_na", "n2", "mơ hồ", ["không rõ ràng"]),
-    DictWord("明確", "めいかく", "adj_na", "n2", "rõ ràng", ["chắc chắn"]),
-    DictWord("包括的", "ほうかつてき", "adj_na", "n2", "toàn diện", []),
-    DictWord("一方的", "いっぽうてき", "adj_na", "n2", "một chiều", ["đơn phương"]),
-    DictWord("独自", "どくじ", "adj_na", "n2", "độc lập", ["riêng"]),
-    DictWord("精密", "せいみつ", "adj_na", "n2", "chính xác", ["tinh tế"]),
-    DictWord("不適切", "ふてきせつ", "adj_na", "n2", "không phù hợp", []),
-    DictWord("相互的", "そうごてき", "adj_na", "n2", "qua lại lẫn nhau", []),
-    DictWord("積極的", "せっきょくてき", "adj_na", "n2", "tích cực chủ động", []),
-]
-
-# =========================================================================
-# ADJECTIVES — N1
-# =========================================================================
-N1_ADJ: list[DictWord] = [
-    DictWord("根本的", "こんぽんてき", "adj_na", "n1", "căn bản", ["cơ bản"]),
-    DictWord("本質的", "ほんしつてき", "adj_na", "n1", "bản chất", []),
-    DictWord("抜本的", "ばっぽんてき", "adj_na", "n1", "triệt để", ["tận gốc"]),
-    DictWord("画期的", "かっきてき", "adj_na", "n1", "đột phá", ["tiên phong"]),
-    DictWord("先進的", "せんしんてき", "adj_na", "n1", "tiên tiến", []),
-    DictWord("革新的", "かくしんてき", "adj_na", "n1", "đổi mới", ["cách mạng"]),
-    DictWord("保守的", "ほしゅてき", "adj_na", "n1", "bảo thủ", []),
-    DictWord("進歩的", "しんぽてき", "adj_na", "n1", "tiến bộ", []),
-    DictWord("批判的", "ひはんてき", "adj_na", "n1", "phê phán", ["phản biện"]),
-    DictWord("創造的", "そうぞうてき", "adj_na", "n1", "sáng tạo", []),
-    DictWord("建設的", "けんせつてき", "adj_na", "n1", "xây dựng", ["tích cực"]),
-    DictWord("象徴的", "しょうちょうてき", "adj_na", "n1", "biểu tượng", []),
-    DictWord("形式的", "けいしきてき", "adj_na", "n1", "hình thức", []),
-    DictWord("実質的", "じっしつてき", "adj_na", "n1", "thực chất", ["thực tế"]),
-    DictWord("理論的", "りろんてき", "adj_na", "n1", "lý luận", []),
-    DictWord("経験的", "けいけんてき", "adj_na", "n1", "thực nghiệm", []),
-    DictWord("壮大", "そうだい", "adj_na", "n1", "hùng vĩ", []),
-    DictWord("緻密", "ちみつ", "adj_na", "n1", "tỉ mỉ chặt chẽ", []),
-    DictWord("甚大", "じんだい", "adj_na", "n1", "rất lớn", ["to lớn"]),
-    DictWord("顕著", "けんちょ", "adj_na", "n1", "nổi bật", ["rõ ràng"]),
-]
-
-# =========================================================================
-# AGGREGATED POOLS
-# =========================================================================
-ALL_NOUNS: list[DictWord] = (
-    N5_NOUNS + N4_NOUNS + N3_NOUNS + N2_NOUNS + N1_NOUNS
+# Combined Pool of All Words
+ALL_VOCAB_WORDS: list[DictWord] = (
+    ACTION_VERBS + EMOTIONS_ADJ + ADVERBS_MIMETIC + WORKPLACE_BIZ + DAILY_LIFE
 )
 
-ALL_ADJ: list[DictWord] = (
-    N5_ADJ + N4_ADJ + N3_ADJ + N2_ADJ + N1_ADJ
-)
-
-# Difficulty buckets (nouns + adjectives only)
-EASY_NOUNS_ADJ: list[DictWord] = N5_NOUNS + N4_NOUNS + N5_ADJ + N4_ADJ
-NORMAL_NOUNS_ADJ: list[DictWord] = N3_NOUNS + N3_ADJ
-HARD_NOUNS_ADJ: list[DictWord] = N2_NOUNS + N1_NOUNS + N2_ADJ + N1_ADJ
-
-
-def _dict_verb_to_word(v: "DictVerb") -> DictWord:  # type: ignore[name-defined]
-    """Convert a DictVerb to a DictWord for unified vocab pool."""
-    return DictWord(
-        word=v.verb,
-        reading=v.reading,
-        word_type="verb",
-        jlpt=v.level,
-        meaning_vi=v.meaning_vi,
-        synonyms_vi=[],
-    )
-
-
-# =========================================================================
-# UNIFIED VOCAB POOL (verbs + nouns + adjectives)
-# Lazy import to avoid circular imports — call build_all_vocab_words() once.
-# =========================================================================
-_ALL_VOCAB_WORDS: list[DictWord] | None = None
-_EASY_VOCAB: list[DictWord] | None = None
-_NORMAL_VOCAB: list[DictWord] | None = None
-_HARD_VOCAB: list[DictWord] | None = None
-
-
-def _ensure_vocab_words() -> None:
-    global _ALL_VOCAB_WORDS, _EASY_VOCAB, _NORMAL_VOCAB, _HARD_VOCAB
-    if _ALL_VOCAB_WORDS is not None:
-        return
-    from app.domains.reflex.dictionary_pool import (
-        ALL_DICT_VERBS,
-        EASY_VERBS,
-        HARD_VERBS,
-        NORMAL_VERBS,
-    )
-    verb_words = [_dict_verb_to_word(v) for v in ALL_DICT_VERBS]
-    easy_verb_words = [_dict_verb_to_word(v) for v in EASY_VERBS]
-    normal_verb_words = [_dict_verb_to_word(v) for v in NORMAL_VERBS]
-    hard_verb_words = [_dict_verb_to_word(v) for v in HARD_VERBS]
-
-    _ALL_VOCAB_WORDS = verb_words + ALL_NOUNS + ALL_ADJ
-    _EASY_VOCAB = easy_verb_words + EASY_NOUNS_ADJ
-    _NORMAL_VOCAB = normal_verb_words + NORMAL_NOUNS_ADJ
-    _HARD_VOCAB = hard_verb_words + HARD_NOUNS_ADJ
+# Category Map
+VOCAB_CATEGORY_MAP: dict[str, list[DictWord]] = {
+    "action_verbs": ACTION_VERBS,
+    "emotions_adj": EMOTIONS_ADJ,
+    "adverbs_mimetic": ADVERBS_MIMETIC,
+    "workplace_biz": WORKPLACE_BIZ,
+    "daily_life": DAILY_LIFE,
+}
 
 
 def get_all_vocab_words() -> list[DictWord]:
-    _ensure_vocab_words()
-    assert _ALL_VOCAB_WORDS is not None
-    return _ALL_VOCAB_WORDS
+    return ALL_VOCAB_WORDS
 
 
 def get_easy_vocab() -> list[DictWord]:
-    _ensure_vocab_words()
-    assert _EASY_VOCAB is not None
-    return _EASY_VOCAB
+    return ALL_VOCAB_WORDS
 
 
 def get_normal_vocab() -> list[DictWord]:
-    _ensure_vocab_words()
-    assert _NORMAL_VOCAB is not None
-    return _NORMAL_VOCAB
+    return ALL_VOCAB_WORDS
 
 
 def get_hard_vocab() -> list[DictWord]:
-    _ensure_vocab_words()
-    assert _HARD_VOCAB is not None
-    return _HARD_VOCAB
+    return ALL_VOCAB_WORDS
+
+
+EASY_VOCAB = ALL_VOCAB_WORDS
+NORMAL_VOCAB = ALL_VOCAB_WORDS
+HARD_VOCAB = ALL_VOCAB_WORDS
+
+
+def get_vocab_by_category(category: str) -> list[DictWord]:
+    if not category or category == "all":
+        return ALL_VOCAB_WORDS
+    return VOCAB_CATEGORY_MAP.get(category, ALL_VOCAB_WORDS)
+
+
+def search_vocab(query: str) -> list[DictWord]:
+    if not query.strip():
+        return ALL_VOCAB_WORDS
+    q = query.lower().strip()
+    return [
+        w for w in ALL_VOCAB_WORDS
+        if q in w.word.lower()
+        or q in w.reading.lower()
+        or q in w.meaning_vi.lower()
+        or any(q in syn.lower() for syn in w.synonyms_vi)
+        or q in w.collocation_ja.lower()
+        or q in w.collocation_vi.lower()
+        or q in w.example_ja.lower()
+        or q in w.example_vi.lower()
+    ]

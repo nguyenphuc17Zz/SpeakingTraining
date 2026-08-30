@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 import { settingsApi } from "@/services/settings-api";
+import { cn } from "@/lib/utils";
 import { aiApi } from "@/services/ai-api";
 import { providersApi } from "@/services/providers-api";
 import { audioApi } from "@/features/audio/services/audio-api";
@@ -42,6 +43,7 @@ import {
   getSavedLobbyPreferences,
   saveLobbyPreferences,
 } from "../services/lobby-preferences";
+import { soundFX } from "@/lib/sound-fx";
 
 interface SessionLobbyProps {
   persona: Persona;
@@ -66,6 +68,7 @@ export function SessionLobby({
 
   const [activeTab, setActiveTab] = useState<LobbyTab>("mode_ai");
   const [mode, setMode] = useState<SessionMode>(initialPrefs.mode);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   // AI Provider & Model States
   const [aiProvider, setAiProvider] = useState(initialPrefs.ai_provider);
@@ -494,53 +497,168 @@ export function SessionLobby({
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{persona.description}</p>
       </div>
 
-      {/* Navigation Tabs Bar */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border shrink-0 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab("mode_ai")}
-          className={`flex-1 min-w-[130px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "mode_ai"
-              ? "bg-card text-foreground shadow-sm border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Settings2 className="h-3.5 w-3.5 text-primary" />
-          <span>1. Chế độ & AI</span>
-        </button>
+      {/* 1-Click Quick Presets Bar */}
+      {/* Core Mode Selection (2 Clean Cards) */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-foreground flex items-center justify-between">
+          <span>1. Chọn Chế Độ Luyện Tập:</span>
+          <span className="text-[10px] text-muted-foreground font-normal">Tự động cấu hình chuẩn theo nhân vật</span>
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playFurin();
+              handleModeChange("conversation");
+            }}
+            className={cn(
+              "p-3 rounded-2xl border text-left transition-all relative",
+              mode === "conversation"
+                ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                : "bg-card border-border hover:border-primary/40 text-muted-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">🗣️</span>
+              <span className={cn("text-xs font-bold", mode === "conversation" ? "text-primary" : "text-foreground")}>
+                Hội Thoại Tự Nhiên
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+              Đàm thoại trôi chảy, phản xạ nhanh như trò chuyện với người bản xứ.
+            </p>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("stt_mic")}
-          className={`flex-1 min-w-[130px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "stt_mic"
-              ? "bg-card text-foreground shadow-sm border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Mic className="h-3.5 w-3.5 text-emerald-400" />
-          <span>2. STT & Test Mic</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("voicevox")}
-          className={`flex-1 min-w-[140px] px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "voicevox"
-              ? "bg-card text-foreground shadow-sm border border-border"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {ttsEngine === "none" || !ttsEnabled ? (
-            <VolumeX className="h-3.5 w-3.5 text-amber-400" />
-          ) : ttsEngine === "web_speech" ? (
-            <Globe className="h-3.5 w-3.5 text-sky-400" />
-          ) : (
-            <Headphones className="h-3.5 w-3.5 text-indigo-400" />
-          )}
-          <span>3. Giọng nói (TTS)</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              soundFX.playFurin();
+              handleModeChange("coaching");
+            }}
+            className={cn(
+              "p-3 rounded-2xl border text-left transition-all relative",
+              mode === "coaching"
+                ? "bg-amber-500/10 border-amber-500 shadow-xs ring-1 ring-amber-500/30"
+                : "bg-card border-border hover:border-amber-500/40 text-muted-foreground"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className={cn("h-4 w-4", mode === "coaching" ? "text-amber-500" : "text-muted-foreground")} />
+              <span className={cn("text-xs font-bold", mode === "coaching" ? "text-amber-700 dark:text-amber-300" : "text-foreground")}>
+                Có Giảng Viên Hướng Dẫn (Coaching)
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+              AI gợi ý mẫu câu, sửa lỗi ngữ pháp & phát âm sau mỗi lượt nói.
+            </p>
+          </button>
+        </div>
       </div>
+
+      {/* Voice & Sound Quick Bar */}
+      <div className="p-3 rounded-2xl bg-card border border-border flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+            {ttsEngine === "none" || !ttsEnabled ? "🔇" : ttsEngine === "web_speech" ? "🌐" : "🔊"}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold text-foreground truncate flex items-center gap-1.5">
+              <span>Giọng đọc NPC:</span>
+              <span className="text-primary font-jp">
+                {!ttsEnabled || ttsEngine === "none"
+                  ? "Tắt âm thanh"
+                  : ttsEngine === "web_speech"
+                  ? "Giọng WebSpeech Trình Duyệt"
+                  : selectedVoiceObj?.name || "VOICEVOX"}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate">
+              {!ttsEnabled || ttsEngine === "none" ? "Chỉ hiển thị phụ đề văn bản" : "Giọng phát âm chuẩn Tokyo"}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {ttsEnabled && ttsEngine !== "none" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePreviewVoice(ttsVoice)}
+              isLoading={previewingVoiceId === ttsVoice || previewingVoiceId === "web_speech"}
+              className="h-7 text-[11px] font-bold gap-1 px-2.5 rounded-lg"
+            >
+              <Play className="h-3 w-3 fill-current" />
+              <span>Nghe thử</span>
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleTtsEnabledToggle(!ttsEnabled)}
+            className="h-7 text-[11px] font-bold text-muted-foreground hover:text-foreground px-2 rounded-lg"
+          >
+            {ttsEnabled ? "Tắt tiếng" : "Bật tiếng"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Progressive Disclosure: Advanced Settings Accordion */}
+      <div className="border border-border/80 rounded-2xl bg-muted/20 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsAdvancedOpen((v) => !v)}
+          className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+        >
+          <span className="flex items-center gap-1.5">
+            <Settings2 className="h-3.5 w-3.5 text-primary" />
+            <span>⚙️ Cài đặt kỹ thuật chuyên sâu (AI Provider, Whisper STT, Đổi giọng, Test mic)</span>
+          </span>
+          <span className="text-[10px] font-semibold text-primary">
+            {isAdvancedOpen ? "Thu gọn ▲" : "Mở rộng ▼"}
+          </span>
+        </button>
+
+        {isAdvancedOpen && (
+          <div className="p-3.5 pt-1 space-y-3 border-t border-border/60 animate-in fade-in duration-200">
+            {/* Advanced Navigation Tabs */}
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab("mode_ai")}
+                className={cn(
+                  "flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1",
+                  activeTab === "mode_ai" ? "bg-card text-foreground shadow-2xs border border-border" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Cpu className="h-3.5 w-3.5 text-primary" />
+                <span>AI Model</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("stt_mic")}
+                className={cn(
+                  "flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1",
+                  activeTab === "stt_mic" ? "bg-card text-foreground shadow-2xs border border-border" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Mic className="h-3.5 w-3.5 text-emerald-500" />
+                <span>STT & Test Mic</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("voicevox")}
+                className={cn(
+                  "flex-1 min-w-[120px] px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1",
+                  activeTab === "voicevox" ? "bg-card text-foreground shadow-2xs border border-border" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Headphones className="h-3.5 w-3.5 text-indigo-500" />
+                <span>Danh Sách Giọng</span>
+              </button>
+            </div>
 
       {/* Tab 1: Conversation Mode & AI Provider Configuration */}
       {activeTab === "mode_ai" && (
@@ -1116,6 +1234,9 @@ export function SessionLobby({
           )}
         </div>
       )}
+          </div>
+        )}
+      </div>
 
       {/* Sticky Bottom Action Buttons */}
       <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-auto shrink-0">

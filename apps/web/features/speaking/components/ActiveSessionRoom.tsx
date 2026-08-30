@@ -16,6 +16,7 @@ import { ConversationTranscript } from "./ConversationTranscript";
 import { CoachingFeedbackCard } from "./CoachingFeedbackCard";
 import { ConversationReviewPanel } from "./ConversationReviewPanel";
 import { CorrectionDetailModal } from "./CorrectionDetailModal";
+import { LiveTurnScaffolding } from "./LiveTurnScaffolding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -249,6 +250,12 @@ export function ActiveSessionRoom({
       0
     ) || 0;
 
+  const latestAssistantTurn = [...turns].reverse().find((t) => t.speaker === "assistant");
+  const activeScaffolding =
+    latestAssistantTurn?.scaffolding ??
+    (latestAssistantTurn?.metrics as any)?.scaffolding ??
+    null;
+
   return (
     <div className="space-y-4 max-w-4xl mx-auto animate-in fade-in duration-300">
       {/* Session Top Bar */}
@@ -375,6 +382,15 @@ export function ActiveSessionRoom({
                 </Button>
               </div>
             )}
+
+            {/* Live Turn Scaffolding (Speech Starters, Angles & Key Vocab) */}
+            <LiveTurnScaffolding
+              scaffolding={activeScaffolding}
+              lastAiText={latestAssistantTurn?.transcript ?? null}
+              personaName={persona.name}
+              onSelectSuggestion={(txt) => setInputText(txt)}
+              disabled={state === "ai_thinking" || state === "processing_stt"}
+            />
 
             {/* Speaking Mode Selector Tabs */}
             {onToggleAutoEndOfSpeech && (

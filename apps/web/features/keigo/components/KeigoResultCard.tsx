@@ -18,9 +18,14 @@ import {
   Crown,
   AlertTriangle,
   MessageSquare,
+  BookOpen,
+  Sparkles,
+  ShieldCheck,
+  Lightbulb,
 } from "lucide-react";
 import type { KeigoResult, KeigoExercise } from "../services/keigo-api";
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -79,7 +84,10 @@ export function KeigoResultCard({
       });
     }, 200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      stopWebSpeech();
+    };
   }, [result.exerciseId, canonical]);
 
   const variants =
@@ -87,6 +95,9 @@ export function KeigoResultCard({
     exercise?.acceptableVariants ||
     (exercise?.extra_metadata?.keigo_config?.acceptable_variants as string[]) ||
     [];
+
+  const anatomy = result.anatomy || exercise?.anatomy || exercise?.extra_metadata?.keigo_config?.anatomy;
+  const hintLevel = result.hintLevel ?? 0;
 
   const togglePlayUserAudio = () => {
     onCancelAutoNext?.();
@@ -191,23 +202,37 @@ export function KeigoResultCard({
         />
       )}
 
-      {/* 1. Status & Latency Header */}
+      {/* 1. Status, Latency & Hint Independence Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-2xs",
-            statusConfig.badgeClass
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-2xs",
+              statusConfig.badgeClass
+            )}
+          >
+            {statusConfig.icon}
+            <span>{statusConfig.label}</span>
+          </span>
+
+          {hintLevel === 0 ? (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Độc lập 100%</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+              <Lightbulb className="h-3.5 w-3.5 fill-current" />
+              <span>Dùng gợi ý Cấp {hintLevel}</span>
+            </span>
           )}
-        >
-          {statusConfig.icon}
-          <span>{statusConfig.label}</span>
-        </span>
+        </div>
 
         {latency != null && (
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-foreground">
             <Zap className="h-3.5 w-3.5 text-amber-500" />
             <span>Phản xạ: {Math.round(latency)}ms</span>
-            <span className="text-muted-foreground font-normal">/ {timerLimit / 1000}s</span>
+            <span className="text-muted-foreground font-normal">/ {timerLimit > 0 ? `${timerLimit / 1000}s` : "∞"}</span>
           </div>
         )}
       </div>
@@ -242,7 +267,7 @@ export function KeigoResultCard({
           <p className="text-sm font-bold text-foreground leading-snug">{result.feedback}</p>
           {result.doubleKeigo && (
             <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-semibold">
-              <AlertTriangle className="h-3.5 w-3.5" />
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               <span>Cảnh báo: Phát hiện dấu hiệu lặp kính ngữ (Double Keigo)</span>
             </div>
           )}
@@ -268,7 +293,7 @@ export function KeigoResultCard({
 
             <div className="text-base font-black font-jp text-foreground min-h-[1.75rem] flex items-center">
               {result.transcript ? (
-                <span>“{result.transcript}”</span>
+                <UniversalFurigana text={result.transcript} fontSize="lg" />
               ) : (
                 <span className="text-xs text-muted-foreground italic font-sans font-normal">
                   {isTimeout ? "Không nhận diện được giọng nói (Hết giờ)" : "Không có âm thanh thu âm"}
@@ -323,7 +348,7 @@ export function KeigoResultCard({
 
             <div className="text-base font-black font-jp text-primary min-h-[1.75rem] flex items-center">
               {canonical ? (
-                <span>“{canonical}”</span>
+                <UniversalFurigana text={canonical} fontSize="lg" />
               ) : (
                 <span className="text-xs text-muted-foreground italic font-sans font-normal">
                   Chưa có đáp án mẫu
@@ -352,7 +377,48 @@ export function KeigoResultCard({
         </div>
       </div>
 
-      {/* 4. Bottom Action Controls */}
+      {/* 4. KEIGO ANATOMY BREAKDOWN (Giải phẫu Kính ngữ) */}
+      {anatomy && (
+        <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-primary" />
+              <span>Phân Tích Giải Phẫu Cấu Trúc (Keigo Anatomy)</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase font-mono">Chuẩn ngữ pháp</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <div className="p-2.5 rounded-xl bg-card border border-border/70 space-y-0.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Động từ gốc:</span>
+              <div className="font-bold font-jp text-foreground">
+                <UniversalFurigana text={anatomy.rootVerb || "—"} fontSize="sm" />
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-card border border-border/70 space-y-0.5">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Cấu trúc áp dụng:</span>
+              <div className="font-bold font-jp text-primary">
+                <UniversalFurigana text={anatomy.formula || "—"} fontSize="sm" />
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-card border border-border/70 space-y-0.5">
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Nguyên tắc:</span>
+              <div className="font-medium text-foreground">{anatomy.rationale || "—"}</div>
+            </div>
+          </div>
+
+          {anatomy.pitfallWarning && (
+            <div className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 flex items-center gap-1.5 font-medium">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+              <span>{anatomy.pitfallWarning}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. Bottom Action Controls */}
       <div className="pt-2 flex flex-wrap items-center gap-2">
         {onNext && (
           <Button size="sm" variant="akane" onClick={onNext} className="flex-1 gap-1.5 font-bold min-w-[130px]">

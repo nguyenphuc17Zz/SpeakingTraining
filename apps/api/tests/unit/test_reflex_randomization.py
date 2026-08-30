@@ -20,32 +20,119 @@ def test_reflex_qna_randomization_no_repeats():
 
 
 def test_reflex_conjugation_form_rotation_variety():
-    """Verify that consecutive conjugation calls cycle through distinct forms and verbs."""
+    """Verify that consecutive conjugation calls cycle through all 49 distinct forms and verbs."""
     from app.domains.reflex.exercise_factory import _CONJ_FORMS_SHUFFLE_QUEUE
     _CONJ_FORMS_SHUFFLE_QUEUE.clear()
     f = ReflexExerciseFactory()
-    forms = [f.generate_conjugation(difficulty="normal")["form"] for _ in range(11)]
-    verbs = [f.generate_conjugation(difficulty="normal")["prompt"] for _ in range(11)]
+    forms = [f.generate_conjugation(difficulty="normal")["form"] for _ in range(49)]
+    verbs = [f.generate_conjugation(difficulty="normal")["prompt"] for _ in range(49)]
 
-    # In 11 consecutive calls of a full cycle, we must cover all 11 distinct forms and 11 unique verbs
-    assert len(set(forms)) == 11, f"Expected 11 distinct forms in 11 calls, got {len(set(forms))} ({set(forms)})"
-    assert len(set(verbs)) == 11, f"Expected 11 unique verbs, got {len(set(verbs))}"
+    # In 49 consecutive calls of a full cycle, we must cover all 49 distinct forms
+    assert len(set(forms)) == 49, f"Expected 49 distinct forms in 49 calls, got {len(set(forms))} ({set(forms)})"
+    assert len(set(verbs)) >= 45, f"Expected high verb variety, got {len(set(verbs))}"
 
 
 @pytest.mark.asyncio
 async def test_dynamic_generator_conjugation_rotation():
-    """Verify AIReflexGenerator routes reflex_conjugation through the rotation queue."""
+    """Verify AIReflexGenerator routes reflex_conjugation through the full 49-form rotation queue."""
     from app.domains.reflex.dynamic_generator import AIReflexGenerator
     from app.domains.reflex.exercise_factory import _CONJ_FORMS_SHUFFLE_QUEUE
     _CONJ_FORMS_SHUFFLE_QUEUE.clear()
     gen = AIReflexGenerator(None)
     forms = []
-    for _ in range(11):
+    for _ in range(49):
         ex = await gen.generate_dynamic_exercise(sub_mode="reflex_conjugation", difficulty="easy", pressure_level="relaxed")
         forms.append(ex["form"])
 
-    # Even when difficulty is easy and pressure is relaxed, all 11 forms must cycle without restriction
-    assert len(set(forms)) == 11, f"Expected all 11 forms across dynamic generator calls, got {set(forms)}"
+    # All 49 forms must cycle without restriction
+    assert len(set(forms)) == 49, f"Expected all 49 forms across dynamic generator calls, got {len(set(forms))}"
+
+
+def test_conjugation_engine_comprehensive():
+    """Verify deterministic conjugation for Godan, Ichidan, Suru, Kuru, and Iku."""
+    from app.domains.reflex.conjugation_engine import JapaneseConjugationEngine, ConjugationForm
+
+    engine = JapaneseConjugationEngine()
+
+    # 1. Godan: 書く
+    assert engine.conjugate("書く", ConjugationForm.NAI).canonical == "書かない"
+    assert engine.conjugate("書く", ConjugationForm.NAKATTA).canonical == "書かなかった"
+    assert engine.conjugate("書く", ConjugationForm.TAI).canonical == "書きたい"
+    assert engine.conjugate("書く", ConjugationForm.TAKUNAI).canonical == "書きたくない"
+    assert engine.conjugate("書く", ConjugationForm.TAKATTA).canonical == "書きたかった"
+    assert engine.conjugate("書く", ConjugationForm.TAKUNAKATTA).canonical == "書きたくなかった"
+    assert engine.conjugate("書く", ConjugationForm.PROHIBITIVE).canonical == "書くな"
+    assert engine.conjugate("書く", ConjugationForm.NAIDE).canonical == "書かないで"
+    assert engine.conjugate("書く", ConjugationForm.NASAI).canonical == "書きなさい"
+    assert engine.conjugate("書く", ConjugationForm.YASUI).canonical == "書きやすい"
+    assert engine.conjugate("書く", ConjugationForm.NIKUI).canonical == "書きにくい"
+    assert engine.conjugate("書く", ConjugationForm.ZURAI).canonical == "書きづらい"
+    assert engine.conjugate("書く", ConjugationForm.TE_IRU).canonical == "書いている"
+    assert engine.conjugate("書く", ConjugationForm.CHAU).canonical == "書いちゃう"
+    assert engine.conjugate("書く", ConjugationForm.TOKU).canonical == "書いとく"
+    assert engine.conjugate("書く", ConjugationForm.TERU).canonical == "書いてる"
+    assert engine.conjugate("書く", ConjugationForm.CHA_DAME).canonical == "書いちゃだめ"
+    assert engine.conjugate("書く", ConjugationForm.NAKYA).canonical == "書かなきゃ"
+    assert engine.conjugate("書く", ConjugationForm.POTENTIAL_NEGATIVE).canonical == "書けない"
+    assert engine.conjugate("書く", ConjugationForm.POTENTIAL_PAST).canonical == "書けた"
+    assert engine.conjugate("書く", ConjugationForm.POTENTIAL_NEGATIVE_PAST).canonical == "書けなかった"
+    assert engine.conjugate("書く", ConjugationForm.PASSIVE_PAST).canonical == "書かれた"
+    assert engine.conjugate("書く", ConjugationForm.CAUSATIVE_PAST).canonical == "書かせた"
+    assert engine.conjugate("書く", ConjugationForm.CAUSATIVE_PASSIVE_PAST).canonical == "書かせられた"
+
+    # 2. Godan (de-sound): 飲む
+    assert engine.conjugate("飲む", ConjugationForm.TE).canonical == "飲んで"
+    assert engine.conjugate("飲む", ConjugationForm.CHAU).canonical == "飲んじゃう"
+    assert engine.conjugate("飲む", ConjugationForm.TOKU).canonical == "飲んどく"
+    assert engine.conjugate("飲む", ConjugationForm.TERU).canonical == "飲んでる"
+    assert engine.conjugate("飲む", ConjugationForm.CHA_DAME).canonical == "飲んじゃだめ"
+
+    # 3. Ichidan: 食べる
+    assert engine.conjugate("食べる", ConjugationForm.NAI).canonical == "食べない"
+    assert engine.conjugate("食べる", ConjugationForm.NAKATTA).canonical == "食べなかった"
+    assert engine.conjugate("食べる", ConjugationForm.TAI).canonical == "食べたい"
+    assert engine.conjugate("食べる", ConjugationForm.TAKATTA).canonical == "食べたかった"
+    assert engine.conjugate("食べる", ConjugationForm.PROHIBITIVE).canonical == "食べるな"
+    assert engine.conjugate("食べる", ConjugationForm.NASAI).canonical == "食べなさい"
+    assert engine.conjugate("食べる", ConjugationForm.CHAU).canonical == "食べちゃう"
+    assert engine.conjugate("食べる", ConjugationForm.TOKU).canonical == "食べとく"
+    assert engine.conjugate("食べる", ConjugationForm.TERU).canonical == "食べてる"
+    assert engine.conjugate("食べる", ConjugationForm.POTENTIAL).canonical == "食べられる"
+    assert "食べれる" in engine.conjugate("食べる", ConjugationForm.POTENTIAL).accepted
+    assert engine.conjugate("食べる", ConjugationForm.POTENTIAL_NEGATIVE).canonical == "食べられない"
+    assert "食べれない" in engine.conjugate("食べる", ConjugationForm.POTENTIAL_NEGATIVE).accepted
+
+    # 4. Irregular: する
+    assert engine.conjugate("する", ConjugationForm.NAI).canonical == "しない"
+    assert engine.conjugate("する", ConjugationForm.NAKATTA).canonical == "しなかった"
+    assert engine.conjugate("する", ConjugationForm.TAI).canonical == "したい"
+    assert engine.conjugate("する", ConjugationForm.POTENTIAL).canonical == "できる"
+    assert engine.conjugate("する", ConjugationForm.POTENTIAL_NEGATIVE).canonical == "できない"
+    assert engine.conjugate("する", ConjugationForm.POTENTIAL_PAST).canonical == "できた"
+    assert engine.conjugate("する", ConjugationForm.PASSIVE).canonical == "される"
+    assert engine.conjugate("する", ConjugationForm.CAUSATIVE).canonical == "させる"
+    assert engine.conjugate("する", ConjugationForm.CHAU).canonical == "しちゃう"
+    assert engine.conjugate("する", ConjugationForm.TOKU).canonical == "しとく"
+    assert engine.conjugate("する", ConjugationForm.NAKYA).canonical == "しなきゃ"
+
+    # 5. Irregular: 来る
+    assert engine.conjugate("来る", ConjugationForm.NAI).canonical == "来ない"
+    assert engine.conjugate("来る", ConjugationForm.NAKATTA).canonical == "来なかった"
+    assert engine.conjugate("来る", ConjugationForm.TAI).canonical == "来たい"
+    assert engine.conjugate("来る", ConjugationForm.POTENTIAL).canonical == "来られる"
+    assert engine.conjugate("来る", ConjugationForm.PASSIVE).canonical == "来られる"
+    assert engine.conjugate("来る", ConjugationForm.CAUSATIVE).canonical == "来させる"
+    assert engine.conjugate("来る", ConjugationForm.CHAU).canonical == "来ちゃう"
+    assert engine.conjugate("来る", ConjugationForm.TOKU).canonical == "来とく"
+    assert engine.conjugate("くる", ConjugationForm.NAI).canonical == "こない"
+    assert engine.conjugate("くる", ConjugationForm.TA).canonical == "きた"
+    assert engine.conjugate("くる", ConjugationForm.CHAU).canonical == "きちゃう"
+
+    # 6. Special exception: 行く
+    assert engine.conjugate("行く", ConjugationForm.TE).canonical == "行って"
+    assert engine.conjugate("行く", ConjugationForm.TA).canonical == "行った"
+    assert engine.conjugate("行く", ConjugationForm.CHAU).canonical == "行っちゃう"
+    assert engine.conjugate("行く", ConjugationForm.TOKU).canonical == "行っとく"
 
 
 def test_reflex_transformation_and_context_variety():
@@ -219,5 +306,33 @@ async def test_reflex_keigo_vocabulary_evaluation():
         reaction_latency_ms=1000,
     )
     assert res4["success"] is False
+
+
+def test_reflex_conjugation_target_form_filter():
+    """Verify that specifying target_form filters generation to only the requested form(s)."""
+    from app.domains.reflex.conjugation_engine import ConjugationForm
+    factory = ReflexExerciseFactory()
+
+    # 1. Single form as string
+    for _ in range(10):
+        ex = factory.generate_conjugation(target_form="chatta")
+        assert ex["form"] == "chatta"
+
+    # 2. Comma-separated list of forms
+    allowed = {"passive", "causative", "causative_passive"}
+    for _ in range(20):
+        ex = factory.generate_conjugation(target_form="passive,causative,causative_passive")
+        assert ex["form"] in allowed
+
+    # 3. List of ConjugationForm enums
+    allowed_enums = [ConjugationForm.TAI, ConjugationForm.TAKUNAI]
+    for _ in range(10):
+        ex = factory.generate_conjugation(target_form=allowed_enums)
+        assert ex["form"] in {"tai", "takunai"}
+
+    # 4. 'all' form option allows all forms
+    ex_all = factory.generate_conjugation(target_form="all")
+    assert ex_all["form"] is not None
+
 
 

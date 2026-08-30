@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ConversationSessionCreate(BaseModel):
@@ -13,6 +13,23 @@ class ConversationSessionCreate(BaseModel):
     stt_model_preference: str | None = None
     tts_provider_preference: str | None = None
     tts_voice_preference: str | None = None
+
+
+class ScaffoldingSuggestion(BaseModel):
+    intent: str = "positive"
+    ja: str
+    vi: str
+
+
+class ScaffoldingVocab(BaseModel):
+    ja: str
+    reading: str | None = None
+    vi: str
+
+
+class TurnScaffolding(BaseModel):
+    suggestions: list[ScaffoldingSuggestion] = []
+    key_vocab: list[ScaffoldingVocab] = []
 
 
 class ConversationTurnRead(BaseModel):
@@ -31,11 +48,21 @@ class ConversationTurnRead(BaseModel):
     processing_time_ms: int | None = None
     metrics: dict[str, Any] | None = None
     feedback_hint: str | None = None
+    scaffolding: TurnScaffolding | dict[str, Any] | None = None
     started_at: datetime
     ended_at: datetime | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def _fill_scaffolding_from_metrics(self) -> "ConversationTurnRead":
+        """Ensure scaffolding is populated from metrics even if ORM @property is not read."""
+        if self.scaffolding is None and isinstance(self.metrics, dict):
+            raw = self.metrics.get("scaffolding")
+            if raw and isinstance(raw, dict):
+                self.scaffolding = raw
+        return self
 
 
 class ConversationTurnCreate(BaseModel):

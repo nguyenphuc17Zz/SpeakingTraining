@@ -106,6 +106,21 @@ class KeigoExerciseFactory:
             "accepted": result.accepted,
             "alternatives": result.alternatives,
             "social_context": ctx.to_dict(),
+            "hints": {
+                "tier1": f"Động từ / Cụm từ: '{source[:6]}' ➔ Chuyển sang {target_register.value}",
+                "tier2": f"Gợi ý bắt đầu: 「{result.canonical[:3]}...」",
+            },
+            "anatomy": {
+                "root_verb": source,
+                "formula": f"Chuyển đổi {source_register.value} ➔ {target_register.value}",
+                "rationale": f"Phù hợp bối cảnh {ctx.situation.value} ({ctx.relationship.value})",
+                "pitfall_warning": "Tránh nhầm lẫn giữa Tôn kính và Khiêm nhường",
+            },
+            "persona": {
+                "name": "Đối tác Sato",
+                "role": ctx.relationship.value,
+                "avatar": "💼",
+            },
             "timer_limit_ms": TIMER_DEFAULTS["keigo_transformation"],
             "difficulty": difficulty,
             "constraints": ["Giữ nguyên ý nghĩa, đúng hướng kính ngữ"],

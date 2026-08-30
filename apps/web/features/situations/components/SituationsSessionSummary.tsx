@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SituationsResult } from "../services/situations-api";
 import { speakJapaneseText } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 
@@ -126,7 +127,9 @@ export function SituationsSessionSummary({
                     #{i + 1}
                   </span>
                   <div className="min-w-0">
-                    <div className="font-bold font-jp text-foreground truncate">{canonical}</div>
+                    <div className="font-bold font-jp text-foreground truncate">
+                      <UniversalFurigana text={canonical} fontSize="normal" />
+                    </div>
                     <div className="text-[10px] text-muted-foreground">
                       Điểm: {r.score ?? 0} • Phản xạ: {r.reactionLatencyMs ? `${Math.round(r.reactionLatencyMs)}ms` : "—"}
                     </div>

@@ -57,7 +57,7 @@ async def generate_pitch_exercise(
     sub_mode: str = Query(default="pitch_minimal_pair", description="pitch_*"),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=10000),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=10000),
     learning_item_key: str | None = Query(default=None),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
@@ -68,7 +68,7 @@ async def generate_pitch_exercise(
     if pressure_level not in PRESSURE_PROFILES:
         pressure_level = "normal"
     eff_diff = difficulty or PRESSURE_PROFILES[pressure_level]["difficulty"]
-    eff_timer = timer_limit_ms or timer_for_level(pressure_level) or TIMER_DEFAULTS.get(sub_mode, 5000)
+    eff_timer = timer_limit_ms if timer_limit_ms is not None else timer_for_level(pressure_level)
 
     # Generate 100% on-the-fly dynamic pitch exercise via AIPitchGenerator
     ai_gen = AIPitchGenerator(db)
@@ -157,6 +157,11 @@ async def generate_pitch_exercise(
                 "devoicing_info": data.get("devoicing_info"),
                 "contour_info": data.get("contour_info"),
                 "recognition_info": data.get("recognition_info"),
+                "quiz_options": data.get("quiz_options"),
+                "mora_breakdown": data.get("mora_breakdown"),
+                "downstep_index": data.get("downstep_index"),
+                "downstep_notation": data.get("downstep_notation"),
+                "pitfall_vi": data.get("pitfall_vi"),
                 "mora_count": data.get("mora_count"),
                 "resource_source": data.get("resource_source"),
             },

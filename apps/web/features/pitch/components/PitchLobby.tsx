@@ -79,6 +79,7 @@ export const PITCH_SUB_MODES: PitchSubModeItem[] = [
 ];
 
 export const PITCH_PRESSURE_LEVELS = [
+  { id: "infinite", label: "♾️ Vô hạn (∞)", ms: 0, desc: "Không giới hạn thời gian phát âm" },
   { id: "relaxed", label: "🐢 Dễ (6.0s)", ms: 6000, desc: "Thoải mái luyện nghe và uốn giọng" },
   { id: "normal", label: "🚶 Tiêu chuẩn (5.0s)", ms: 5000, desc: "Áp lực tự nhiên như giao tiếp hàng ngày" },
   { id: "fast", label: "🏃 Nhanh (4.0s)", ms: 4000, desc: "Tăng tốc độ phản xạ cao độ" },
@@ -127,32 +128,33 @@ export function PitchLobby({
   onOpenHelp,
   error,
 }: PitchLobbyProps) {
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
   const currentSubMode = PITCH_SUB_MODES.find((m) => m.id === subMode) || PITCH_SUB_MODES[0];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-300 pb-10">
+    <div className="space-y-4 max-w-5xl mx-auto animate-in fade-in duration-300 pb-8">
       {/* Hero Zen Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 washi-texture shadow-sm">
-        <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0 shadow-2xs">
-              <Music className="h-6 w-6" />
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 washi-texture shadow-2xs">
+        <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0 shadow-2xs">
+              <Music className="h-4 w-4" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight text-foreground">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
                   Phòng Luyện Cao Độ & Phách
                 </h1>
-                <Badge variant="fuji" size="sm" className="font-mono font-bold">Mode 3</Badge>
+                <Badge variant="fuji" size="sm" className="font-mono font-bold text-[10px]">Mode 3</Badge>
               </div>
-              <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                Rèn luyện cao độ chuẩn Tokyo (Pitch Accent), nhịp phách Mora đều đặn và hiện tượng vô thanh hóa nguyên âm không lẫn tạp âm.
+              <p className="text-[11px] text-muted-foreground">
+                Rèn luyện cao độ Tokyo (Pitch Accent), nhịp phách Mora và vô thanh hóa
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -160,10 +162,10 @@ export function PitchLobby({
                 soundFX.playFurin();
                 onOpenCheatsheet();
               }}
-              className="gap-1.5 text-xs font-bold border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 shadow-2xs"
+              className="gap-1 text-xs font-bold border-sky-500/30 text-sky-700 dark:text-sky-300 hover:bg-sky-500/10 h-8 px-2.5 rounded-xl"
             >
               <BookOpen className="h-3.5 w-3.5" />
-              <span>Sổ tay Cao độ</span>
+              <span>Sổ tay</span>
             </Button>
 
             <Button
@@ -173,34 +175,33 @@ export function PitchLobby({
                 soundFX.playFurin();
                 onOpenHelp();
               }}
-              className="gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+              className="gap-1 text-xs font-bold text-muted-foreground hover:text-foreground h-8 px-2 rounded-xl"
             >
               <HelpCircle className="h-3.5 w-3.5" />
-              <span>Phím tắt (?)</span>
+              <span>Phím (?)</span>
             </Button>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl border border-destructive/40 bg-destructive/10 text-destructive text-xs font-semibold animate-in shake">
+        <div className="p-3 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive text-xs font-semibold animate-in shake">
           {error}
         </div>
       )}
 
       {/* 2-Column Grid: Submode Selection & Session Config */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Left 2 Cols: 6 Submodes */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-2.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              <h2 className="text-sm font-bold text-foreground">Chuyên Đề Luyện Tập (6 Chế Độ)</h2>
-            </div>
-            <span className="text-xs text-muted-foreground font-semibold">Chọn 1 chuyên đề</span>
+            <h2 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <span>1. Chọn Chuyên Đề Âm Điệu:</span>
+            </h2>
+            <span className="text-[10px] text-muted-foreground font-semibold">6 Chế Độ Luyện Tập</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {PITCH_SUB_MODES.map((m) => {
               const isSelected = subMode === m.id;
               const isMixed = m.id === "mixed";
@@ -213,33 +214,33 @@ export function PitchLobby({
                     setSubMode(m.id);
                   }}
                   className={cn(
-                    "text-left p-4 rounded-2xl border transition-all duration-200 relative group flex flex-col justify-between bg-card shadow-2xs hover:border-primary/40",
+                    "text-left p-3 rounded-2xl border transition-all duration-150 relative group flex flex-col justify-between bg-card shadow-2xs hover:border-primary/40",
                     isMixed ? "sm:col-span-2 bg-gradient-to-r from-card to-primary/5 border-primary/30" : "",
                     isSelected
-                      ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-sm"
+                      ? "border-primary ring-1 ring-primary/30 bg-primary/5 shadow-2xs"
                       : "hover:bg-muted/40"
                   )}
                 >
-                  <div className="space-y-1.5 w-full">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                        {isMixed && <Shuffle className="h-3.5 w-3.5 text-primary" />}
+                  <div className="space-y-1 w-full">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1">
+                        {isMixed && <Shuffle className="h-3 w-3 text-primary" />}
                         {m.ja}
                       </span>
-                      <Badge variant={m.badgeVariant} size="sm">
+                      <Badge variant={m.badgeVariant} size="sm" className="text-[9px] px-1.5 py-0">
                         {m.label.split(" ")[0]}
                       </Badge>
                     </div>
 
-                    <p className="text-xs text-muted-foreground leading-snug">
+                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-1">
                       {m.desc}
                     </p>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground font-jp">
-                    <span className="truncate max-w-[280px]">Ví dụ: {m.example}</span>
+                  <div className="mt-2 pt-1 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground font-jp">
+                    <span className="truncate max-w-[220px]">Ví dụ: {m.example}</span>
                     {isSelected && (
-                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0 ml-2" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 ml-1" />
                     )}
                   </div>
                 </button>
@@ -249,48 +250,49 @@ export function PitchLobby({
         </div>
 
         {/* Right 1 Col: Session Configuration */}
-        <div className="space-y-5 p-5 rounded-3xl border border-border/80 bg-card shadow-xs washi-texture">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Volume2 className="h-4 w-4 text-primary" />
-              <span>Cấu Hình Phiên Luyện Tập</span>
-            </h3>
-            <p className="text-xs text-muted-foreground">Tùy chỉnh áp lực thời gian và chế độ hiển thị</p>
-          </div>
-
+        <div className="space-y-3 p-3.5 rounded-2xl border border-border/80 bg-card shadow-2xs washi-texture">
           {/* Time Pressure Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground">Áp Lực Thời Gian:</label>
-            <div className="grid grid-cols-1 gap-1.5">
-              {PITCH_PRESSURE_LEVELS.map((p) => {
-                const isActive = pressure === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      soundFX.playFurin();
-                      setPressure(p.id as any);
-                    }}
-                    className={cn(
-                      "w-full text-left p-2.5 rounded-xl border text-xs transition-all flex items-center justify-between",
-                      isActive
-                        ? "border-primary bg-primary/10 font-bold text-primary shadow-2xs"
-                        : "border-border/70 hover:bg-muted/50 text-foreground"
-                    )}
-                  >
-                    <span>{p.label}</span>
-                    <span className="text-[10px] text-muted-foreground font-normal">{p.desc}</span>
-                  </button>
-                );
-              })}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-muted-foreground">Áp Lực Thời Gian:</span>
+              <span className="text-primary font-mono text-[11px]">
+                {PITCH_PRESSURE_LEVELS.find((p) => p.id === pressure)?.label || "Tiêu chuẩn"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
+              {[
+                { id: "infinite", label: "∞ Vô hạn" },
+                { id: "normal", label: "5s Chuẩn" },
+                { id: "reflex", label: "3s Phản xạ" },
+                { id: "extreme", label: "2s Cực hạn" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    soundFX.playFurin();
+                    setPressure(p.id as any);
+                  }}
+                  className={cn(
+                    "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
+                    pressure === p.id
+                      ? "bg-card text-foreground border border-border shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Session Duration Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground">Thời Lượng Phiên:</label>
-            <div className="grid grid-cols-4 gap-1.5">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-muted-foreground">Thời Lượng Phiên:</span>
+              <span className="text-primary font-mono text-[11px]">{duration === 0 ? "∞ Vô hạn" : `${duration} phút`}</span>
+            </div>
+            <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
               {PITCH_DURATIONS.map((d) => (
                 <button
                   key={d.min}
@@ -300,83 +302,87 @@ export function PitchLobby({
                     setDuration(d.min as any);
                   }}
                   className={cn(
-                    "py-2 rounded-xl border text-xs font-bold transition-all text-center",
+                    "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
                     duration === d.min
-                      ? "border-primary bg-primary text-primary-foreground shadow-2xs"
-                      : "border-border/70 bg-muted/40 hover:bg-muted text-foreground"
+                      ? "bg-card text-foreground border border-border shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {d.min}p
+                  {d.min === 0 ? "∞" : `${d.min}m`}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Subtitle / Display Option */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground">Hiển Thị Đề Bài:</label>
-            <div className="grid grid-cols-2 gap-1.5 text-xs">
-              {[
-                { id: "japanese", label: "Chữ Hán (Kanji)" },
-                { id: "japanese_reading", label: "Kanji + Cách đọc" },
-                { id: "vietnamese", label: "Dịch tiếng Việt" },
-                { id: "hidden", label: "Audio-Only 🎧" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    soundFX.playFurin();
-                    setSubtitleMode(opt.id as any);
-                  }}
-                  className={cn(
-                    "p-2 rounded-xl border font-medium text-center transition-all text-[11px]",
-                    subtitleMode === opt.id
-                      ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                      : "border-border/70 hover:bg-muted/40 text-foreground"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Auto Next Toggle */}
-          <div className="pt-2 border-t border-border flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="text-xs font-bold text-foreground">Tự Động Chuyển Câu</div>
-              <div className="text-[10px] text-muted-foreground">Tự sang câu mới sau khi chấm xong</div>
-            </div>
+          {/* Progressive Disclosure: Subtitles & Auto Next */}
+          <div className="border border-border/80 rounded-xl bg-muted/20 overflow-hidden">
             <button
               type="button"
-              onClick={() => setAutoNext(!autoNext)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-bold transition-all border",
-                autoNext
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
-                  : "bg-muted text-muted-foreground border-border"
-              )}
+              onClick={() => setIsAdvancedOpen((v) => !v)}
+              className="w-full px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
-              {autoNext ? "BẬT (Auto)" : "TẮT (Thủ công)"}
+              <span>Phụ đề & Tự chuyển câu</span>
+              <span className="text-[10px] text-primary">{isAdvancedOpen ? "▲" : "▼"}</span>
             </button>
+
+            {isAdvancedOpen && (
+              <div className="p-2.5 pt-1 space-y-2 border-t border-border/60 animate-in fade-in duration-150">
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  {[
+                    { id: "japanese", label: "Kanji" },
+                    { id: "japanese_reading", label: "Kanji + Kana" },
+                    { id: "vietnamese", label: "Dịch Việt" },
+                    { id: "hidden", label: "Audio-Only 🎧" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        soundFX.playFurin();
+                        setSubtitleMode(opt.id as any);
+                      }}
+                      className={cn(
+                        "py-1 rounded-lg font-bold border transition-all text-center",
+                        subtitleMode === opt.id
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border hover:bg-muted text-foreground"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="pt-1 flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-muted-foreground">Tự chuyển câu:</span>
+                  <button
+                    type="button"
+                    onClick={() => setAutoNext(!autoNext)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all",
+                      autoNext ? "bg-emerald-600 text-white border-emerald-600" : "bg-muted border-border text-muted-foreground"
+                    )}
+                  >
+                    {autoNext ? "BẬT" : "TẮT"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Big Start Button */}
-          <div className="pt-2">
-            <Button
-              variant="akane"
-              size="lg"
-              onClick={() => {
-                soundFX.playKatana();
-                onStartSession();
-              }}
-              className="w-full font-bold gap-2 text-sm shadow-md py-6 rounded-2xl"
-            >
-              <Zap className="h-4 w-4" />
-              <span>Bắt Đầu {duration} Phút • {currentSubMode.ja.split(" ")[0]}</span>
-            </Button>
-          </div>
+          <Button
+            variant="akane"
+            size="lg"
+            onClick={() => {
+              soundFX.playKatana();
+              onStartSession();
+            }}
+            className="w-full font-bold gap-2 text-xs shadow-md h-10 rounded-xl"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span>Bắt Đầu {duration === 0 ? "Vô Hạn" : `${duration}p`} • {currentSubMode.ja.split(" ")[0]}</span>
+          </Button>
         </div>
       </div>
     </div>

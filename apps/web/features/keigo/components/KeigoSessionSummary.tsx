@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { KeigoResult } from "../services/keigo-api";
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -171,12 +172,13 @@ export function KeigoSessionSummary({ results, onRestart, onToLobby, onRetryWeak
                   </div>
 
                   <div className="font-jp text-sm font-bold text-foreground">
-                    Đáp án: “{r.canonicalAnswer || r.transcript || "—"}”
+                    Đáp án: <UniversalFurigana text={r.canonicalAnswer || r.transcript || "—"} fontSize="normal" />
                   </div>
 
                   {r.transcript && r.transcript !== r.canonicalAnswer && (
-                    <div className="text-[11px] text-muted-foreground">
-                      Bạn đã nói: <span className="font-jp italic">“{r.transcript}”</span>
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <span>Bạn đã nói:</span>
+                      <UniversalFurigana text={r.transcript} fontSize="sm" />
                     </div>
                   )}
                 </div>

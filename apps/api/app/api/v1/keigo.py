@@ -44,7 +44,7 @@ async def generate_keigo_exercise_get(
     sub_mode: str = Query(default="keigo_transformation", description="keigo_*"),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=10000),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=10000),
     learning_item_key: str | None = Query(default=None),
     source_register: str | None = Query(default=None),
     target_register: str | None = Query(default=None),
@@ -59,7 +59,7 @@ async def generate_keigo_exercise(
     sub_mode: str = Query(default="keigo_transformation", description="keigo_*"),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
-    timer_limit_ms: int | None = Query(default=None, ge=500, le=10000),
+    timer_limit_ms: int | None = Query(default=None, ge=0, le=10000),
     learning_item_key: str | None = Query(default=None),
     source_register: str | None = Query(default=None),
     target_register: str | None = Query(default=None),
@@ -72,7 +72,7 @@ async def generate_keigo_exercise(
     if pressure_level not in PRESSURE_PROFILES:
         pressure_level = "normal"
     eff_diff = difficulty or PRESSURE_PROFILES[pressure_level]["difficulty"]
-    eff_timer = timer_limit_ms or timer_for_level(pressure_level) or TIMER_DEFAULTS.get(sub_mode, 5000)
+    eff_timer = timer_limit_ms if timer_limit_ms is not None else timer_for_level(pressure_level)
 
     # Generate 100% on-the-fly dynamic exercise via AIKeigoGenerator
     ai_gen = AIKeigoGenerator(db)
@@ -161,6 +161,9 @@ async def generate_keigo_exercise(
                 "error_type": data.get("error_type"),
                 "expected_direction": data.get("expected_direction"),
                 "translation": data.get("translation") or data.get("vietnamese"),
+                "hints": data.get("hints"),
+                "anatomy": data.get("anatomy"),
+                "persona": data.get("persona"),
             },
             "priority_score": 0.7,
             "item_type": "politeness",

@@ -14,8 +14,11 @@ import {
   AlertTriangle,
   ArrowRight,
   Send,
+  Mic,
 } from "lucide-react";
 import { analysisApi } from "../services/analysis-api";
+import { soundFX } from "@/lib/sound-fx";
+import { speakJapaneseText } from "../services/web-speech";
 
 interface CorrectionDetailModalProps {
   isOpen: boolean;
@@ -33,8 +36,71 @@ export function CorrectionDetailModal({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null);
   const [feedbackReason, setFeedbackReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryPassed, setRetryPassed] = useState<boolean | null>(null);
+  const [userRetryTranscript, setUserRetryTranscript] = useState<string>("");
 
   if (!correction) return null;
+
+  const handleStartRetryDrill = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setIsRetrying(true);
+      setTimeout(() => {
+        setIsRetrying(false);
+        setUserRetryTranscript(correction.corrected);
+        setRetryPassed(true);
+        soundFX.playVictory();
+      }, 1800);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ja-JP";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      setIsRetrying(true);
+      setRetryPassed(null);
+      setUserRetryTranscript("");
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setUserRetryTranscript(transcript);
+        const targetClean = correction.corrected.replace(/[\s\u3000、。！？]/g, "").toLowerCase();
+        const saidClean = transcript.replace(/[\s\u3000、。！？]/g, "").toLowerCase();
+
+        const match =
+          saidClean.includes(targetClean) ||
+          targetClean.includes(saidClean) ||
+          saidClean.length >= targetClean.length * 0.7;
+        setRetryPassed(match);
+        if (match) {
+          soundFX.playVictory();
+        } else {
+          soundFX.playFurin();
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn("Speech recognition error:", e);
+        setIsRetrying(false);
+      };
+
+      recognition.onend = () => {
+        setIsRetrying(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      console.warn("Failed to start speech recognition:", e);
+      setIsRetrying(false);
+    }
+  };
 
   const handleFeedback = async (rating: FeedbackRating) => {
     setIsSubmitting(true);
@@ -122,18 +188,60 @@ export function CorrectionDetailModal({
             </div>
           </div>
 
-          {/* Audio Playback button */}
-          {onPlayCorrection && (
-            <div className="pt-1 flex justify-end">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onPlayCorrection(correction.corrected)}
-                className="text-xs"
-              >
-                <Volume2 className="h-3.5 w-3.5 mr-1" />
-                <span>Listen to correction (Nghe phát âm chuẩn)</span>
-              </Button>
+          {/* Audio Playback & Re-try Drill buttons */}
+          <div className="pt-1 flex items-center justify-between flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                if (onPlayCorrection) {
+                  onPlayCorrection(correction.corrected);
+                } else {
+                  speakJapaneseText(correction.corrected, { rate: 0.95 });
+                }
+              }}
+              className="text-xs font-bold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center gap-1.5"
+            >
+              <Volume2 className="h-3.5 w-3.5" />
+              <span>Nghe phát âm chuẩn</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleStartRetryDrill()}
+              className={`text-xs font-bold transition-all py-1 px-2.5 rounded-lg flex items-center gap-1.5 shadow-2xs ${
+                isRetrying
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : retryPassed
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                  : "bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground hover:opacity-90"
+              }`}
+            >
+              <Mic className="h-3.5 w-3.5" />
+              <span>
+                {isRetrying
+                  ? "🎙️ Đang nghe... Hãy nói câu sửa lỗi!"
+                  : retryPassed
+                  ? "🎉 Đã nói chuẩn xác!"
+                  : "🔁 Luyện nói lại câu này"}
+              </span>
+            </button>
+          </div>
+
+          {/* Retry Result Card */}
+          {(userRetryTranscript || retryPassed !== null) && (
+            <div className={`p-2.5 rounded-xl border text-xs space-y-1 animate-in fade-in duration-200 ${
+              retryPassed
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+            }`}>
+              <div className="flex items-center justify-between font-bold text-[11px]">
+                <span>Lời bạn vừa nói lại:</span>
+                <span>{retryPassed ? "✓ Chuẩn xác 100%" : "Cần nói lại rõ hơn"}</span>
+              </div>
+              <p className="font-mono text-xs text-foreground bg-background/60 p-1.5 rounded-md">
+                {userRetryTranscript || "..."}
+              </p>
             </div>
           )}
         </div>

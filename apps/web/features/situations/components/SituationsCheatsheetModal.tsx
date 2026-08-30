@@ -15,6 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import { speakJapaneseText } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 
@@ -162,7 +163,9 @@ export function SituationsCheatsheetModal({ isOpen, onClose }: SituationsCheatsh
                     {item.usage}
                   </Badge>
                 </div>
-                <div className="text-sm font-bold font-jp text-foreground">{item.jp}</div>
+                <div className="text-sm font-bold font-jp text-foreground">
+                  <UniversalFurigana text={item.jp} fontSize="normal" />
+                </div>
                 <div className="text-xs text-muted-foreground">{item.vi}</div>
               </div>
 

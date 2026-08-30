@@ -1,6 +1,7 @@
 import base64
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -337,15 +338,33 @@ class ConversationService:
         )
         ai_ms = int((time.perf_counter() - ai_start) * 1000)
 
-        # 4. Parse AI Output & Feedback Hint
+        # 4. Parse AI Output & Feedback Hint & Scaffolding
         raw_ai_text = ai_response.text.strip()
         spoken_text = raw_ai_text
         feedback_hint = None
+        scaffolding_data = None
 
-        if "---HINT---" in raw_ai_text:
-            parts = raw_ai_text.split("---HINT---")
+        if "---SCAFFOLD---" in spoken_text:
+            parts = spoken_text.split("---SCAFFOLD---", 1)
+            spoken_text = parts[0].strip()
+            scaffold_str = parts[1].strip()
+            try:
+                import json
+                if scaffold_str.startswith("```"):
+                    scaffold_str = scaffold_str.strip("`").strip()
+                    if scaffold_str.startswith("json"):
+                        scaffold_str = scaffold_str[4:].strip()
+                scaffolding_data = json.loads(scaffold_str)
+            except Exception as e:
+                logger.warning(f"[Conversation] Failed to parse scaffolding JSON: {e}")
+
+        if "---HINT---" in spoken_text:
+            parts = spoken_text.split("---HINT---", 1)
             spoken_text = parts[0].strip()
             feedback_hint = parts[1].strip()
+
+        if not scaffolding_data or not scaffolding_data.get("suggestions"):
+            scaffolding_data = self._generate_fallback_scaffolding(spoken_text, persona=conv_session.persona)
 
         # 5. Synthesize Speech (TTS via unified TTSService with cache)
         tts_start = time.perf_counter()
@@ -385,6 +404,7 @@ class ConversationService:
             "ai_ms": ai_ms,
             "tts_ms": tts_ms,
             "total_ms": total_turn_ms,
+            "scaffolding": scaffolding_data,
         }
 
         assistant_turn = ConversationTurn(
@@ -532,15 +552,34 @@ class ConversationService:
         )
         ai_ms = int((time.perf_counter() - ai_start) * 1000)
 
-        # 3. Parse text and hint
+        # 3. Parse text, scaffolding hint, and coaching hint
         raw_ai_text = ai_response.text.strip()
         spoken_text = raw_ai_text
         feedback_hint = None
+        scaffolding_data = None
 
-        if "---HINT---" in raw_ai_text:
-            parts = raw_ai_text.split("---HINT---")
+        if "---SCAFFOLD---" in spoken_text:
+            parts = spoken_text.split("---SCAFFOLD---", 1)
+            spoken_text = parts[0].strip()
+            scaffold_str = parts[1].strip()
+            try:
+                import json as _json
+                if scaffold_str.startswith("```"):
+                    scaffold_str = scaffold_str.strip("`").strip()
+                    if scaffold_str.startswith("json"):
+                        scaffold_str = scaffold_str[4:].strip()
+                scaffolding_data = _json.loads(scaffold_str)
+            except Exception as e:
+                logger.warning(f"[Conversation] process_text_turn: Failed to parse scaffolding JSON: {e}")
+
+        if "---HINT---" in spoken_text:
+            parts = spoken_text.split("---HINT---")
             spoken_text = parts[0].strip()
             feedback_hint = parts[1].strip()
+
+        if not scaffolding_data or not scaffolding_data.get("suggestions"):
+            scaffolding_data = self._generate_fallback_scaffolding(spoken_text, persona=conv_session.persona)
+
 
         # 4. Synthesize TTS via unified TTSService
         tts_start = time.perf_counter()
@@ -580,7 +619,7 @@ class ConversationService:
             tts_provider=conv_session.tts_provider_preference or "voicevox",
             tts_voice=conv_session.tts_voice_preference,
             processing_time_ms=total_turn_ms,
-            metrics={"ai_ms": ai_ms, "tts_ms": tts_ms, "total_ms": total_turn_ms},
+            metrics={"ai_ms": ai_ms, "tts_ms": tts_ms, "total_ms": total_turn_ms, "scaffolding": scaffolding_data},
             feedback_hint=feedback_hint,
             started_at=datetime.now(timezone.utc),
             ended_at=datetime.now(timezone.utc),
@@ -757,3 +796,60 @@ class ConversationService:
             )
 
         return recent_list
+
+    def _generate_fallback_scaffolding(self, text: str, persona: Any = None) -> dict[str, Any]:
+        """Generates rich, context-aware response scaffolding & key vocabulary."""
+        t = text.lower()
+
+        if any(w in t for w in ["注文", "メニュー", "お飲み物", "お食事", "召し上がり", "いかが"]):
+            return {
+                "suggestions": [
+                    {"intent": "positive", "ja": "おすすめのメニューを教えていただけますか？", "vi": "Bạn có thể gợi ý món nổi bật được không?"},
+                    {"intent": "concern", "ja": "もう少し見てから注文してもいいですか？", "vi": "Tôi xem thêm một chút rồi gọi món được không?"},
+                    {"intent": "question", "ja": "こちらで一番人気のお料理は何ですか？", "vi": "Món được yêu thích nhất ở đây là gì ạ?"},
+                ],
+                "key_vocab": [
+                    {"ja": "おすすめ", "reading": "おすすめ", "vi": "gợi ý / món đề xuất"},
+                    {"ja": "注文", "reading": "ちゅうもん", "vi": "gọi món / đặt hàng"},
+                    {"ja": "人気", "reading": "にんき", "vi": "được yêu thích"},
+                ],
+            }
+        elif any(w in t for w in ["仕事", "進捗", "会議", "打ち合わせ", "資料", "プレゼン", "報告", "準備"]):
+            return {
+                "suggestions": [
+                    {"intent": "positive", "ja": "はい、予定通り順調に進めております。", "vi": "Vâng, tôi đang tiến hành thuận lợi đúng kế hoạch ạ."},
+                    {"intent": "concern", "ja": "実は1点だけ確認したい課題がございまして…", "vi": "Thực ra có 1 vấn đề tôi xin phép được xác nhận lại ạ..."},
+                    {"intent": "question", "ja": "資料の内容について少しご相談してもよろしいでしょうか？", "vi": "Tôi có thể xin ý kiến về nội dung tài liệu được không ạ?"},
+                ],
+                "key_vocab": [
+                    {"ja": "順調", "reading": "じゅんちょう", "vi": "thuận lợi / suôn sẻ"},
+                    {"ja": "進捗", "reading": "しんちょく", "vi": "tiến độ công việc"},
+                    {"ja": "相談", "reading": "そうだん", "vi": "thảo luận / xin ý kiến"},
+                ],
+            }
+        elif any(w in t for w in ["休み", "週末", "旅行", "趣味", "どこ", "天気", "好き", "どう"]):
+            return {
+                "suggestions": [
+                    {"intent": "positive", "ja": "とても楽しかったです！のんびり過ごしました。", "vi": "Rất vui ạ! Tôi đã dành thời gian nghỉ ngơi thư giãn."},
+                    {"intent": "concern", "ja": "特に予定はなくて、家でゆっくりしていました。", "vi": "Tôi cũng không có kế hoạch gì đặc biệt, chỉ ở nhà thôi."},
+                    {"intent": "question", "ja": "〇〇さんは週末どう過ごされましたか？", "vi": "Còn bạn thì cuối tuần đã trải qua thế nào?"},
+                ],
+                "key_vocab": [
+                    {"ja": "のんびり", "reading": "のんびり", "vi": "thong thả / thư giãn"},
+                    {"ja": "過ごす", "reading": "すごす", "vi": "trải qua (thời gian)"},
+                    {"ja": "週末", "reading": "しゅうまつ", "vi": "cuối tuần"},
+                ],
+            }
+        else:
+            return {
+                "suggestions": [
+                    {"intent": "positive", "ja": "そうですね、私もそう思います！", "vi": "Đúng vậy nhỉ, tôi cũng nghĩ như thế!"},
+                    {"intent": "concern", "ja": "なるほど、少し意外ですね。", "vi": "Ra là vậy, có chút bất ngờ nhỉ."},
+                    {"intent": "question", "ja": "それについてもう少し詳しく聞かせてください。", "vi": "Hãy kể thêm cho tôi nghe chi tiết về việc đó nhé."},
+                ],
+                "key_vocab": [
+                    {"ja": "詳しく", "reading": "くわしく", "vi": "chi tiết / rõ ràng"},
+                    {"ja": "意外", "reading": "いがい", "vi": "bất ngờ / ngoài dự kiến"},
+                    {"ja": "共感", "reading": "きょうかん", "vi": "đồng cảm / thấu hiểu"},
+                ],
+            }

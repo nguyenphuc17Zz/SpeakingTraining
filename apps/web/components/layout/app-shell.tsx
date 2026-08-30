@@ -12,6 +12,8 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSystemKeybindings } from "@/hooks/use-system-keybindings";
+import { useFuriganaSettings } from "@/hooks/use-furigana-settings";
 import {
   LayoutDashboard,
   Mic,
@@ -178,6 +180,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     localStorage.setItem("hanasu-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
   }, [sidebarCollapsed]);
 
+  const { matchesAction } = useSystemKeybindings();
+  const { displayMode, setDisplayMode } = useFuriganaSettings();
+
   // Global Keybindings Listener
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -188,24 +193,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           activeEl.tagName === "TEXTAREA" ||
           activeEl.getAttribute("contenteditable") === "true");
 
-      // ⌘K or Ctrl+K -> Command palette (even when inside input)
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      // ⌘K or Ctrl+K or custom globalSearch -> Command palette
+      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (!isInput && matchesAction(e, "globalSearch"))) {
         e.preventDefault();
         setCmdOpen((o) => !o);
         return;
       }
 
-      // ⌘J or Ctrl+J -> AI Coach
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+      // ⌘J or Ctrl+J or custom openCoach -> AI Coach
+      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") || (!isInput && matchesAction(e, "openCoach"))) {
         e.preventDefault();
         setCoachOpen((o) => !o);
         return;
       }
 
-      // Global '?' when not typing -> Open Keybindings Modal
-      if (!isInput && e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // Global '?' or custom openKeybindingsModal when not typing -> Open Keybindings Modal
+      if (!isInput && (matchesAction(e, "openKeybindingsModal") || (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey))) {
         e.preventDefault();
         setKeybindingsOpen((o) => !o);
+        return;
+      }
+
+      // Global 'f' or custom toggleFurigana when not typing -> Toggle Furigana Display Mode
+      if (!isInput && matchesAction(e, "toggleFurigana")) {
+        e.preventDefault();
+        const nextMode =
+          displayMode === "kanji_reading" ? "kanji" : displayMode === "kanji" ? "hidden" : "kanji_reading";
+        setDisplayMode(nextMode);
         return;
       }
 
@@ -216,7 +230,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, []);
+  }, [matchesAction, displayMode, setDisplayMode]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
@@ -236,7 +250,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <TopNav onOpenCommand={() => setCmdOpen(true)} />
         <main className="flex-1 overflow-y-auto bg-background">
-          <div className="max-w-[1280px] mx-auto p-4 md:p-6 lg:p-8 pb-20 md:pb-8 space-y-6">{children}</div>
+          <div
+            className={cn(
+              "mx-auto",
+              pathname?.startsWith("/reflex") ||
+                pathname?.startsWith("/keigo") ||
+                pathname?.startsWith("/pitch") ||
+                pathname?.startsWith("/situations") ||
+                pathname?.startsWith("/speaking")
+                ? "max-w-5xl p-2 sm:p-3 md:p-4 pb-4 space-y-3"
+                : "max-w-[1280px] p-3 sm:p-4 md:p-6 pb-8 space-y-4"
+            )}
+          >
+            {children}
+          </div>
         </main>
       </div>
 

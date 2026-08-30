@@ -90,3 +90,9 @@ class ConversationTurn(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     # Relationships
     session: Mapped["ConversationSession"] = relationship("ConversationSession", back_populates="turns")
+
+    @property
+    def scaffolding(self) -> dict[str, Any] | None:
+        if self.metrics and isinstance(self.metrics, dict):
+            return self.metrics.get("scaffolding")
+        return None

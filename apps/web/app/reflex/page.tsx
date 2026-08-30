@@ -41,6 +41,13 @@ import { ReflexTimer } from "@/features/reflex/components/ReflexTimer";
 import { ReflexPromptCard } from "@/features/reflex/components/ReflexPromptCard";
 import { ReflexResultCard } from "@/features/reflex/components/ReflexResultCard";
 import { ReflexSessionSummary } from "@/features/reflex/components/ReflexSessionSummary";
+import { ConjugationFilterModal } from "@/features/reflex/components/ConjugationFilterModal";
+import { QnaTopicFilterModal } from "@/features/reflex/components/QnaTopicFilterModal";
+import { TransformationFilterModal } from "@/features/reflex/components/TransformationFilterModal";
+import { ContextFilterModal } from "@/features/reflex/components/ContextFilterModal";
+import { VocabFilterModal } from "@/features/reflex/components/VocabFilterModal";
+import { KeigoFilterModal } from "@/features/reflex/components/KeigoFilterModal";
+import { GlobalKeybindingsModal } from "@/components/layout/global-keybindings-modal";
 import { CoachQuickActions, CoachPanel } from "@/features/coach";
 import { usePathname } from "next/navigation";
 import { useCoachCore } from "@/features/coach/hooks/useCoachCore";
@@ -127,6 +134,7 @@ const DEDICATED_MODES = [
 ];
 
 const PRESSURE_LEVELS = [
+  { id: "infinite", label: "Infinite", labelJa: "無制限", icon: "♾️", ms: 0, desc: "∞ • Không giới hạn thời gian phản xạ" },
   { id: "relaxed", label: "Relaxed", labelJa: "ゆっくり", icon: "🐢", ms: 6000, desc: "6.0s • Thong thả, tập trung độ chuẩn xác" },
   { id: "normal", label: "Normal", labelJa: "普通", icon: "🚶", ms: 4000, desc: "4.0s • Cân bằng, nhịp nói tự nhiên" },
   { id: "fast", label: "Fast", labelJa: "速め", icon: "🏃", ms: 3000, desc: "3.0s • Tăng tốc, phản xạ dứt khoát" },
@@ -138,7 +146,7 @@ const DURATION_OPTIONS = [0, 3, 5, 10, 20] as const;
 
 export default function ReflexPage() {
   const [subMode, setSubMode] = useState("mixed");
-  const [pressure, setPressure] = useState<"relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
+  const [pressure, setPressure] = useState<"infinite" | "relaxed" | "normal" | "fast" | "reflex" | "extreme">("normal");
   const [subtitleMode, setSubtitleMode] = useState<"hidden" | "japanese" | "japanese_reading" | "vietnamese">("japanese");
   const [startTrigger, setStartTrigger] = useState<"manual" | "auto">("manual");
   const [transcriptInput, setTranscriptInput] = useState("");
@@ -149,6 +157,24 @@ export default function ReflexPage() {
   const [sessionElapsedSec, setSessionElapsedSec] = useState(0);
   const [autoNext, setAutoNext] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [selectedForms, setSelectedForms] = useState<string[]>([]);
+  const [showFormFilterModal, setShowFormFilterModal] = useState(false);
+  const [selectedQnaTopics, setSelectedQnaTopics] = useState<string[]>([]);
+  const [showQnaTopicFilterModal, setShowQnaTopicFilterModal] = useState(false);
+  const [customKeywords, setCustomKeywords] = useState<string>("");
+  const [selectedTransformCategories, setSelectedTransformCategories] = useState<string[]>([]);
+  const [showTransformFilterModal, setShowTransformFilterModal] = useState(false);
+  const [customTransformKeywords, setCustomTransformKeywords] = useState<string>("");
+  const [selectedContextCategories, setSelectedContextCategories] = useState<string[]>([]);
+  const [showContextFilterModal, setShowContextFilterModal] = useState(false);
+  const [customContextKeywords, setCustomContextKeywords] = useState<string>("");
+  const [selectedVocabCategories, setSelectedVocabCategories] = useState<string[]>([]);
+  const [showVocabFilterModal, setShowVocabFilterModal] = useState(false);
+  const [customVocabKeywords, setCustomVocabKeywords] = useState<string>("");
+  const [selectedKeigoCategories, setSelectedKeigoCategories] = useState<string[]>([]);
+  const [showKeigoFilterModal, setShowKeigoFilterModal] = useState(false);
+  const [customKeigoKeywords, setCustomKeigoKeywords] = useState<string>("");
+  const [isReflexAdvancedOpen, setIsReflexAdvancedOpen] = useState(false);
 
   const sessionEndTimestampRef = useRef<number | null>(null);
   const sessionPausedRemainingMsRef = useRef<number>(duration * 60 * 1000);
@@ -179,12 +205,207 @@ export default function ReflexPage() {
           setAutoNext(parsed.autoNext);
         }
       }
+
+      const savedForms = localStorage.getItem("speaking_training_reflex_selected_forms");
+      if (savedForms) {
+        const parsedForms = JSON.parse(savedForms);
+        if (Array.isArray(parsedForms)) {
+          setSelectedForms(parsedForms);
+        }
+      }
+
+      const savedQna = localStorage.getItem("speaking_training_reflex_selected_qna_topics");
+      if (savedQna) {
+        const parsedQna = JSON.parse(savedQna);
+        if (Array.isArray(parsedQna)) {
+          setSelectedQnaTopics(parsedQna);
+        }
+      }
+
+      const savedKeywords = localStorage.getItem("speaking_training_reflex_qna_custom_keywords");
+      if (savedKeywords) {
+        setCustomKeywords(savedKeywords);
+      }
+
+      const savedTransform = localStorage.getItem("speaking_training_reflex_selected_transform_categories");
+      if (savedTransform) {
+        const parsedTransform = JSON.parse(savedTransform);
+        if (Array.isArray(parsedTransform)) {
+          setSelectedTransformCategories(parsedTransform);
+        }
+      }
+
+      const savedTransformKeywords = localStorage.getItem("speaking_training_reflex_transform_custom_keywords");
+      if (savedTransformKeywords) {
+        setCustomTransformKeywords(savedTransformKeywords);
+      }
+
+      const savedContext = localStorage.getItem("speaking_training_reflex_selected_context_categories");
+      if (savedContext) {
+        const parsedContext = JSON.parse(savedContext);
+        if (Array.isArray(parsedContext)) {
+          setSelectedContextCategories(parsedContext);
+        }
+      }
+
+      const savedContextKeywords = localStorage.getItem("speaking_training_reflex_context_custom_keywords");
+      if (savedContextKeywords) {
+        setCustomContextKeywords(savedContextKeywords);
+      }
+
+      const savedVocab = localStorage.getItem("speaking_training_reflex_selected_vocab_categories");
+      if (savedVocab) {
+        const parsedVocab = JSON.parse(savedVocab);
+        if (Array.isArray(parsedVocab)) {
+          setSelectedVocabCategories(parsedVocab);
+        }
+      }
+
+      const savedVocabKeywords = localStorage.getItem("speaking_training_reflex_vocab_custom_keywords");
+      if (savedVocabKeywords) {
+        setCustomVocabKeywords(savedVocabKeywords);
+      }
+
+      const savedKeigo = localStorage.getItem("speaking_training_reflex_selected_keigo_categories");
+      if (savedKeigo) {
+        const parsedKeigo = JSON.parse(savedKeigo);
+        if (Array.isArray(parsedKeigo)) {
+          setSelectedKeigoCategories(parsedKeigo);
+        }
+      }
+
+      const savedKeigoKeywords = localStorage.getItem("speaking_training_reflex_keigo_custom_keywords");
+      if (savedKeigoKeywords) {
+        setCustomKeigoKeywords(savedKeigoKeywords);
+      }
     } catch (e) {
       console.warn("[ReflexPage] Failed to load saved settings:", e);
     } finally {
       isSettingsLoadedRef.current = true;
     }
   }, []);
+
+  const handleSelectedFormsChange = (forms: string[]) => {
+    setSelectedForms(forms);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_forms", JSON.stringify(forms));
+    } catch (e) {}
+  };
+
+  const handleSelectedQnaTopicsChange = (topics: string[]) => {
+    setSelectedQnaTopics(topics);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_qna_topics", JSON.stringify(topics));
+    } catch (e) {}
+  };
+
+  const handleCustomKeywordsChange = (val: string) => {
+    setCustomKeywords(val);
+    try {
+      localStorage.setItem("speaking_training_reflex_qna_custom_keywords", val);
+    } catch (e) {}
+  };
+
+  const handleSelectedTransformCategoriesChange = (cats: string[]) => {
+    setSelectedTransformCategories(cats);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_transform_categories", JSON.stringify(cats));
+    } catch (e) {}
+  };
+
+  const handleCustomTransformKeywordsChange = (val: string) => {
+    setCustomTransformKeywords(val);
+    try {
+      localStorage.setItem("speaking_training_reflex_transform_custom_keywords", val);
+    } catch (e) {}
+  };
+
+  const handleSelectedContextCategoriesChange = (cats: string[]) => {
+    setSelectedContextCategories(cats);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_context_categories", JSON.stringify(cats));
+    } catch (e) {}
+  };
+
+  const handleCustomContextKeywordsChange = (val: string) => {
+    setCustomContextKeywords(val);
+    try {
+      localStorage.setItem("speaking_training_reflex_context_custom_keywords", val);
+    } catch (e) {}
+  };
+
+  const handleSelectedVocabCategoriesChange = (cats: string[]) => {
+    setSelectedVocabCategories(cats);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_vocab_categories", JSON.stringify(cats));
+    } catch (e) {}
+  };
+
+  const handleCustomVocabKeywordsChange = (val: string) => {
+    setCustomVocabKeywords(val);
+    try {
+      localStorage.setItem("speaking_training_reflex_vocab_custom_keywords", val);
+    } catch (e) {}
+  };
+
+  const handleSelectedKeigoCategoriesChange = (cats: string[]) => {
+    setSelectedKeigoCategories(cats);
+    try {
+      localStorage.setItem("speaking_training_reflex_selected_keigo_categories", JSON.stringify(cats));
+    } catch (e) {}
+  };
+
+  const handleCustomKeigoKeywordsChange = (val: string) => {
+    setCustomKeigoKeywords(val);
+    try {
+      localStorage.setItem("speaking_training_reflex_keigo_custom_keywords", val);
+    } catch (e) {}
+  };
+
+  const conjugationTarget = useMemo(() => {
+    if (selectedForms.length === 0) return undefined;
+    return selectedForms.join(",");
+  }, [selectedForms]);
+
+  const qnaTopic = useMemo(() => {
+    if (customKeywords && customKeywords.trim()) {
+      return customKeywords.trim();
+    }
+    if (selectedQnaTopics.length === 0) return undefined;
+    return selectedQnaTopics.join(",");
+  }, [customKeywords, selectedQnaTopics]);
+
+  const transformationCategory = useMemo(() => {
+    if (customTransformKeywords && customTransformKeywords.trim()) {
+      return customTransformKeywords.trim();
+    }
+    if (selectedTransformCategories.length === 0) return undefined;
+    return selectedTransformCategories.join(",");
+  }, [customTransformKeywords, selectedTransformCategories]);
+
+  const contextCategory = useMemo(() => {
+    if (customContextKeywords && customContextKeywords.trim()) {
+      return customContextKeywords.trim();
+    }
+    if (selectedContextCategories.length === 0) return undefined;
+    return selectedContextCategories.join(",");
+  }, [customContextKeywords, selectedContextCategories]);
+
+  const vocabCategory = useMemo(() => {
+    if (customVocabKeywords && customVocabKeywords.trim()) {
+      return customVocabKeywords.trim();
+    }
+    if (selectedVocabCategories.length === 0) return undefined;
+    return selectedVocabCategories.join(",");
+  }, [customVocabKeywords, selectedVocabCategories]);
+
+  const keigoCategory = useMemo(() => {
+    if (customKeigoKeywords && customKeigoKeywords.trim()) {
+      return customKeigoKeywords.trim();
+    }
+    if (selectedKeigoCategories.length === 0) return undefined;
+    return selectedKeigoCategories.join(",");
+  }, [customKeigoKeywords, selectedKeigoCategories]);
 
   // 2. Persist preferences whenever any setting changes
   useEffect(() => {
@@ -211,6 +432,12 @@ export default function ReflexPage() {
     pressureLevel: pressure as any,
     autoNext,
     startTrigger,
+    conjugationTarget,
+    qnaTopic,
+    transformationCategory,
+    contextCategory,
+    vocabCategory,
+    keigoCategory,
   });
 
   // Sync duration selection in lobby
@@ -369,15 +596,15 @@ export default function ReflexPage() {
 
       // Handle Result Phase Keybindings
       if (session.phase === "result") {
-        // Next Question: Space, Enter, N, ArrowRight, drillSubmitOrNext, drillSkip
+        // Next Question: Space, Enter, N, ArrowRight, reflexSubmitOrNext, reflexSkip, drillSubmitOrNext, drillSkip
         if (
+          matchesAction(e, "reflexSubmitOrNext") ||
+          matchesAction(e, "reflexSkip") ||
+          matchesAction(e, "drillSubmitOrNext") ||
+          matchesAction(e, "drillSkip") ||
           e.code === "Space" ||
           e.key === "Enter" ||
-          e.key === "n" ||
-          e.key === "N" ||
-          e.key === "ArrowRight" ||
-          matchesAction(e, "drillSubmitOrNext") ||
-          matchesAction(e, "drillSkip")
+          e.key === "ArrowRight"
         ) {
           e.preventDefault();
           stopWebSpeech();
@@ -385,56 +612,61 @@ export default function ReflexPage() {
           return;
         }
 
-        // Retry Question: R, drillRetry
-        if (e.key === "r" || e.key === "R" || matchesAction(e, "drillRetry")) {
+        // Retry Question: R, reflexRetry, drillRetry
+        if (matchesAction(e, "reflexRetry") || matchesAction(e, "drillRetry")) {
           e.preventDefault();
           stopWebSpeech();
           session.retry();
           return;
         }
 
-        // Replay Answer Audio: A, drillReplayAudio
-        if (e.key === "a" || e.key === "A" || matchesAction(e, "drillReplayAudio")) {
+        // Replay Answer Audio: A, reflexReplayModel, drillReplayAudio
+        if (matchesAction(e, "reflexReplayModel") || matchesAction(e, "drillReplayAudio")) {
           e.preventDefault();
-          const canonical =
-            session.result?.canonicalAnswer ||
+          const res = session.result;
+          const rc = (activeExercise as any)?.extra_metadata?.reflex_config || {};
+          const answerText =
+            res?.canonicalAnswer ||
             (activeExercise as any)?.canonical ||
+            rc.canonical ||
+            rc.expected ||
+            rc.target ||
             (activeExercise as any)?.target_patterns?.[0] ||
             "";
-          if (canonical) {
+          if (answerText) {
             stopWebSpeech();
-            speakJapaneseText(canonical);
+            speakJapaneseText(answerText);
           }
           return;
         }
       }
 
-      if (matchesAction(e, "drillToggleHelp")) {
+      if (matchesAction(e, "reflexToggleHelp") || matchesAction(e, "drillToggleHelp") || matchesAction(e, "openKeybindingsModal")) {
         e.preventDefault();
         setShowHelp((v) => !v);
         return;
       }
 
-      if (matchesAction(e, "drillPauseOrResume")) {
+      if (matchesAction(e, "reflexPauseOrResume") || matchesAction(e, "drillPauseOrResume")) {
         e.preventDefault();
         session.togglePause();
         return;
       }
 
-      if (matchesAction(e, "drillReplayAudio")) {
+      if (matchesAction(e, "reflexListenPrompt") || matchesAction(e, "drillReplayAudio")) {
         e.preventDefault();
         playPromptAudio(false);
         return;
       }
 
-      if (matchesAction(e, "drillStartQuestion")) {
+      if (matchesAction(e, "reflexStartVoice") || matchesAction(e, "drillStartQuestion")) {
         e.preventDefault();
         stopWebSpeech();
         session.startQuestionNow();
         return;
       }
 
-      if (matchesAction(e, "drillSubmitOrNext")) {
+      if (matchesAction(e, "reflexSubmitOrNext") || matchesAction(e, "drillSubmitOrNext")) {
         e.preventDefault();
         if (session.phase === "waiting_for_speech" || session.phase === "recording") {
           handleDirectSubmit();
@@ -465,7 +697,7 @@ export default function ReflexPage() {
     const isMixedSelected = subMode === "mixed";
 
     return (
-      <div className="space-y-8 animate-in fade-in duration-300 max-w-5xl mx-auto pb-16 px-2 sm:px-4">
+      <div className="space-y-4 animate-in fade-in duration-300 max-w-5xl mx-auto pb-8">
         {/* Proactive Coach Insight Banner */}
         {insights.slice(0, 1).map((ins, idx) => (
           <CoachInsightCard
@@ -477,27 +709,24 @@ export default function ReflexPage() {
         ))}
 
         {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 washi-texture shadow-sm">
-          <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full bg-enso-gradient opacity-30 pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div className="flex items-start gap-4">
-              <span className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-xs">
-                <Zap className="h-7 w-7" />
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 washi-texture shadow-2xs">
+          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-enso-gradient opacity-30 pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                <Zap className="h-5 w-5" />
               </span>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <h1 className="text-2xl md:text-3xl font-black font-jp tracking-tight text-foreground">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black font-jp tracking-tight text-foreground">
                     瞬発力スピーキング
                   </h1>
-                  <Badge variant="sakura" size="sm" className="font-bold">
+                  <Badge variant="sakura" size="sm" className="font-bold text-[10px]">
                     Mode 3
                   </Badge>
                 </div>
-                <p className="text-sm font-bold text-primary">
-                  Speed Reflex Speaking — Think less. Speak faster.
-                </p>
-                <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
-                  Rèn luyện phản xạ bật câu nói tiếng Nhật tức thì dưới áp lực thời gian, xóa bỏ hoàn toàn thói quen dịch ngầm trong đầu.
+                <p className="text-[11px] text-muted-foreground">
+                  Speed Reflex Speaking — Phản xạ câu nói tiếng Nhật dưới áp lực thời gian
                 </p>
               </div>
             </div>
@@ -505,191 +734,230 @@ export default function ReflexPage() {
             <Button
               variant="outline"
               size="sm"
-              className="self-start md:self-center gap-2 rounded-2xl border-border px-4 py-2 text-xs font-bold shadow-xs hover:border-primary/40"
+              className="gap-1 rounded-xl border-border h-8 px-2.5 text-xs font-bold shadow-2xs hover:border-primary/40 shrink-0"
               onClick={() => setShowHelp(true)}
             >
-              <Keyboard className="h-4 w-4 text-primary" />
+              <Keyboard className="h-3.5 w-3.5 text-primary" />
               <span>Phím tắt ({formatKeyDisplay(keybindings.drillToggleHelp)})</span>
             </Button>
           </div>
         </div>
 
-        {/* SECTION 1: CHỌN DẠNG BÀI (FULL WIDTH & SPACIOUS) */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">1</span>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
-                Chọn Chế Độ Luyện Phản Xạ
+        {/* 2-Column Cockpit Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          {/* Left 2 Cols: Mode Selection */}
+          <div className="lg:col-span-2 space-y-2.5">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <span>1. Chọn Dạng Bài Phản Xạ:</span>
               </h2>
+              <span className="text-[10px] font-medium text-muted-foreground">6 Dạng bài thực chiến</span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground">5 Dạng bài phản xạ</span>
-          </div>
 
-          {/* TOP HERO CARD: Mixed Adaptive */}
-          <button
-            type="button"
-            onClick={() => {
-              soundFX.playFurin();
-              setSubMode("mixed");
-            }}
-            className={cn(
-              "w-full text-left rounded-3xl border p-6 md:p-7 transition-all duration-300 relative overflow-hidden group shadow-sm washi-texture",
-              isMixedSelected
-                ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/10"
-                : "border-border/80 bg-card hover:border-primary/40 hover:bg-card/90"
-            )}
-          >
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-primary to-amber-500 opacity-90" />
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shrink-0 shadow-xs">
-                  <Shuffle className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="text-lg md:text-xl font-black text-foreground font-jp">
-                      Mixed Adaptive
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-extrabold flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current" />
-                      KHUYÊN DÙNG
-                    </span>
-                    <Badge variant="kintsugi" size="sm">混合</Badge>
+            {/* TOP HERO CARD: Mixed Adaptive */}
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setSubMode("mixed");
+              }}
+              className={cn(
+                "w-full text-left rounded-2xl border p-3.5 transition-all duration-200 relative overflow-hidden group shadow-2xs washi-texture",
+                isMixedSelected
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-xs"
+                  : "border-border/80 bg-card hover:border-primary/40"
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                    <Shuffle className="h-4 w-4" />
                   </div>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    AI tự động phân tích điểm yếu & luân phiên 4 dạng bài tập trung để tối đa hóa phản xạ
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground font-jp">
+                        Mixed Adaptive (Tổng Hợp)
+                      </span>
+                      <Badge variant="kintsugi" size="sm" className="text-[9px] px-1.5 py-0">混合</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      Tự động phân tích điểm yếu & luân phiên 6 dạng bài để tối đa phản xạ
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div
-                className={cn(
-                  "h-7 w-7 rounded-full border-2 flex items-center justify-center shrink-0 self-end md:self-center transition-all",
-                  isMixedSelected
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-muted-foreground/30 bg-background"
-                )}
-              >
-                {isMixedSelected && <Check className="h-4 w-4 stroke-[3]" />}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 border-t border-border/60">
-              <div className="p-2.5 px-3 rounded-2xl bg-card border border-border/80 flex items-center gap-2.5 text-xs shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shrink-0" />
-                <span className="font-semibold text-foreground/90">活用 Chia thể</span>
-              </div>
-              <div className="p-2.5 px-3 rounded-2xl bg-card border border-border/80 flex items-center gap-2.5 text-xs shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="font-semibold text-foreground/90">速答 Hỏi - đáp</span>
-              </div>
-              <div className="p-2.5 px-3 rounded-2xl bg-card border border-border/80 flex items-center gap-2.5 text-xs shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 shrink-0" />
-                <span className="font-semibold text-foreground/90">文型 Biến đổi</span>
-              </div>
-              <div className="p-2.5 px-3 rounded-2xl bg-card border border-border/80 flex items-center gap-2.5 text-xs shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shrink-0" />
-                <span className="font-semibold text-foreground/90">状況 Tình huống</span>
-              </div>
-            </div>
-          </button>
-
-          {/* 4 DEDICATED FOCUS MODES */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {DEDICATED_MODES.map((m) => {
-              const isSelected = subMode === m.id;
-              const Icon = m.icon;
-
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => {
-                    soundFX.playFurin();
-                    setSubMode(m.id);
-                  }}
+                <div
                   className={cn(
-                    "text-left rounded-3xl border p-6 transition-all duration-200 relative overflow-hidden group shadow-xs washi-texture flex flex-col justify-between space-y-4",
-                    isSelected
-                      ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/10"
-                      : "border-border/80 bg-card hover:border-primary/40 hover:bg-card/90"
+                    "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                    isMixedSelected ? "border-primary bg-primary text-primary-foreground shadow-xs" : "border-muted-foreground/30 bg-background"
                   )}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3.5">
+                  {isMixedSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                </div>
+              </div>
+            </button>
+
+            {/* 6 DEDICATED FOCUS MODES (2-Col Grid) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {DEDICATED_MODES.map((m) => {
+                const isSelected = subMode === m.id;
+                const Icon = m.icon;
+
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      soundFX.playFurin();
+                      setSubMode(m.id);
+                    }}
+                    className={cn(
+                      "text-left rounded-2xl border p-3 transition-all duration-150 relative overflow-hidden group shadow-2xs washi-texture flex flex-col justify-between space-y-2 cursor-pointer",
+                      isSelected
+                        ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-xs"
+                        : "border-border/80 bg-card hover:border-primary/40"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={cn("h-7 w-7 rounded-lg border flex items-center justify-center shrink-0 text-xs", m.iconColor)}>
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-foreground font-jp truncate">{m.title}</span>
+                            <Badge variant={m.badgeVariant} size="sm" className="text-[9px] px-1 py-0 shrink-0">{m.titleJa}</Badge>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">{m.desc}</p>
+                        </div>
+                      </div>
+
                       <div
                         className={cn(
-                          "h-11 w-11 rounded-2xl border flex items-center justify-center shrink-0 shadow-xs",
-                          m.iconColor
+                          "h-4 w-4 rounded-full border flex items-center justify-center shrink-0 transition-all mt-0.5",
+                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 bg-background"
                         )}
                       >
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base font-black text-foreground font-jp">
-                            {m.title}
-                          </span>
-                          <Badge variant={m.badgeVariant} size="sm">
-                            {m.titleJa}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-snug">
-                          {m.desc}
-                        </p>
+                        {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                       </div>
                     </div>
 
-                    <div
-                      className={cn(
-                        "h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
-                        isSelected
-                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                          : "border-muted-foreground/30 bg-background"
-                      )}
-                    >
-                      {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                    <div className="p-1.5 px-2.5 rounded-xl bg-muted/40 border border-border/60 text-[10px] flex items-center justify-between gap-1 font-medium">
+                      <span className="text-foreground/80 font-mono truncate">{m.source}</span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className={cn("font-bold truncate", m.accentColor)}>{m.target}</span>
                     </div>
-                  </div>
 
-                  <div className="p-3 px-4 rounded-2xl bg-muted/40 border border-border/80 text-xs flex items-center justify-between gap-2 font-medium">
-                    <span className="text-foreground/80 font-mono font-medium truncate">
-                      {m.source}
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className={cn("font-bold truncate", m.accentColor)}>
-                      {m.target}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                    {/* Filter Action Pill */}
+                    {m.id === "reflex_conjugation" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowFormFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Sliders className="h-3 w-3 text-rose-500" />
+                        <span>{selectedForms.length === 0 ? "Tất cả 50 thể (Toàn diện)" : `${selectedForms.length} thể đã lọc`}</span>
+                      </button>
+                    )}
 
-        {/* SECTION 2: THIẾT LẬP ÁP LỰC & THỜI LƯỢNG */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          {/* Column 1: Pressure Level Selector */}
-          <div className="rounded-3xl border border-border bg-card p-6 md:p-7 space-y-4 shadow-sm washi-texture">
-            <div className="flex items-center justify-between pb-1 border-b border-border/60">
-              <div className="flex items-center gap-2">
-                <span className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">2</span>
-                <label className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  <span>Áp Lực Thời Gian</span>
-                </label>
-              </div>
-              <span className="font-mono text-primary font-bold text-sm bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20">
-                {timerMs / 1000}s / câu
-              </span>
+                    {m.id === "reflex_qna" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowQnaTopicFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <MessageSquare className="h-3 w-3 text-emerald-500" />
+                        <span>{customKeywords.trim() ? `"${customKeywords.trim()}"` : selectedQnaTopics.length === 0 ? "Ngẫu nhiên mọi chủ đề" : `${selectedQnaTopics.length} chủ đề đã lọc`}</span>
+                      </button>
+                    )}
+
+                    {m.id === "reflex_transformation" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowTransformFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Repeat className="h-3 w-3 text-indigo-500" />
+                        <span>{selectedTransformCategories.length === 0 ? "Ngẫu nhiên 75+ dạng ngữ pháp" : `${selectedTransformCategories.length} nhóm đã lọc`}</span>
+                      </button>
+                    )}
+
+                    {m.id === "reflex_context" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowContextFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Compass className="h-3 w-3 text-amber-500" />
+                        <span>{selectedContextCategories.length === 0 ? "Ngẫu nhiên 60+ tình huống" : `${selectedContextCategories.length} nhóm đã lọc`}</span>
+                      </button>
+                    )}
+
+                    {m.id === "reflex_vocabulary" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowVocabFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-[10px] font-bold text-violet-700 dark:text-violet-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <BookText className="h-3 w-3 text-violet-500" />
+                        <span>{selectedVocabCategories.length === 0 ? "Ngẫu nhiên 500+ từ vựng" : `${selectedVocabCategories.length} nhóm đã lọc`}</span>
+                      </button>
+                    )}
+
+                    {m.id === "reflex_keigo_vocab" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundFX.playFurin();
+                          setShowKeigoFilterModal(true);
+                        }}
+                        className="w-full py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Crown className="h-3 w-3 text-amber-500" />
+                        <span>{selectedKeigoCategories.length === 0 ? "Ngẫu nhiên 80+ cặp kính ngữ" : `${selectedKeigoCategories.length} nhóm đã lọc`}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 gap-2.5">
-              {PRESSURE_LEVELS.map((p) => {
-                const isSelected = pressure === p.id;
-                return (
+          {/* Right 1 Col: Session Configuration Cockpit */}
+          <div className="space-y-3 p-3.5 rounded-2xl border border-border bg-card shadow-2xs washi-texture">
+            {/* Pressure Selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <label className="text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span>Áp Lực Thời Gian:</span>
+                </label>
+                <span className="text-primary font-mono text-[11px] font-bold">
+                  {timerMs > 0 ? `${timerMs / 1000}s / câu` : "∞ Vô hạn"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
+                {PRESSURE_LEVELS.map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -698,220 +966,207 @@ export default function ReflexPage() {
                       setPressure(p.id as any);
                     }}
                     className={cn(
-                      "flex items-center justify-between p-3 px-4 rounded-2xl border text-xs font-bold transition-all shadow-xs",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
-                        : "border-border/80 bg-background hover:bg-muted text-foreground"
+                      "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
+                      pressure === p.id
+                        ? "bg-card text-foreground border border-border shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={p.desc}
+                  >
+                    {p.id === "infinite" ? "∞" : `${p.ms / 1000}s`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Duration Selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span className="text-muted-foreground">Thời Lượng Phiên:</span>
+                <span className="text-primary font-mono text-[11px]">{duration === 0 ? "∞ Vô hạn" : `${duration} phút`}</span>
+              </div>
+              <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
+                {DURATION_OPTIONS.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDuration(d)}
+                    className={cn(
+                      "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
+                      duration === d
+                        ? "bg-card text-foreground border border-border shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-base">{p.icon}</span>
-                      <div className="text-left">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-jp">{p.labelJa}</span>
-                          <span className="opacity-90 font-normal">({p.label})</span>
-                        </div>
-                        <div className={cn("text-[10px] font-normal", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                          {p.desc}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="font-mono font-black text-sm">{p.ms / 1000}s</span>
+                    {d === 0 ? "∞" : `${d}m`}
                   </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Column 2: Duration, Display Mode & Launch Button */}
-          <div className="rounded-3xl border border-border bg-card p-6 md:p-7 space-y-5 shadow-sm washi-texture flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-1 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">3</span>
-                  <label className="text-sm font-bold uppercase tracking-wider text-foreground">
-                    Cài Đặt Phiên Luyện
-                  </label>
-                </div>
+                ))}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Thời lượng phiên
-                </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {DURATION_OPTIONS.map((d) => (
+            {/* Progressive Disclosure: Subtitles, Start Trigger & Auto Next */}
+            <div className="border border-border/80 rounded-xl bg-muted/20 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsReflexAdvancedOpen((v) => !v)}
+                className="w-full px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span>Phụ đề & Chế độ xuất phát</span>
+                <span className="text-[10px] text-primary">{isReflexAdvancedOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {isReflexAdvancedOpen && (
+                <div className="p-2.5 pt-1 space-y-2 border-t border-border/60 animate-in fade-in duration-150">
+                  {/* Subtitle Mode */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-muted-foreground">Hiển thị đề bài:</span>
+                    <div className="grid grid-cols-3 gap-1 text-[10px]">
+                      {[
+                        { id: "japanese", label: "🇯🇵 Nhật" },
+                        { id: "vietnamese", label: "🇻🇳 Dịch" },
+                        { id: "hidden", label: "🎧 Ẩn" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setSubtitleMode(opt.id as any)}
+                          className={cn(
+                            "py-1 rounded-lg font-bold border transition-all text-center",
+                            subtitleMode === opt.id
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border hover:bg-muted text-foreground"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Start Trigger Mode */}
+                  <div className="space-y-1 pt-1 border-t border-border/40">
+                    <span className="text-[10px] font-bold text-muted-foreground">Chế độ xuất phát:</span>
+                    <div className="grid grid-cols-2 gap-1 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setStartTrigger("manual")}
+                        className={cn(
+                          "py-1 rounded-lg font-bold border transition-all text-center",
+                          startTrigger === "manual" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                        )}
+                      >
+                        🎯 Chủ động
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStartTrigger("auto")}
+                        className={cn(
+                          "py-1 rounded-lg font-bold border transition-all text-center",
+                          startTrigger === "auto" ? "bg-amber-500 text-white border-amber-500" : "bg-card border-border text-muted-foreground"
+                        )}
+                      >
+                        ⚡ Tự động
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Auto-Next */}
+                  <div className="pt-1 border-t border-border/40 flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-muted-foreground">Tự chuyển câu:</span>
                     <button
-                      key={d}
                       type="button"
-                      onClick={() => setDuration(d)}
+                      onClick={() => setAutoNext((v) => !v)}
                       className={cn(
-                        "py-2.5 rounded-2xl text-xs font-bold border transition-all text-center shadow-2xs",
-                        duration === d
-                          ? "bg-primary text-primary-foreground border-primary font-mono shadow-xs"
-                          : "bg-background border-border hover:bg-muted text-muted-foreground"
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all",
+                        autoNext ? "bg-emerald-600 text-white border-emerald-600" : "bg-muted border-border text-muted-foreground"
                       )}
                     >
-                      {d === 0 ? "∞ Vô hạn" : `${d} Phút`}
+                      {autoNext ? "BẬT" : "TẮT"}
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Chế độ hiển thị đề bài
-                </label>
-                <select
-                  value={subtitleMode}
-                  onChange={(e) => setSubtitleMode(e.target.value as any)}
-                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-xs font-medium text-foreground focus:border-primary focus:outline-none shadow-2xs"
-                >
-                  <option value="japanese">Tiếng Nhật đầy đủ (Khuyên dùng)</option>
-                  <option value="vietnamese">Tiếng Nhật kèm dịch Tiếng Việt</option>
-                  <option value="hidden">Ẩn phụ đề (Audio Only - Thử thách)</option>
-                </select>
-              </div>
-
-              {/* Start Trigger Mode Setting */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                  <span>Chế độ xuất phát</span>
-                  <span className="text-[10px] text-primary font-semibold">
-                    {startTrigger === "manual" ? "🎯 Không bị dí" : "⚡ Phản xạ nhanh"}
-                  </span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setStartTrigger("manual")}
-                    className={cn(
-                      "p-3 rounded-2xl text-xs font-bold border transition-all text-left flex flex-col gap-1 shadow-2xs",
-                      startTrigger === "manual"
-                        ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary/30"
-                        : "bg-background border-border hover:bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 text-primary">
-                      <Mic className="h-4 w-4" />
-                      <span className="font-extrabold">🎯 Chủ Động</span>
-                    </div>
-                    <span className="text-[10px] font-normal text-muted-foreground leading-tight">
-                      Nghe xong đề → Chuẩn bị → Bấm Space/Nút để bắt đầu nói
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setStartTrigger("auto")}
-                    className={cn(
-                      "p-3 rounded-2xl text-xs font-bold border transition-all text-left flex flex-col gap-1 shadow-2xs",
-                      startTrigger === "auto"
-                        ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary/30"
-                        : "bg-background border-border hover:bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5 text-amber-500">
-                      <Zap className="h-4 w-4" />
-                      <span className="font-extrabold">⚡ Tự Động (Blitz)</span>
-                    </div>
-                    <span className="text-[10px] font-normal text-muted-foreground leading-tight">
-                      Nghe xong đề → Đồng hồ đếm ngược nói ngay tức thì
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Auto-Next Setting */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-muted/30">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-foreground">Tự động chuyển câu (Auto-Next)</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    Tự chuyển câu tiếp theo sau 4.5s để bạn kịp xem đáp án & nghe lại giọng
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setAutoNext((v) => !v)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all",
-                    autoNext
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                      : "bg-muted text-muted-foreground border-border hover:text-foreground"
-                  )}
-                >
-                  {autoNext ? "BẬT" : "TẮT"}
-                </button>
-              </div>
+              )}
             </div>
 
-            <div className="pt-2">
-              <Button
-                variant="akane"
-                size="lg"
-                className="w-full font-black text-base rounded-2xl py-6 shadow-md hover:shadow-lg transition-all gap-2.5"
-                onClick={() => {
-                  soundFX.playTaiko();
-                  session.startSession();
-                }}
-              >
-                <Play className="h-5 w-5 fill-current" />
-                <span>Bắt Đầu Luyện Phản Xạ ({duration} Phút)</span>
-              </Button>
-            </div>
+            {/* Big CTA Start Button */}
+            <Button
+              variant="akane"
+              size="lg"
+              className="w-full font-bold text-xs rounded-xl h-10 shadow-md hover:shadow-lg transition-all gap-2"
+              onClick={() => {
+                soundFX.playTaiko();
+                session.startSession();
+              }}
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Bắt Đầu Phản Xạ ({duration === 0 ? "Vô Hạn" : `${duration}p`})</span>
+            </Button>
           </div>
         </div>
 
-        {/* Beginner safety guide */}
-        <div className="p-4 md:p-5 rounded-3xl border border-border/80 bg-card/60 washi-texture flex items-center gap-3.5 shadow-xs">
-          <ShieldCheck className="h-5 w-5 text-primary shrink-0" />
-          <div className="text-xs text-muted-foreground space-y-0.5">
-            <span className="font-bold text-foreground">Lời khuyên an toàn:</span> Người mới nên bắt đầu với mức <span className="font-semibold text-primary">Relaxed (6s)</span> + phụ đề tiếng Nhật để làm quen nhịp độ trước khi nâng tốc độ phản xạ.
-          </div>
-        </div>
+        {/* Conjugation Form Filter Modal */}
+        <ConjugationFilterModal
+          open={showFormFilterModal}
+          onClose={() => setShowFormFilterModal(false)}
+          selectedForms={selectedForms}
+          onChangeSelectedForms={handleSelectedFormsChange}
+        />
+
+        {/* Q&A Topic Filter Modal */}
+        <QnaTopicFilterModal
+          open={showQnaTopicFilterModal}
+          onClose={() => setShowQnaTopicFilterModal(false)}
+          selectedTopics={selectedQnaTopics}
+          onChangeSelectedTopics={handleSelectedQnaTopicsChange}
+          customKeywords={customKeywords}
+          onChangeCustomKeywords={handleCustomKeywordsChange}
+        />
+
+        {/* Transformation Category Filter Modal */}
+        <TransformationFilterModal
+          isOpen={showTransformFilterModal}
+          onClose={() => setShowTransformFilterModal(false)}
+          selectedCategories={selectedTransformCategories}
+          onChange={handleSelectedTransformCategoriesChange}
+          customKeywords={customTransformKeywords}
+          onChangeCustomKeywords={handleCustomTransformKeywordsChange}
+        />
+
+        {/* Context Category Filter Modal */}
+        <ContextFilterModal
+          isOpen={showContextFilterModal}
+          onClose={() => setShowContextFilterModal(false)}
+          selectedCategories={selectedContextCategories}
+          onChange={handleSelectedContextCategoriesChange}
+          customKeywords={customContextKeywords}
+          onChangeCustomKeywords={handleCustomContextKeywordsChange}
+        />
+
+        {/* Vocab Category Filter Modal */}
+        <VocabFilterModal
+          isOpen={showVocabFilterModal}
+          onClose={() => setShowVocabFilterModal(false)}
+          selectedCategories={selectedVocabCategories}
+          onChange={handleSelectedVocabCategoriesChange}
+          customKeywords={customVocabKeywords}
+          onChangeCustomKeywords={handleCustomVocabKeywordsChange}
+        />
+
+        {/* Keigo Filter Modal */}
+        <KeigoFilterModal
+          isOpen={showKeigoFilterModal}
+          onClose={() => setShowKeigoFilterModal(false)}
+          selectedCategories={selectedKeigoCategories}
+          onChange={handleSelectedKeigoCategoriesChange}
+          customKeywords={customKeigoKeywords}
+          onChangeCustomKeywords={handleCustomKeigoKeywordsChange}
+        />
 
         {/* Global Keybindings Modal */}
-        <Modal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Phím tắt Reflex Arena">
-          <div className="space-y-4 text-sm">
-            <p className="text-xs text-muted-foreground">
-              Bạn có thể sử dụng bàn phím để thao tác siêu tốc mà không cần chạm chuột:
-            </p>
-            <div className="grid grid-cols-2 gap-2.5 text-xs">
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillSubmitOrNext)}</div>
-                <div className="text-muted-foreground">Nộp bài / Chuyển câu tiếp</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-amber-500">{formatKeyDisplay(keybindings.drillPauseOrResume)}</div>
-                <div className="text-muted-foreground">Tạm dừng / Tiếp tục suy nghĩ</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillStartQuestion)}</div>
-                <div className="text-muted-foreground">Bắt đầu trả lời câu hỏi</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillReplayAudio)}</div>
-                <div className="text-muted-foreground">Nghe lại câu hỏi đề bài</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillRetry)}</div>
-                <div className="text-muted-foreground">Làm lại câu hiện tại (Retry)</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillSkip)}</div>
-                <div className="text-muted-foreground">Bỏ qua câu khó (Skip)</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">Esc</div>
-                <div className="text-muted-foreground">Tạm dừng / Thoát ra sảnh</div>
-              </div>
-              <div className="rounded-xl border bg-muted/40 p-3 space-y-1">
-                <div className="font-bold font-mono text-primary">{formatKeyDisplay(keybindings.drillToggleHelp)}</div>
-                <div className="text-muted-foreground">Mở/Đóng trợ giúp phím tắt</div>
-              </div>
-            </div>
-          </div>
-        </Modal>
+        <GlobalKeybindingsModal
+          isOpen={showHelp}
+          onClose={() => setShowHelp(false)}
+        />
       </div>
     );
   }
@@ -1052,6 +1307,128 @@ export default function ReflexPage() {
             <span>Auto</span>
             <span className="font-mono text-[10px] font-black">{autoNext ? "ON" : "OFF"}</span>
           </button>
+
+          {/* HUD Conjugation Form Filter */}
+          {(subMode === "reflex_conjugation" || (activeExercise as any)?.exercise_type === "reflex_conjugation") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowFormFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi bộ lọc thể chia động từ mục tiêu"
+            >
+              <Sliders className="h-3 w-3 text-rose-500" />
+              <span>{selectedForms.length === 0 ? "50 Thể" : `${selectedForms.length} Thể`}</span>
+            </button>
+          )}
+
+          {/* HUD Q&A Topic Filter */}
+          {(subMode === "reflex_qna" || (activeExercise as any)?.exercise_type === "reflex_qna") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowQnaTopicFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi chủ đề câu hỏi Speed Q&A"
+            >
+              <MessageSquare className="h-3 w-3 text-emerald-500" />
+              <span>
+                {customKeywords.trim()
+                  ? `💡 "${customKeywords.trim()}"`
+                  : selectedQnaTopics.length === 0
+                  ? "Ngẫu nhiên vô tận"
+                  : `${selectedQnaTopics.length} Chủ đề`}
+              </span>
+            </button>
+          )}
+
+          {/* HUD Transformation Category Filter */}
+          {(subMode === "reflex_transformation" || (activeExercise as any)?.exercise_type === "reflex_transformation") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowTransformFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi nhóm cấu trúc biến đổi câu mục tiêu"
+            >
+              <Repeat className="h-3 w-3 text-indigo-500" />
+              <span>
+                {selectedTransformCategories.length === 0
+                  ? "Ngẫu nhiên 75+ dạng"
+                  : `${selectedTransformCategories.length} Nhóm ngữ pháp`}
+              </span>
+            </button>
+          )}
+
+          {/* HUD Context Category Filter */}
+          {(subMode === "reflex_context" || (activeExercise as any)?.exercise_type === "reflex_context") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowContextFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi nhóm bối cảnh giao tiếp mục tiêu"
+            >
+              <Compass className="h-3 w-3 text-amber-500" />
+              <span>
+                {selectedContextCategories.length === 0
+                  ? "Ngẫu nhiên 60+ tình huống"
+                  : `${selectedContextCategories.length} Nhóm bối cảnh`}
+              </span>
+            </button>
+          )}
+
+          {/* HUD Vocabulary Category Filter */}
+          {(subMode === "reflex_vocabulary" || (activeExercise as any)?.exercise_type === "reflex_vocabulary") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowVocabFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi nhóm từ vựng mục tiêu"
+            >
+              <BookText className="h-3 w-3 text-violet-500" />
+              <span>
+                {customVocabKeywords.trim()
+                  ? `Từ khóa: "${customVocabKeywords.trim()}"`
+                  : selectedVocabCategories.length === 0
+                  ? "Ngẫu nhiên 500+ từ"
+                  : `${selectedVocabCategories.length} Nhóm từ`}
+              </span>
+            </button>
+          )}
+
+          {/* HUD Keigo Category Filter */}
+          {(subMode === "reflex_keigo_vocab" || (activeExercise as any)?.exercise_type === "reflex_keigo_vocab") && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                setShowKeigoFilterModal(true);
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi chuyên đề kính ngữ mục tiêu"
+            >
+              <Crown className="h-3 w-3 text-amber-500" />
+              <span>
+                {customKeigoKeywords.trim()
+                  ? `Kính ngữ: "${customKeigoKeywords.trim()}"`
+                  : selectedKeigoCategories.length === 0
+                  ? "Ngẫu nhiên 80+ cặp"
+                  : `${selectedKeigoCategories.length} Nhóm kính ngữ`}
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -1115,6 +1492,7 @@ export default function ReflexPage() {
           /* Result Card Stage */
           <div className="animate-in fade-in zoom-in-95 duration-200">
             <ReflexResultCard
+              key={`${session.result.exerciseId || (activeExercise as any)?.id || "res"}_${session.stats.total}`}
               result={session.result}
               exercise={activeExercise as any}
               onNext={() => session.startNext()}
@@ -1179,7 +1557,7 @@ export default function ReflexPage() {
                       <span>🎯 ĐÃ SẴN SÀNG! Hãy suy nghĩ câu trả lời và bắt đầu khi sẵn sàng</span>
                     </div>
                     <span className="text-[11px] text-muted-foreground font-medium">
-                      Bấm phím <kbd className="px-1.5 py-0.5 rounded bg-muted border font-bold text-foreground">{formatKeyDisplay(keybindings.drillStartQuestion)}</kbd> hoặc click nút bên dưới để bật mic & tính giờ
+                      Bấm phím <kbd className="px-1.5 py-0.5 rounded bg-muted border font-bold text-foreground">{formatKeyDisplay(keybindings.reflexStartVoice || keybindings.drillStartQuestion)}</kbd> hoặc click nút bên dưới để bật mic & tính giờ
                     </span>
                   </div>
                 ) : isWaiting ? (
@@ -1366,16 +1744,80 @@ export default function ReflexPage() {
       {/* 3. Bottom Minimal Shortcuts Strip */}
       <div className="shrink-0 py-1 border-t border-border/50 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-3">
-          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">Space / Enter</kbd> Bắt đầu / Câu tiếp theo</span>
-          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">R</kbd> Làm lại</span>
-          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">A</kbd> Nghe lại mẫu</span>
-          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">P</kbd> Tạm dừng</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">{formatKeyDisplay(keybindings.reflexStartVoice)} / {formatKeyDisplay(keybindings.reflexSubmitOrNext)}</kbd> Bắt đầu / Câu tiếp</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">{formatKeyDisplay(keybindings.reflexRetry)}</kbd> Làm lại</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">{formatKeyDisplay(keybindings.reflexReplayModel)}</kbd> Nghe lại mẫu</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">{formatKeyDisplay(keybindings.reflexPauseOrResume)}</kbd> Tạm dừng</span>
         </div>
         <div className="flex items-center gap-2">
-          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">?</kbd> Phím tắt</span>
+          <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">{formatKeyDisplay(keybindings.reflexToggleHelp)}</kbd> Phím tắt</span>
           <span><kbd className="px-1 py-0.5 rounded bg-muted border font-bold">Esc</kbd> Thoát</span>
         </div>
       </div>
+
+      {/* Conjugation Form Filter Modal */}
+      <ConjugationFilterModal
+        open={showFormFilterModal}
+        onClose={() => setShowFormFilterModal(false)}
+        selectedForms={selectedForms}
+        onChangeSelectedForms={handleSelectedFormsChange}
+      />
+
+      {/* Q&A Topic Filter Modal */}
+      <QnaTopicFilterModal
+        open={showQnaTopicFilterModal}
+        onClose={() => setShowQnaTopicFilterModal(false)}
+        selectedTopics={selectedQnaTopics}
+        onChangeSelectedTopics={handleSelectedQnaTopicsChange}
+        customKeywords={customKeywords}
+        onChangeCustomKeywords={handleCustomKeywordsChange}
+      />
+
+      {/* Transformation Category Filter Modal */}
+      <TransformationFilterModal
+        isOpen={showTransformFilterModal}
+        onClose={() => setShowTransformFilterModal(false)}
+        selectedCategories={selectedTransformCategories}
+        onChange={handleSelectedTransformCategoriesChange}
+        customKeywords={customTransformKeywords}
+        onChangeCustomKeywords={handleCustomTransformKeywordsChange}
+      />
+
+      {/* Context Category Filter Modal */}
+      <ContextFilterModal
+        isOpen={showContextFilterModal}
+        onClose={() => setShowContextFilterModal(false)}
+        selectedCategories={selectedContextCategories}
+        onChange={handleSelectedContextCategoriesChange}
+        customKeywords={customContextKeywords}
+        onChangeCustomKeywords={handleCustomContextKeywordsChange}
+      />
+
+      {/* Vocab Category Filter Modal */}
+      <VocabFilterModal
+        isOpen={showVocabFilterModal}
+        onClose={() => setShowVocabFilterModal(false)}
+        selectedCategories={selectedVocabCategories}
+        onChange={handleSelectedVocabCategoriesChange}
+        customKeywords={customVocabKeywords}
+        onChangeCustomKeywords={handleCustomVocabKeywordsChange}
+      />
+
+      {/* Keigo Filter Modal */}
+      <KeigoFilterModal
+        isOpen={showKeigoFilterModal}
+        onClose={() => setShowKeigoFilterModal(false)}
+        selectedCategories={selectedKeigoCategories}
+        onChange={handleSelectedKeigoCategoriesChange}
+        customKeywords={customKeigoKeywords}
+        onChangeCustomKeywords={handleCustomKeigoKeywordsChange}
+      />
+
+      {/* Global Keybindings Modal */}
+      <GlobalKeybindingsModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
 
       {/* Floating AI Coach Button */}
       <CoachPanel

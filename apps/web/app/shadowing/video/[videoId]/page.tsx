@@ -20,26 +20,21 @@ import {
   Languages,
   AlertCircle,
   X,
+  Keyboard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HeadphoneRecommendation } from "@/features/shadowing/HeadphoneRecommendation";
-import { RecommendedClipsPanel } from "@/features/shadowing/RecommendedClipsPanel";
-import { SegmentDetailPanel } from "@/features/shadowing/SegmentDetailPanel";
+import { KaraokeSubtitleBar } from "@/features/shadowing/KaraokeSubtitleBar";
 import { ShadowingControls } from "@/features/shadowing/ShadowingControls";
-import { ABLoopControls } from "@/features/shadowing/ABLoopControls";
 import { LiveSpeechPreviewCard } from "@/features/shadowing/LiveSpeechPreviewCard";
 import { ShadowingScoreDisplay } from "@/features/shadowing/ShadowingScoreDisplay";
 import { TranscriptPanel } from "@/features/shadowing/TranscriptPanel";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { YoutubePlayer, YoutubePlayerRef } from "@/features/shadowing/YoutubePlayer";
-import { FuriganaRubyText } from "@/components/japanese/FuriganaRubyText";
 import { useShadowing } from "@/hooks/use-shadowing";
 import { useFuriganaSettings } from "@/hooks/use-furigana-settings";
 import { useShadowingKeybindings } from "@/hooks/use-shadowing-keybindings";
-import { shadowingApi } from "@/services/shadowing-api";
 import { soundFX } from "@/lib/sound-fx";
-import { ShadowingCandidate, TranscriptSegment } from "@/types/shadowing";
+import { TranscriptSegment } from "@/types/shadowing";
 import { cn } from "@/lib/utils";
 
 export default function ShadowingVideoStudioPage() {
@@ -62,6 +57,8 @@ export default function ShadowingVideoStudioPage() {
     setPlaybackSpeed,
     shadowingMode,
     setShadowingMode,
+    displaySubtitleMode,
+    setDisplaySubtitleMode,
     isLooping,
     practiceStep,
     pauseAtTime,
@@ -73,14 +70,6 @@ export default function ShadowingVideoStudioPage() {
     loopGap,
     setLoopGap,
     toggleLoop,
-    setMarkerA,
-    setMarkerB,
-    adjustMarkerA,
-    adjustMarkerB,
-    setExactLoopRange,
-    expandLoopToNextSegment,
-    expandLoopToPrevSegment,
-    selectAndLoopSegment,
     loopCurrentSegment,
     clearLoop,
     selectNextSegment,
@@ -95,13 +84,19 @@ export default function ShadowingVideoStudioPage() {
     volumeLevel,
     liveTranscript,
     interimTranscript,
+    bookmarkedSegmentIds,
+    toggleBookmark,
+    segmentScores,
+    autoPilot,
+    setAutoPilot,
+    applyPedagogicalLevel,
   } = useShadowing(videoId);
 
-  const [isCreatingLesson, setIsCreatingLesson] = useState(false);
-  const [activeTab, setActiveTab] = useState<"transcript" | "analysis">("transcript");
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const { keybindings, matchesAction } = useShadowingKeybindings();
 
+  // Unified trigger practice callback
   const handleTriggerPractice = useCallback(() => {
     if (isRecording) {
       soundFX.playTaiko();
@@ -112,28 +107,18 @@ export default function ShadowingVideoStudioPage() {
     soundFX.playTaiko();
     if (shadowingMode === "repeat") {
       if (practiceStep === "prompting") {
-        // Step 2: User is ready to speak. Start recording ONLY; ensure video is strictly paused!
         playerRef.current?.pause();
         startRecording();
       } else {
-        // Step 1: Listen to reference sentence.
         startGuidedPractice(playerRef.current || undefined);
       }
     } else if (shadowingMode === "listen_shadow") {
       startGuidedPractice(playerRef.current || undefined);
     } else {
-      // Direct recording mode: strictly pause video and record voice cleanly!
       playerRef.current?.pause();
       startRecording();
     }
-  }, [
-    isRecording,
-    stopRecording,
-    shadowingMode,
-    practiceStep,
-    startRecording,
-    startGuidedPractice,
-  ]);
+  }, [isRecording, stopRecording, shadowingMode, practiceStep, startRecording, startGuidedPractice]);
 
   const handlePlaySegment = useCallback(() => {
     if (selectedSegment) {
@@ -143,24 +128,23 @@ export default function ShadowingVideoStudioPage() {
     }
   }, [selectedSegment, setPauseAtTime]);
 
-  const handleSelectSegmentWithAutoPause = useCallback((segment: TranscriptSegment) => {
-    setSelectedSegment(segment);
-    if (shadowingMode === "repeat" || shadowingMode === "listen_shadow") {
-      setPauseAtTime(segment.end_time);
-      playerRef.current?.seekTo(segment.start_time);
-      playerRef.current?.play();
-    } else {
-      playerRef.current?.seekTo(segment.start_time);
-    }
-  }, [setSelectedSegment, shadowingMode, setPauseAtTime]);
+  const handleSelectSegmentWithAutoPause = useCallback(
+    (segment: TranscriptSegment) => {
+      setSelectedSegment(segment);
+      if (shadowingMode === "repeat" || shadowingMode === "listen_shadow") {
+        setPauseAtTime(segment.end_time);
+        playerRef.current?.seekTo(segment.start_time);
+        playerRef.current?.play();
+      } else {
+        playerRef.current?.seekTo(segment.start_time);
+      }
+    },
+    [setSelectedSegment, shadowingMode, setPauseAtTime]
+  );
 
   const handlePauseReached = useCallback(() => {
     handlePauseAtTimeReached(playerRef.current || undefined);
   }, [handlePauseAtTimeReached]);
-
-  const handleCancelPractice = useCallback(() => {
-    cancelPractice(playerRef.current || undefined);
-  }, [cancelPractice]);
 
   const handleRetryPractice = useCallback(() => {
     if (shadowingMode === "shadow") {
@@ -171,14 +155,16 @@ export default function ShadowingVideoStudioPage() {
     }
   }, [shadowingMode, startRecording, startGuidedPractice]);
 
-  const recommendedSegmentIds = React.useMemo(() => {
-    return new Set((video?.recommended_segments || []).map((r) => r.segment_id));
-  }, [video?.recommended_segments]);
-
-  const hasMultipleSpeakers = React.useMemo(() => {
-    const set = new Set((video?.segments || []).map((s) => s.speaker_id).filter(Boolean));
-    return set.size > 1;
-  }, [video?.segments]);
+  // Auto-Pilot Step-by-Step advancement
+  useEffect(() => {
+    if (autoPilot && lastFeedback && lastFeedback.score >= 80) {
+      const timer = setTimeout(() => {
+        soundFX.playTaiko();
+        selectNextSegment();
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPilot, lastFeedback, selectNextSegment]);
 
   // Keyboard Shortcuts for Shadowing
   useEffect(() => {
@@ -189,12 +175,6 @@ export default function ShadowingVideoStudioPage() {
       if (matchesAction(e, "toggleLoop")) {
         e.preventDefault();
         toggleLoop();
-      } else if (matchesAction(e, "markerA")) {
-        e.preventDefault();
-        setMarkerA();
-      } else if (matchesAction(e, "markerB")) {
-        e.preventDefault();
-        setMarkerB();
       } else if (matchesAction(e, "replay")) {
         e.preventDefault();
         handlePlaySegment();
@@ -206,7 +186,7 @@ export default function ShadowingVideoStudioPage() {
         e.preventDefault();
         soundFX.playFurin();
         selectPrevSegment();
-      } else if (matchesAction(e, "toggleMic")) {
+      } else if (matchesAction(e, "toggleMic") || e.code === "Space") {
         e.preventDefault();
         handleTriggerPractice();
       }
@@ -217,8 +197,6 @@ export default function ShadowingVideoStudioPage() {
   }, [
     matchesAction,
     toggleLoop,
-    setMarkerA,
-    setMarkerB,
     handlePlaySegment,
     selectNextSegment,
     selectPrevSegment,
@@ -227,344 +205,232 @@ export default function ShadowingVideoStudioPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[65vh] space-y-4">
-        <div className="relative w-12 h-12 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        </div>
-        <p className="text-sm font-bold text-foreground font-sans">
-          Đang chuẩn bị phòng luyện Shadowing...
-        </p>
-        <p className="text-xs text-muted-foreground">Đang tải phụ đề và đồng bộ audio</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+        <Sparkles className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-xs font-bold text-muted-foreground">Đang tải video và đồng bộ phụ đề...</p>
       </div>
     );
   }
 
   if (error || !video) {
     return (
-      <div className="max-w-xl mx-auto p-8 text-center space-y-4">
-        <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-sm font-medium">
-          {error || "Video không tồn tại hoặc đã bị xóa."}
-        </div>
+      <div className="p-8 rounded-3xl border border-destructive/30 bg-destructive/5 text-center space-y-4 max-w-xl mx-auto mt-12">
+        <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+        <h2 className="text-base font-bold text-foreground">Không thể tải thông tin video</h2>
+        <p className="text-xs text-muted-foreground">{error || "Video không tồn tại hoặc đã bị xóa."}</p>
         <Link href="/shadowing">
           <Button variant="outline" size="sm" className="rounded-xl">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            <span>Quay lại thư viện Shadowing</span>
+            Quay lại danh sách video
           </Button>
         </Link>
       </div>
     );
   }
 
-  const handleSeek = (seconds: number) => {
-    playerRef.current?.seekTo(seconds);
-  };
-
-  const handleSelectCandidate = (cand: ShadowingCandidate) => {
-    const matched = video.segments.find((s) => s.id === cand.segment_id);
-    if (matched) {
-      handleSelectSegmentWithAutoPause(matched);
-    }
-  };
-
-  const handleCreateLesson = async (minutes: number) => {
-    soundFX.playTaiko();
-    setIsCreatingLesson(true);
-    try {
-      const lesson = await shadowingApi.createLesson(video.id, minutes, "quick_shadow");
-      router.push(`/shadowing/video/${video.video_id}/lesson/${lesson.id}`);
-    } catch (e) {
-      console.error("Lesson creation error:", e);
-    } finally {
-      setIsCreatingLesson(false);
-    }
-  };
-
-  const handleAddToLearning = async (key: string, title: string, itemType: string) => {
-    try {
-      console.log(`[Shadowing] Added ${key} (${itemType}) to learning roadmap`);
-    } catch (e) {
-      console.warn("Add to learning warning:", e);
-    }
-  };
-
   return (
-    <div className="max-w-[1700px] mx-auto p-3 sm:p-6 space-y-6 animate-in fade-in duration-200">
-      {/* Top Bar: Navigation & Video Info */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-border/80">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/shadowing"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition font-semibold"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Thư viện Shadowing</span>
-            </Link>
-            <span className="text-border">•</span>
-            <Badge variant="jlpt" size="sm" className="font-bold">
-              JLPT {video.overall_difficulty.toUpperCase()}
-            </Badge>
-            <span className="text-border">•</span>
-            <span className="text-xs text-muted-foreground font-mono">
-              {Math.floor((video.duration_seconds || 0) / 60)}:{((video.duration_seconds || 0) % 60).toString().padStart(2, "0")}
-            </span>
-          </div>
+    <div className="space-y-3 animate-in fade-in duration-200 max-w-7xl mx-auto pb-6">
+      {/* 1. Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 px-4 rounded-2xl border border-border bg-card washi-texture shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link
+            href="/shadowing"
+            className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            title="Quay lại thư viện video"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
 
-          <h1 className="text-xl sm:text-2xl font-black text-foreground font-sans tracking-tight">
-            {video.title}
-          </h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 shrink-0">
+              <Youtube className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-sm font-bold text-foreground truncate font-jp">
+                {video.title}
+              </h1>
+              <div className="text-[10px] text-muted-foreground truncate">
+                {video.channel_name || "YouTube Shadowing"} • {video.segments?.length || 0} câu thoại
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Quick Lesson Generators & Theme Toggle */}
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleCreateLesson(5)}
-            disabled={isCreatingLesson}
-            className="text-xs sm:text-sm font-bold h-9 px-3.5 rounded-xl bg-card border-border hover:border-primary/50 shadow-sm gap-1.5"
-          >
-            <Zap className="h-4 w-4 text-primary" />
-            <span>5 phút</span>
-          </Button>
+          <Badge variant="sakura" size="sm" className="font-bold text-[10px]">
+            {video.overall_difficulty || "N3-N2"}
+          </Badge>
 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleCreateLesson(10)}
-            disabled={isCreatingLesson}
-            className="text-xs sm:text-sm font-bold h-9 px-3.5 rounded-xl bg-card border-border hover:border-accent/50 shadow-sm gap-1.5"
+            onClick={() => setShowHelpModal(true)}
+            className="h-8 px-2 text-xs rounded-xl border-border gap-1 text-muted-foreground hover:text-foreground"
+            title="Phím tắt (?)"
           >
-            <Zap className="h-4 w-4 text-accent" />
-            <span>10 phút</span>
+            <Keyboard className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">Phím tắt</span>
           </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleCreateLesson(20)}
-            disabled={isCreatingLesson}
-            className="text-xs sm:text-sm font-bold h-9 px-3.5 rounded-xl bg-card border-border hover:border-aizome-500/50 shadow-sm gap-1.5"
-          >
-            <Zap className="h-4 w-4 text-aizome-400" />
-            <span>20 phút</span>
-          </Button>
-
-          <ThemeToggle />
         </div>
       </div>
 
-      {/* Headphone Recommendation Notice */}
-      <HeadphoneRecommendation />
-
-      {/* Main Studio Workspace: 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: YouTube Player + Controls + Feedback (6 cols) */}
-        <div className="lg:col-span-6 space-y-5">
-          {/* YouTube Video Player */}
-          <div className="rounded-2xl overflow-hidden shadow-sumi-lg border border-border/90 bg-card">
+      {/* 2. Zero-Scroll Cinema Cockpit (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+        {/* Left Column (7/12 - 58%): Video Player + Subtitle Bar + Live Speech */}
+        <div className="lg:col-span-7 space-y-3">
+          {/* YouTube Player Container (16:9 Aspect Ratio) */}
+          <div className="relative aspect-video rounded-2xl overflow-hidden border border-border/80 bg-black shadow-sm">
             <YoutubePlayer
               ref={playerRef}
-              videoId={video.video_id}
-              onTimeUpdate={setCurrentPlaybackTime}
+              videoId={video.video_id || videoId}
+              onTimeUpdate={(t) => setCurrentPlaybackTime(t)}
               loopRange={loopRange}
               loopGap={loopGap}
               pauseAtTime={pauseAtTime}
               onPauseAtTimeReached={handlePauseReached}
               playbackSpeed={playbackSpeed}
+              autoPlay={false}
             />
           </div>
 
-          {/* Active Sentence Focus Card (Hero Focus) */}
-          {selectedSegment && (
-            <div
-              onClick={() => {
-                soundFX.playFurin();
-                handlePlaySegment();
-              }}
-              className="cursor-pointer p-4 sm:p-5 rounded-2xl bg-card/95 border border-primary/40 washi-texture shadow-sumi-md space-y-2 ring-1 ring-primary/20 hover:border-primary transition-all animate-in fade-in"
-              title="Bấm để nghe câu này"
-            >
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5 font-mono font-bold text-primary">
-                  <Play className="h-3.5 w-3.5 fill-current" />
-                  <span>Câu đang chọn luyện</span>
-                </span>
-                <span className="font-mono">
-                  {hasMultipleSpeakers && `${selectedSegment.speaker_id || "Speaker"} • `}
-                  {(selectedSegment.end_time - selectedSegment.start_time).toFixed(1)}s
-                </span>
-              </div>
+          {/* Karaoke Subtitle Bar (Highlight + Furigana + Translation) */}
+          <KaraokeSubtitleBar
+            segment={selectedSegment}
+            currentPlaybackTime={currentPlaybackTime}
+            displayMode={displaySubtitleMode}
+            onToggleDisplayMode={() =>
+              setDisplaySubtitleMode((m) =>
+                m === "bilingual" ? "japanese_reading" : m === "japanese_reading" ? "hidden" : "bilingual"
+              )
+            }
+            isBookmarked={selectedSegment ? bookmarkedSegmentIds.has(selectedSegment.id) : false}
+            onToggleBookmark={() => selectedSegment && toggleBookmark(selectedSegment.id)}
+            onPlaySegment={handlePlaySegment}
+            highestScore={selectedSegment ? segmentScores[selectedSegment.id] : undefined}
+          />
 
-              <div className="py-1">
-                <FuriganaRubyText
-                  text={selectedSegment.normalized_text}
-                  reading={selectedSegment.reading}
-                  ruby={selectedSegment.ruby}
-                  vocabulary={selectedSegment.vocabulary}
-                  displayMode="kanji_reading"
-                  fontSize="large"
-                  furiganaStyle={furiganaStyle}
-                />
-              </div>
-            </div>
+          {/* Live Speech Recognition & Sóng âm Live */}
+          {(isRecording || liveTranscript || interimTranscript) && (
+            <LiveSpeechPreviewCard
+              isRecording={isRecording}
+              volumeLevel={volumeLevel}
+              liveTranscript={liveTranscript}
+              interimTranscript={interimTranscript}
+            />
           )}
 
-          {/* Interactive Shadowing Controls Dock */}
+          {/* Evaluation Error Banner */}
+          {evaluationError && (
+            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-bold flex items-center justify-between gap-2 animate-in fade-in">
+              <span>⚠️ {evaluationError}</span>
+              <button
+                type="button"
+                onClick={clearEvaluationError}
+                className="p-1 hover:bg-destructive/20 rounded-lg text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (5/12 - 42%): Playlist + Studio Controls + Score Display */}
+        <div className="lg:col-span-5 space-y-3">
+          {/* Studio Controls (Speed, 4-Step Flow, CTA Button, Autopilot) */}
           <ShadowingControls
             segment={selectedSegment}
             playbackSpeed={playbackSpeed}
-            onSpeedChange={(s) => {
-              setPlaybackSpeed(s);
-              playerRef.current?.setSpeed(s);
-            }}
+            onSpeedChange={(s) => setPlaybackSpeed(s)}
             shadowingMode={shadowingMode}
-            onModeChange={setShadowingMode}
+            onModeChange={(m) => setShadowingMode(m)}
             isLooping={isLooping}
             onToggleLoop={toggleLoop}
             onPlaySegment={handlePlaySegment}
-            onStartRecording={handleTriggerPractice}
-            onStopRecording={stopRecording}
-            onCancelPractice={handleCancelPractice}
+            onTriggerPractice={handleTriggerPractice}
+            onCancelPractice={() => cancelPractice(playerRef.current || undefined)}
             isRecording={isRecording}
             isEvaluating={isEvaluating}
             practiceStep={practiceStep}
             keybindings={keybindings}
+            autoPilot={autoPilot}
+            onToggleAutoPilot={() => setAutoPilot((v) => !v)}
+            onApplyPedagogicalLevel={applyPedagogicalLevel}
           />
 
-          {/* Backend / Evaluation Error Banner */}
-          {evaluationError && (
-            <div className="p-4 rounded-2xl bg-destructive/15 border border-destructive/30 text-destructive text-xs sm:text-sm flex items-start justify-between gap-3 shadow-md animate-in fade-in">
-              <div className="flex items-start gap-2.5">
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-bold">Lỗi chấm điểm từ Backend / Whisper</p>
-                  <p className="text-foreground/90 text-xs font-mono bg-background/50 p-2 rounded-lg border border-border/60">
-                    {evaluationError}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={clearEvaluationError}
-                className="p-1.5 rounded-lg hover:bg-destructive/20 transition-colors text-foreground"
-                title="Đóng thông báo"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Realtime Live Speech Recognition Preview Card */}
-          <LiveSpeechPreviewCard
-            isRecording={isRecording}
-            volumeLevel={volumeLevel}
-            liveTranscript={liveTranscript}
-            interimTranscript={interimTranscript}
-            targetText={selectedSegment?.normalized_text}
-          />
-
-          {/* Dedicated A-B Loop Studio Controls (Visual Dual Scrubber & Stepper) - Only visible when isLooping is true */}
-          {isLooping && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-              <ABLoopControls
-                currentPlaybackTime={currentPlaybackTime}
-                selectedSegment={selectedSegment}
-                videoDuration={video.duration_seconds || 600}
-                isLooping={isLooping}
-                loopRange={loopRange}
-                loopGap={loopGap}
-                onToggleLoop={toggleLoop}
-                onSetMarkerA={setMarkerA}
-                onSetMarkerB={setMarkerB}
-                onAdjustMarkerA={adjustMarkerA}
-                onAdjustMarkerB={adjustMarkerB}
-                onSetExactLoopRange={setExactLoopRange}
-                onExpandToNext={expandLoopToNextSegment}
-                onExpandToPrev={expandLoopToPrevSegment}
-                onLoopCurrentSegment={loopCurrentSegment}
-                onClearLoop={clearLoop}
-                onSetLoopGap={setLoopGap}
-                onSeek={handleSeek}
-              />
-            </div>
-          )}
-
-          {/* Pronunciation Feedback Display */}
+          {/* Evaluation Result Card (Displays after speaking) */}
           {lastFeedback && (
             <ShadowingScoreDisplay
               feedback={lastFeedback}
-              targetSentence={selectedSegment?.normalized_text}
+              targetSentence={selectedSegment?.text}
               onRetry={handleRetryPractice}
               onNext={selectNextSegment}
+              onPlayReference={handlePlaySegment}
             />
           )}
-        </div>
 
-        {/* Right Column: Transcript & Linguistic Intelligence (6 cols) */}
-        <div className="lg:col-span-6 space-y-4 flex flex-col h-[650px] lg:h-[750px] max-h-[85vh] overflow-hidden">
-          {/* Mobile/Tablet Tab Switcher */}
-          <div className="flex lg:hidden items-center p-1 rounded-2xl bg-card border border-border shrink-0">
-            <button
-              onClick={() => setActiveTab("transcript")}
-              className={cn(
-                "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5",
-                activeTab === "transcript"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>Phụ đề Transcript</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("analysis")}
-              className={cn(
-                "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5",
-                activeTab === "analysis"
-                  ? "bg-aizome-600 text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Layers className="h-4 w-4" />
-              <span>Từ vựng & Ngữ pháp</span>
-            </button>
-          </div>
-
-          {/* Desktop Dual Split / Mobile Tab Views */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0 h-full overflow-hidden">
-            {/* Transcript Panel */}
-            <div className={cn("h-full max-h-full flex flex-col min-h-0 overflow-hidden", activeTab !== "transcript" && "hidden lg:flex")}>
-              <TranscriptPanel
-                segments={video.segments}
-                currentPlaybackTime={currentPlaybackTime}
-                selectedSegmentId={selectedSegment?.id}
-                recommendedSegmentIds={recommendedSegmentIds}
-                isLooping={isLooping}
-                loopRange={loopRange}
-                onSelectSegment={handleSelectSegmentWithAutoPause}
-                onLoopSegment={selectAndLoopSegment}
-                onSeek={handleSeek}
-              />
-            </div>
-
-            {/* Linguistic Details Panel */}
-            <div className={cn("h-full max-h-full flex flex-col min-h-0 overflow-hidden", activeTab !== "analysis" && "hidden lg:flex")}>
-              <SegmentDetailPanel
-                segment={selectedSegment}
-                onAddToLearning={handleAddToLearning}
-              />
-            </div>
-          </div>
+          {/* Playlist Panel (Tabs: All, Bookmarked, Weak) */}
+          <TranscriptPanel
+            segments={video.segments || []}
+            currentPlaybackTime={currentPlaybackTime}
+            selectedSegmentId={selectedSegment?.id}
+            bookmarkedSegmentIds={bookmarkedSegmentIds}
+            onToggleBookmark={toggleBookmark}
+            segmentScores={segmentScores}
+            onSelectSegment={handleSelectSegmentWithAutoPause}
+            onSeek={(t) => playerRef.current?.seekTo(t)}
+          />
         </div>
       </div>
 
-      {/* Bottom: Recommended Clips Panel */}
-      {video.recommended_segments && video.recommended_segments.length > 0 && (
-        <div className="pt-6 border-t border-border/80">
-          <RecommendedClipsPanel
-            candidates={video.recommended_segments}
-            onSelectCandidate={handleSelectCandidate}
-          />
+      {/* Keyboard Shortcuts Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-3xl p-5 sm:p-6 max-w-md w-full washi-texture shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <Keyboard className="h-5 w-5 text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Bảng Phím Tắt Shadowing Studio</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(false)}
+                className="p-1 rounded-lg hover:bg-muted text-muted-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-muted-foreground">Bắt đầu thu âm / Dừng & chấm:</span>
+                <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">Space</kbd> hoặc <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">Q</kbd>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-muted-foreground">Phát lại câu mẫu:</span>
+                <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">C</kbd>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-muted-foreground">Bật / Tắt lặp lại câu này:</span>
+                <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">L</kbd>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-muted-foreground">Chuyển sang câu kế tiếp:</span>
+                <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">J</kbd>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40 border border-border/60">
+                <span className="text-muted-foreground">Quay lại câu trước đó:</span>
+                <kbd className="px-2 py-0.5 rounded bg-card border font-mono font-bold">K</kbd>
+              </div>
+            </div>
+
+            <Button
+              variant="akane"
+              size="sm"
+              onClick={() => setShowHelpModal(false)}
+              className="w-full rounded-xl font-bold text-xs"
+            >
+              Đã Hiểu (Đóng)
+            </Button>
+          </div>
         </div>
       )}
     </div>

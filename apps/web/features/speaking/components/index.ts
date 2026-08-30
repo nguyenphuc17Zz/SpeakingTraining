@@ -13,3 +13,4 @@ export * from "./PitchContourChart";
 export * from "./PronunciationFeedbackPanel";
 export * from "./AttemptComparisonStrip";
 export * from "./PronunciationDashboard";
+export * from "./LiveTurnScaffolding";

@@ -205,8 +205,10 @@ function SummaryItemRow({ result, index }: { result: ReflexResult; index: number
     }
   };
 
+  const ttsText = result.canonicalAnswer || "";
+
   const playTTS = () => {
-    if (!result.canonicalAnswer) return;
+    if (!ttsText) return;
     if (isPlayingUser && audioRef.current) {
       audioRef.current.pause();
       setIsPlayingUser(false);
@@ -217,7 +219,7 @@ function SummaryItemRow({ result, index }: { result: ReflexResult; index: number
       return;
     }
     setIsPlayingTTS(true);
-    speakJapaneseText(result.canonicalAnswer, {
+    speakJapaneseText(ttsText, {
       rate: 0.95,
       onEnd: () => setIsPlayingTTS(false),
       onError: () => setIsPlayingTTS(false),

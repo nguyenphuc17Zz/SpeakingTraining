@@ -165,11 +165,11 @@ export function GlobalKeybindingsModal({ isOpen, onClose }: GlobalKeybindingsMod
             type="button"
             onClick={() => {
               soundFX.playFurin();
-              setActiveTab("drills");
+              setActiveTab("reflex");
             }}
             className={cn(
               "flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap",
-              activeTab === "drills"
+              activeTab === "reflex"
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}

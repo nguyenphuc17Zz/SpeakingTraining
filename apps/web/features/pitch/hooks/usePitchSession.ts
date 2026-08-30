@@ -298,6 +298,13 @@ export function usePitchSession(opts: UsePitchSessionOptions = {}) {
           };
         }
 
+        evalResult = {
+          ...evalResult,
+          moraBreakdown: evalResult.moraBreakdown || currentEx?.moraBreakdown,
+          downstepNotation: evalResult.downstepNotation || currentEx?.downstepNotation,
+          pitfallVi: evalResult.pitfallVi || currentEx?.pitfallVi,
+        };
+
         setResult(evalResult);
         setResults((prev) => [...prev, evalResult]);
 
@@ -408,6 +415,51 @@ export function usePitchSession(opts: UsePitchSessionOptions = {}) {
     }
   }, []);
 
+  const submitQuizChoice = useCallback(
+    async (choiceIndex: number) => {
+      const currentEx = exerciseRef.current;
+      const opts = currentEx?.quizOptions;
+      if (!opts || !opts[choiceIndex]) return;
+
+      const chosen = opts[choiceIndex];
+      const latency = promptCompletedAtRef.current !== null ? Math.max(100, performance.now() - promptCompletedAtRef.current) : 500;
+
+      timer.pause();
+      setPhase("evaluating");
+
+      const isCorrect = chosen.is_correct;
+      const resultObj: PitchResult = {
+        exerciseId: currentEx?.id || "quiz",
+        score: isCorrect ? 100 : 40,
+        success: isCorrect,
+        isPerfect: isCorrect,
+        timedOut: false,
+        reactionLatencyMs: latency,
+        userTranscript: `${chosen.word} (${chosen.meaning})`,
+        feedback: isCorrect
+          ? `Chính xác! Tai nghe rất nhạy: 「${chosen.word}」 mang nghĩa "${chosen.meaning}".`
+          : `Chưa đúng! Đáp án chuẩn là 「${opts.find((o) => o.is_correct)?.word || currentEx.canonical}」 (${opts.find((o) => o.is_correct)?.meaning || ""}).`,
+        strengths: isCorrect ? ["Nhận diện cao độ thính giác chuẩn xác"] : [],
+        improvements: isCorrect ? [] : ["Cần nghe lại điểm rơi cao độ (downstep)"],
+        moraBreakdown: currentEx.moraBreakdown,
+        downstepNotation: currentEx.downstepNotation,
+        pitfallVi: currentEx.pitfallVi,
+      };
+
+      setResult(resultObj);
+      setResults((prev) => [...prev, resultObj]);
+      setStats((prev) => ({
+        total: prev.total + 1,
+        correct: prev.correct + (isCorrect ? 1 : 0),
+        avgLatency: (prev.avgLatency * prev.total + latency) / (prev.total + 1),
+        bestLatency: Math.min(prev.bestLatency, latency),
+      }));
+
+      setPhase("result");
+    },
+    [timer]
+  );
+
   return {
     phase,
     setPhase,
@@ -432,6 +484,7 @@ export function usePitchSession(opts: UsePitchSessionOptions = {}) {
     startVoiceRecording,
     onPromptAudioFinished,
     submitWithTranscript,
+    submitQuizChoice,
     retry,
     startNext,
     cancelAutoNext,

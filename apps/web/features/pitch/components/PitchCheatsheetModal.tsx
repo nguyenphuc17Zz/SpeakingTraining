@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Volume2, BookOpen, Music, Check } from "lucide-react";
 import { speakJapaneseText } from "@/features/speaking/services/web-speech";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 

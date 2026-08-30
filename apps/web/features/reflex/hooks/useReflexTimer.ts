@@ -39,8 +39,15 @@ export function useReflexTimer({ timerLimitMs, autoStart = false, onExpire }: Us
     if (startTimeRef.current === null) return;
     const now = performance.now();
     const elapsed = now - startTimeRef.current;
-    const remaining = Math.max(0, pausedRemainingRef.current - elapsed);
 
+    if (totalLimitRef.current <= 0) {
+      // Infinite mode: track elapsed milliseconds without expiring
+      setRemainingMs(Math.ceil(pausedRemainingRef.current + elapsed));
+      rafRef.current = requestAnimationFrame(tick);
+      return;
+    }
+
+    const remaining = Math.max(0, pausedRemainingRef.current - elapsed);
     setRemainingMs(Math.ceil(remaining));
 
     if (remaining <= 0) {
@@ -66,11 +73,11 @@ export function useReflexTimer({ timerLimitMs, autoStart = false, onExpire }: Us
         rafRef.current = null;
       }
 
-      const limit = customLimitMs ?? totalLimitRef.current ?? timerLimitMs;
+      const limit = customLimitMs !== undefined ? customLimitMs : (totalLimitRef.current ?? timerLimitMs);
       totalLimitRef.current = limit;
-      pausedRemainingRef.current = limit;
+      pausedRemainingRef.current = limit <= 0 ? 0 : limit;
       setTotalLimitMs(limit);
-      setRemainingMs(limit);
+      setRemainingMs(limit <= 0 ? 0 : limit);
       setIsExpired(false);
       setIsPaused(false);
       setIsActive(true);
@@ -88,8 +95,13 @@ export function useReflexTimer({ timerLimitMs, autoStart = false, onExpire }: Us
     }
     if (startTimeRef.current !== null) {
       const elapsed = performance.now() - startTimeRef.current;
-      pausedRemainingRef.current = Math.max(0, pausedRemainingRef.current - elapsed);
-      setRemainingMs(Math.ceil(pausedRemainingRef.current));
+      if (totalLimitRef.current <= 0) {
+        pausedRemainingRef.current = pausedRemainingRef.current + elapsed;
+        setRemainingMs(Math.ceil(pausedRemainingRef.current));
+      } else {
+        pausedRemainingRef.current = Math.max(0, pausedRemainingRef.current - elapsed);
+        setRemainingMs(Math.ceil(pausedRemainingRef.current));
+      }
     }
     setIsActive(false);
     setIsPaused(true);
@@ -123,11 +135,11 @@ export function useReflexTimer({ timerLimitMs, autoStart = false, onExpire }: Us
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
-      const limit = newLimitMs ?? timerLimitMs;
+      const limit = newLimitMs !== undefined ? newLimitMs : timerLimitMs;
       totalLimitRef.current = limit;
-      pausedRemainingRef.current = limit;
+      pausedRemainingRef.current = limit <= 0 ? 0 : limit;
       setTotalLimitMs(limit);
-      setRemainingMs(limit);
+      setRemainingMs(limit <= 0 ? 0 : limit);
       setIsActive(false);
       setIsPaused(false);
       setIsExpired(false);
@@ -148,18 +160,21 @@ export function useReflexTimer({ timerLimitMs, autoStart = false, onExpire }: Us
     };
   }, [autoStart, start]);
 
-  const effectiveLimit = totalLimitMs > 0 ? totalLimitMs : 3000;
-  const progress = Math.max(0, Math.min(1, remainingMs / effectiveLimit));
-  const state: "normal" | "warning" | "critical" =
-    remainingMs <= effectiveLimit * 0.25
-      ? "critical"
-      : remainingMs <= effectiveLimit * 0.5
-      ? "warning"
-      : "normal";
+  const isInfinite = totalLimitMs <= 0;
+  const effectiveLimit = isInfinite ? 0 : totalLimitMs;
+  const progress = isInfinite ? 1 : Math.max(0, Math.min(1, remainingMs / effectiveLimit));
+  const state: "normal" | "warning" | "critical" = isInfinite
+    ? "normal"
+    : remainingMs <= effectiveLimit * 0.25
+    ? "critical"
+    : remainingMs <= effectiveLimit * 0.5
+    ? "warning"
+    : "normal";
 
   return {
     remainingMs,
     totalLimitMs: effectiveLimit,
+    isInfinite,
     progress,
     isActive,
     isPaused,

@@ -7,12 +7,13 @@ import {
   Play,
   RotateCcw,
   Volume2,
-  FastForward,
   Repeat,
   Sparkles,
   Radio,
   Headphones,
   Keyboard,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShadowingMode, TranscriptSegment } from "@/types/shadowing";
@@ -20,7 +21,7 @@ import { ShadowingKeybindings } from "@/hooks/use-shadowing-keybindings";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 
-interface ShadowingControlsProps {
+export interface ShadowingControlsProps {
   segment: TranscriptSegment | null;
   playbackSpeed: number;
   onSpeedChange: (speed: number) => void;
@@ -29,17 +30,21 @@ interface ShadowingControlsProps {
   isLooping: boolean;
   onToggleLoop: () => void;
   onPlaySegment: () => void;
-  onStartRecording: () => void;
-  onStopRecording: () => void;
+  onTriggerPractice?: () => void;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
   onCancelPractice?: () => void;
   isRecording: boolean;
   isEvaluating: boolean;
   practiceStep?: "idle" | "listening" | "prompting" | "recording" | "evaluating";
   keybindings?: ShadowingKeybindings;
   onOpenKeybindings?: () => void;
+  autoPilot?: boolean;
+  onToggleAutoPilot?: () => void;
+  onApplyPedagogicalLevel?: (level: 1 | 2 | 3 | 4) => void;
 }
 
-const SPEED_OPTIONS = [0.75, 0.9, 1.0, 1.1, 1.25];
+const SPEED_OPTIONS = [0.75, 0.9, 1.0, 1.25];
 
 export function ShadowingControls({
   segment,
@@ -50,6 +55,7 @@ export function ShadowingControls({
   isLooping,
   onToggleLoop,
   onPlaySegment,
+  onTriggerPractice,
   onStartRecording,
   onStopRecording,
   onCancelPractice,
@@ -58,269 +64,199 @@ export function ShadowingControls({
   practiceStep = "idle",
   keybindings,
   onOpenKeybindings,
+  autoPilot = false,
+  onToggleAutoPilot,
+  onApplyPedagogicalLevel,
 }: ShadowingControlsProps) {
   const isListeningStep = practiceStep === "listening";
+  const isPromptingStep = practiceStep === "prompting";
 
-  const keyMic = keybindings?.toggleMic?.toUpperCase() || "Q";
-  const keyReplay = keybindings?.replay?.toUpperCase() || "C";
-  const keyLoop = keybindings?.toggleLoop?.toUpperCase() || "L";
+  const handleActionClick = () => {
+    if (onTriggerPractice) {
+      onTriggerPractice();
+    } else if (isRecording && onStopRecording) {
+      onStopRecording();
+    } else if (!isRecording && onStartRecording) {
+      onStartRecording();
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-5 rounded-2xl bg-card/90 border border-border/80 washi-texture backdrop-blur-xl shadow-sumi-lg space-y-4">
-      {/* Top Bar: Playback Speed & Mode Selectors & Keybindings */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/70">
-        {/* Speed Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-muted-foreground hidden sm:inline">Tốc độ:</span>
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-background/90 border border-border">
-            {SPEED_OPTIONS.map((spd) => (
+    <div className="p-3.5 sm:p-4 rounded-2xl bg-card/95 border border-border/90 washi-texture shadow-xs space-y-3">
+      {/* Top 4-Step Pedagogical Level Pills */}
+      {onApplyPedagogicalLevel && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+            <span>Lộ trình 4 bước nâng trình:</span>
+            {onToggleAutoPilot && (
               <button
-                key={spd}
+                type="button"
                 onClick={() => {
                   soundFX.playFurin();
-                  onSpeedChange(spd);
+                  onToggleAutoPilot();
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all",
-                  playbackSpeed === spd
-                    ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                    : "text-muted-foreground hover:text-foreground"
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1",
+                  autoPilot
+                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                    : "bg-muted border-border text-muted-foreground hover:text-foreground"
                 )}
+                title="Tự động phát mẫu -> thu âm -> chấm -> chuyển câu"
               >
-                {spd}x
+                <Zap className="h-3 w-3" />
+                <span>Auto-Pilot: {autoPilot ? "BẬT" : "TẮT"}</span>
               </button>
-            ))}
+            )}
           </div>
+
+          <div className="grid grid-cols-4 gap-1 text-[10px] font-bold">
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                onApplyPedagogicalLevel(1);
+              }}
+              className="p-1 rounded-lg border border-border hover:border-primary/40 bg-muted/40 hover:bg-muted text-foreground transition-all text-center"
+              title="Bước 1: Tốc độ 0.8x, Phụ đề song ngữ"
+            >
+              1. Lẩm nhẩm
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                onApplyPedagogicalLevel(2);
+              }}
+              className="p-1 rounded-lg border border-border hover:border-primary/40 bg-muted/40 hover:bg-muted text-foreground transition-all text-center"
+              title="Bước 2: Tốc độ 1.0x, Kanji + Furigana"
+            >
+              2. Đồng thanh
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                onApplyPedagogicalLevel(3);
+              }}
+              className="p-1 rounded-lg border border-border hover:border-primary/40 bg-muted/40 hover:bg-muted text-foreground transition-all text-center"
+              title="Bước 3: Ẩn Sub (Audio Only)"
+            >
+              3. Blind Sub
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                onApplyPedagogicalLevel(4);
+              }}
+              className="p-1 rounded-lg border border-border hover:border-primary/40 bg-muted/40 hover:bg-muted text-foreground transition-all text-center"
+              title="Bước 4: Tốc độ 1.1x, Nghe rồi Shadow"
+            >
+              4. Nhập vai
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Row 2: Speed & Mode Controls (Segmented Bars) */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50 text-xs">
+        {/* Speed Bar */}
+        <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
+          {SPEED_OPTIONS.map((spd) => (
+            <button
+              key={spd}
+              type="button"
+              onClick={() => {
+                soundFX.playFurin();
+                onSpeedChange(spd);
+              }}
+              className={cn(
+                "px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold transition-all",
+                playbackSpeed === spd
+                  ? "bg-card text-foreground border border-border shadow-2xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {spd}x
+            </button>
+          ))}
         </div>
 
-        {/* Shadowing Mode Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-muted-foreground hidden sm:inline">Chế độ:</span>
-          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-background/90 border border-border text-xs">
-            <button
-              onClick={() => {
-                soundFX.playFurin();
-                onModeChange("repeat");
-              }}
-              className={cn(
-                "px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1.5",
-                shadowingMode === "repeat"
-                  ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Repeat className="h-3 w-3" />
-              <span>Lặp lại câu</span>
-            </button>
-            <button
-              onClick={() => {
-                soundFX.playFurin();
-                onModeChange("listen_shadow");
-              }}
-              className={cn(
-                "px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1.5",
-                shadowingMode === "listen_shadow"
-                  ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Headphones className="h-3 w-3" />
-              <span>Nghe → Shadow</span>
-            </button>
-            <button
-              onClick={() => {
-                soundFX.playFurin();
-                onModeChange("shadow");
-              }}
-              className={cn(
-                "px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1.5",
-                shadowingMode === "shadow"
-                  ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Mic className="h-3 w-3" />
-              <span>Shadowing trực tiếp</span>
-            </button>
-          </div>
-        </div>
+        {/* Loop Toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            soundFX.playFurin();
+            onToggleLoop();
+          }}
+          className={cn(
+            "px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5",
+            isLooping
+              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+              : "bg-muted/40 border-border text-muted-foreground hover:text-foreground"
+          )}
+          title="Lặp lại câu này liên tục (L)"
+        >
+          <Repeat className="h-3 w-3" />
+          <span>{isLooping ? "Đang Lặp (L)" : "Lặp câu (L)"}</span>
+        </button>
       </div>
 
-      {/* Dynamic Mode Guidance Banner */}
-      {isListeningStep && (
-        <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs font-semibold flex items-center justify-between gap-2 animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <Headphones className="h-4 w-4 text-cyan-400 animate-pulse" />
-            <span>
-              {shadowingMode === "repeat"
-                ? "🎧 Đang nghe câu mẫu... Video sẽ tự dừng khi hết câu để bạn sẵn sàng đọc lại."
-                : "🎧 Vòng 1: Đang nghe ngữ điệu mẫu... Hết câu sẽ tự động tua lại để bạn nói đuổi."}
-            </span>
-          </div>
-          {onCancelPractice && (
-            <button
-              onClick={onCancelPractice}
-              className="text-[11px] text-cyan-300 hover:underline shrink-0"
-            >
-              Hủy
-            </button>
+      {/* Main Big Action CTA Bar */}
+      <div className="grid grid-cols-4 gap-2 pt-1">
+        {/* Play Sentence Audio */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            soundFX.playFurin();
+            onPlaySegment();
+          }}
+          className="col-span-1 h-11 rounded-xl border-border text-xs font-bold gap-1 shadow-2xs"
+          title="Phát câu mẫu (C)"
+        >
+          <Volume2 className="h-4 w-4 text-primary" />
+          <span className="hidden sm:inline">Mẫu (C)</span>
+        </Button>
+
+        {/* Trigger Practice / Record Button */}
+        <Button
+          variant={isRecording ? "danger" : "akane"}
+          size="lg"
+          onClick={handleActionClick}
+          disabled={isEvaluating}
+          className={cn(
+            "col-span-3 h-11 rounded-xl font-bold text-xs shadow-md transition-all gap-2",
+            isRecording && "animate-pulse ring-2 ring-rose-500/40"
           )}
-        </div>
-      )}
-
-      {practiceStep === "prompting" && (
-        <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs font-semibold flex items-center justify-between gap-2 animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <Mic className="h-4 w-4 text-amber-400 animate-bounce" />
-            <span>
-              🎙️ Đã nghe xong câu mẫu! Hãy nhấn phím <kbd className="px-1.5 py-0.5 rounded bg-amber-900 border border-amber-500 text-amber-200 font-mono font-bold">{keyMic}</kbd> hoặc bấm nút bên dưới để bắt đầu thu âm khi bạn sẵn sàng.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Action Controls: Play Segment / A-B Loop / Record User Voice */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Left: Play reference segment & loop */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => {
-              soundFX.playFurin();
-              onPlaySegment();
-            }}
-            disabled={!segment || isRecording || isListeningStep}
-            className="flex-1 sm:flex-initial text-xs sm:text-sm font-semibold h-11 px-4 rounded-xl border-border bg-background hover:border-primary/50 shadow-sm gap-2"
-          >
-            <Play className="h-4 w-4 text-primary fill-primary/30" />
-            <span>Nghe câu mẫu</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted/80 border border-border/80 rounded text-muted-foreground font-bold shadow-xs">
-              {keyReplay}
-            </kbd>
-          </Button>
-
-          <Button
-            variant={isLooping ? "primary" : "outline"}
-            size="md"
-            onClick={() => {
-              soundFX.playTaiko();
-              onToggleLoop();
-            }}
-            disabled={!segment || isListeningStep}
-            className={cn(
-              "flex-1 sm:flex-initial text-xs sm:text-sm font-semibold h-11 px-4 rounded-xl shadow-sm gap-2 transition-all",
-              isLooping
-                ? "bg-primary text-primary-foreground border-primary shadow-primary/30 ring-2 ring-primary/30"
-                : "border-border bg-background hover:border-primary/40 text-foreground"
-            )}
-          >
-            <Repeat className={cn("h-4 w-4", isLooping ? "animate-spin text-primary-foreground" : "text-primary")} />
-            <span>{isLooping ? "Đang Lặp A-B" : "Lặp đoạn A-B"}</span>
-            <kbd className={cn(
-              "px-1.5 py-0.5 text-[10px] font-mono rounded font-bold shadow-xs",
-              isLooping ? "bg-white/20 border border-white/30 text-white" : "bg-muted/80 border border-border/80 text-muted-foreground"
-            )}>
-              {keyLoop}
-            </kbd>
-          </Button>
-        </div>
-
-        {/* Right: Record & Submit */}
-        <div className="flex items-center">
-          {isRecording ? (
-            <Button
-              variant="danger"
-              size="lg"
-              onClick={() => {
-                soundFX.playTaiko();
-                onStopRecording();
-              }}
-              className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm shadow-lg shadow-destructive/30 animate-pulse gap-2.5"
-            >
+        >
+          {isEvaluating ? (
+            <>
+              <Sparkles className="h-4 w-4 animate-spin" />
+              <span>Đang chấm điểm phản xạ...</span>
+            </>
+          ) : isRecording ? (
+            <>
               <Square className="h-4 w-4 fill-current" />
-              <span>Dừng & Chấm điểm (完了)</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 border border-white/30 rounded text-white font-bold shadow-xs">
-                {keyMic}
-              </kbd>
-            </Button>
+              <span>Dừng & Chấm Điểm (Space/Q)</span>
+            </>
           ) : isListeningStep ? (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                soundFX.playFurin();
-                onCancelPractice?.();
-              }}
-              className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm border-cyan-500/50 bg-cyan-950/30 text-cyan-200 gap-2.5"
-            >
-              <Headphones className="h-4 w-4 animate-bounce text-cyan-400" />
-              <span>Đang nghe mẫu... (Hủy)</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-cyan-900/60 border border-cyan-500/40 rounded text-cyan-200 font-bold shadow-xs">
-                Esc
-              </kbd>
-            </Button>
-          ) : practiceStep === "prompting" ? (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => {
-                soundFX.playTaiko();
-                onStartRecording();
-              }}
-              disabled={!segment || isEvaluating}
-              className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm shadow-lg shadow-primary/30 gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white animate-pulse"
-            >
+            <>
+              <Volume2 className="h-4 w-4 animate-pulse" />
+              <span>Đang phát câu mẫu...</span>
+            </>
+          ) : isPromptingStep ? (
+            <>
               <Mic className="h-4 w-4" />
-              <span>Bắt đầu thu âm giọng bạn</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 border border-white/30 rounded text-white font-bold shadow-xs">
-                {keyMic}
-              </kbd>
-            </Button>
+              <span>Bắt Đầu Nói Câu Này (Space/Q)</span>
+            </>
           ) : (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => {
-                soundFX.playTaiko();
-                onStartRecording();
-              }}
-              disabled={!segment || isEvaluating}
-              className="w-full sm:w-auto h-12 px-6 rounded-xl font-bold text-sm shadow-sumi-md gap-2.5 bg-gradient-to-r from-primary via-primary/90 to-aizome-600 hover:opacity-95 text-primary-foreground"
-            >
-              {isEvaluating ? (
-                <>
-                  <Radio className="h-4 w-4 animate-spin text-primary-foreground" />
-                  <span>Đang phân tích phát âm...</span>
-                </>
-              ) : shadowingMode === "repeat" ? (
-                <>
-                  <Repeat className="h-4 w-4" />
-                  <span>Bắt đầu Lặp lại câu (リピート)</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 border border-white/30 rounded text-white font-bold shadow-xs">
-                    {keyMic}
-                  </kbd>
-                </>
-              ) : shadowingMode === "listen_shadow" ? (
-                <>
-                  <Headphones className="h-4 w-4" />
-                  <span>Bắt đầu Nghe → Shadow</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 border border-white/30 rounded text-white font-bold shadow-xs">
-                    {keyMic}
-                  </kbd>
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4" />
-                  <span>Bắt đầu thu âm (録音)</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/20 border border-white/30 rounded text-white font-bold shadow-xs">
-                    {keyMic}
-                  </kbd>
-                </>
-              )}
-            </Button>
+            <>
+              <Mic className="h-4 w-4" />
+              <span>Luyện Câu Này (Space/Q)</span>
+            </>
           )}
-        </div>
+        </Button>
       </div>
     </div>
   );

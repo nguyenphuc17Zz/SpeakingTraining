@@ -52,11 +52,11 @@ export default function DashboardPage() {
   const currentStreakDays = streak?.current_streak ?? profile?.current_streak ?? 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 max-w-6xl mx-auto pb-16">
+    <div className="space-y-5 animate-in fade-in duration-300 max-w-6xl mx-auto pb-8">
       {/* 1. Hero chào mừng — Zen Garden & Seigaiha */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card/95 seigaiha-pattern shadow-sm p-6 md:p-8 washi-texture">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card/95 seigaiha-pattern shadow-sm p-5 md:p-6 washi-texture">
         <SakuraPetals count={4} />
-        <div className="absolute -top-16 -right-16 h-52 w-52 rounded-full bg-enso-gradient opacity-60 pointer-events-none" />
+        <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-enso-gradient opacity-60 pointer-events-none" />
         <div className="absolute inset-0 shoji-grid opacity-30 pointer-events-none" />
 
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5 z-10">

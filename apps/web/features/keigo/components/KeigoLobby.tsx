@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Compass,
   CheckCircle2,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PressureLevel } from "../services/keigo-api";
@@ -41,11 +42,23 @@ export const KEIGO_SUB_MODES: KeigoSubModeConfig[] = [
     subLabel: "Mixed Adaptive",
     ja: "総合",
     icon: Shuffle,
-    desc: "AI tự động đảo bài 7 chuyên đề theo điểm yếu của bạn",
+    desc: "AI tự động đảo bài 8 chuyên đề theo điểm yếu của bạn",
     exampleSource: "Tình huống hỗn hợp",
     exampleTarget: "Phản xạ toàn diện",
     badgeVariant: "kintsugi",
     iconColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+  },
+  {
+    id: "keigo_vocab_blitz",
+    label: "単語瞬間反射",
+    subLabel: "Verb Flash-Blitz ⚡",
+    ja: "単語",
+    icon: Zap,
+    desc: "Luyện phản xạ cơ bắp 1-1 cho 15+ động từ bất quy tắc cốt lõi",
+    exampleSource: "言う (Nói) ➔ Khiêm nhường",
+    exampleTarget: "申す / 申し上げる",
+    badgeVariant: "akane",
+    iconColor: "text-rose-500 bg-rose-500/10 border-rose-500/20",
   },
   {
     id: "keigo_sonkeigo",
@@ -134,6 +147,7 @@ export const KEIGO_SUB_MODES: KeigoSubModeConfig[] = [
 ];
 
 export const PRESSURE_LEVELS = [
+  { id: "infinite", label: "Vô hạn", icon: "♾️", ms: 0, desc: "∞ Không giới hạn" },
   { id: "relaxed", label: "Dễ", icon: "🐢", ms: 6000, desc: "6.0s" },
   { id: "normal", label: "Tiêu chuẩn", icon: "🚶", ms: 5000, desc: "5.0s" },
   { id: "fast", label: "Nhanh", icon: "🏃", ms: 4000, desc: "4.0s" },
@@ -173,71 +187,110 @@ export function KeigoLobby({
   setDuration,
   autoNext,
   setAutoNext,
+  startTrigger,
+  setStartTrigger,
   onStartSession,
   onOpenCheatsheet,
   onOpenHelp,
   error,
 }: Props) {
+  const [activeCategory, setActiveCategory] = React.useState<"blitz" | "core" | "practical">("blitz");
+  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false);
+
   const selectedMode = KEIGO_SUB_MODES.find((m) => m.id === subMode) || KEIGO_SUB_MODES[0];
   const selectedPressure = PRESSURE_LEVELS.find((p) => p.id === pressure) || PRESSURE_LEVELS[1];
 
+  const blitzModes = KEIGO_SUB_MODES.filter((m) => m.id === "mixed" || m.id === "keigo_vocab_blitz");
+  const coreModes = KEIGO_SUB_MODES.filter((m) => m.id === "keigo_sonkeigo" || m.id === "keigo_kenjougo" || m.id === "keigo_teineigo");
+  const practicalModes = KEIGO_SUB_MODES.filter((m) => !blitzModes.includes(m) && !coreModes.includes(m));
+
+  const currentCategoryModes = activeCategory === "blitz" ? blitzModes : activeCategory === "core" ? coreModes : practicalModes;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 max-w-5xl mx-auto">
+    <div className="space-y-4 animate-in fade-in duration-300 max-w-5xl mx-auto pb-8">
       {/* 1. Hero Banner */}
-      <div className="relative overflow-hidden rounded-[28px] border border-border/80 bg-card p-6 md:p-8 washi-texture shadow-sm">
-        <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-enso-gradient opacity-30 blur-2xl pointer-events-none" />
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <span className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-                <Crown className="h-5 w-5" />
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-4 sm:p-5 washi-texture shadow-2xs">
+        <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-enso-gradient opacity-30 blur-2xl pointer-events-none" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
+                <Crown className="h-4 w-4" />
               </span>
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground font-jp">
-                    敬語スタジオ <span className="text-lg font-bold font-sans text-primary">Keigo Studio</span>
-                  </h1>
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-jp flex items-center gap-2">
+                  <span>敬語スタジオ</span>
                   <Badge variant="kintsugi" size="sm">Mode 2</Badge>
-                </div>
-                <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-                  Luyện phản xạ Kính ngữ (敬語) & Văn phong công sở Nhật Bản dưới áp lực thời gian
+                </h1>
+                <p className="text-[11px] text-muted-foreground">
+                  Luyện phản xạ Kính ngữ & Văn phong công sở Nhật Bản
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={onOpenCheatsheet}
-              className="gap-1.5 text-xs font-bold border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+              className="gap-1 text-xs font-bold border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 h-8 px-2.5 rounded-xl"
             >
-              <BookOpen className="h-4 w-4" />
-              <span>Sổ tay Kính ngữ</span>
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>Sổ tay</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={onOpenHelp} className="gap-1.5 text-xs font-bold">
-              <Keyboard className="h-4 w-4" />
-              <span>Phím tắt (?)</span>
+            <Button variant="ghost" size="sm" onClick={onOpenHelp} className="gap-1 text-xs font-bold h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground">
+              <Keyboard className="h-3.5 w-3.5" />
+              <span>Phím (?)</span>
             </Button>
           </div>
         </div>
       </div>
 
       {/* 2. Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Submode Selection (8 modes) */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Column: Submode Selection (Grouped in 3 Categories) */}
+        <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant="sakura">Chuyên Đề Luyện Tập</Badge>
-              <span className="text-xs text-muted-foreground">Chọn 1 chuyên đề hoặc Tổng hợp</span>
+            <h2 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <span>1. Chọn Chuyên Đề Kính Ngữ:</span>
+            </h2>
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/60 border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveCategory("blitz")}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-bold rounded-md transition-all",
+                  activeCategory === "blitz" ? "bg-card text-primary shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                ⚡ Phản Xạ
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveCategory("core")}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-bold rounded-md transition-all",
+                  activeCategory === "core" ? "bg-card text-primary shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                👑 Tôn/Khiêm
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveCategory("practical")}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-bold rounded-md transition-all",
+                  activeCategory === "practical" ? "bg-card text-primary shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                ⚔️ Thực Chiến
+              </button>
             </div>
-            <span className="text-[11px] text-muted-foreground font-mono">8 Sub-modes</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {KEIGO_SUB_MODES.map((m) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {currentCategoryModes.map((m) => {
               const isActive = subMode === m.id;
               const isMixed = m.id === "mixed";
               const IconComp = m.icon;
@@ -247,29 +300,29 @@ export function KeigoLobby({
                   key={m.id}
                   onClick={() => setSubMode(m.id)}
                   className={cn(
-                    "text-left rounded-2xl border p-4 transition-all flex flex-col justify-between space-y-2.5 washi-texture cursor-pointer relative group",
+                    "text-left rounded-2xl border p-3 transition-all flex flex-col justify-between space-y-1.5 washi-texture cursor-pointer relative group",
                     isActive
-                      ? "border-primary bg-primary/8 shadow-md ring-1 ring-primary/30"
-                      : "border-border/80 hover:border-primary/40 bg-card hover:shadow-xs",
+                      ? "border-primary bg-primary/8 shadow-2xs ring-1 ring-primary/30"
+                      : "border-border/80 hover:border-primary/40 bg-card hover:shadow-2xs",
                     isMixed && "sm:col-span-2 bg-gradient-to-r from-amber-500/10 via-primary/5 to-transparent border-amber-500/30"
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span className={cn("h-8 w-8 rounded-xl border flex items-center justify-center shrink-0", m.iconColor)}>
-                        <IconComp className="h-4 w-4" />
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-7 w-7 rounded-lg border flex items-center justify-center shrink-0 text-xs", m.iconColor)}>
+                        <IconComp className="h-3.5 w-3.5" />
                       </span>
                       <div>
-                        <span className="text-sm font-black text-foreground font-jp">{m.label}</span>
-                        <span className="text-[11px] text-muted-foreground ml-1.5 font-sans">({m.subLabel})</span>
+                        <span className="text-xs font-bold text-foreground font-jp">{m.label}</span>
+                        <span className="text-[10px] text-muted-foreground ml-1 font-sans">({m.subLabel})</span>
                       </div>
                     </div>
-                    <Badge variant={m.badgeVariant} size="sm">{m.ja}</Badge>
+                    <Badge variant={m.badgeVariant} size="sm" className="text-[10px] px-1.5 py-0">{m.ja}</Badge>
                   </div>
 
-                  <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug line-clamp-1">{m.desc}</p>
 
-                  <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground font-jp">
+                  <div className="pt-1 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground font-jp">
                     <span className="truncate max-w-[45%]">{m.exampleSource}</span>
                     <span className="text-primary font-bold">➔</span>
                     <span className="font-bold text-foreground truncate max-w-[45%] text-right">{m.exampleTarget}</span>
@@ -280,142 +333,126 @@ export function KeigoLobby({
           </div>
         </div>
 
-        {/* Right Column: Settings & CTA */}
-        <div className="space-y-4">
-          <Card className="p-5 space-y-5 border-border/90 bg-card shadow-sm washi-texture">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground border-b border-border/70 pb-3">
-              <Settings2 className="h-4 w-4 text-primary" />
-              <span>Cấu Hình Phiên Luyện Tập</span>
-            </div>
-
+        {/* Right Column: Fast Settings Cockpit */}
+        <div className="space-y-3">
+          <Card className="p-3.5 space-y-3.5 border-border/90 bg-card shadow-2xs washi-texture">
             {/* Pressure Selector */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-muted-foreground">Áp Lực Thời Gian:</span>
-                <span className="text-primary font-mono">{selectedPressure.ms / 1000}s / câu</span>
+                <span className="text-primary font-mono text-[11px]">
+                  {selectedPressure.ms > 0 ? `${selectedPressure.ms / 1000}s / câu` : "∞ Vô hạn"}
+                </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
                 {PRESSURE_LEVELS.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => setPressure(p.id as any)}
                     className={cn(
-                      "px-2 py-1.5 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-0.5",
+                      "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
                       pressure === p.id
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/40 border-border/80 hover:bg-muted text-foreground"
+                        ? "bg-card text-foreground border border-border shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <span>{p.icon} {p.label}</span>
-                    <span className="text-[10px] opacity-80 font-mono">{p.desc}</span>
+                    {p.id === "infinite" ? "∞ Vô hạn" : p.desc}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Duration Selector */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-muted-foreground">Thời Lượng Phiên:</span>
-                <span className="text-primary font-mono">{duration === 0 ? "∞ Vô hạn" : `${duration} phút`}</span>
+                <span className="text-primary font-mono text-[11px]">{duration === 0 ? "∞ Vô hạn" : `${duration} phút`}</span>
               </div>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="flex items-center gap-1 p-0.5 rounded-xl bg-muted/50 border border-border">
                 {DURATIONS.map((d) => (
                   <button
                     key={d}
                     onClick={() => setDuration(d)}
                     className={cn(
-                      "py-1.5 rounded-xl text-xs font-bold border transition-all text-center",
+                      "flex-1 py-1 rounded-lg text-[10px] font-bold transition-all text-center",
                       duration === d
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/40 border-border/80 hover:bg-muted text-foreground"
+                        ? "bg-card text-foreground border border-border shadow-2xs"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {d === 0 ? "∞ Vô hạn" : `${d} min`}
+                    {d === 0 ? "∞" : `${d}m`}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Subtitle Mode */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-muted-foreground">Hiển Thị Đề Bài:</span>
-              <div className="grid grid-cols-2 gap-1.5 text-xs">
-                {(
-                  [
-                    { id: "japanese", label: "Chữ Hán (Kanji)" },
-                    { id: "japanese_reading", label: "Kanji + Cách đọc" },
-                    { id: "vietnamese", label: "Dịch tiếng Việt" },
-                    { id: "hidden", label: "Audio-Only 🎧" },
-                  ] as const
-                ).map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setSubtitleMode(m.id)}
-                    className={cn(
-                      "p-2 rounded-xl text-[11px] font-bold border transition-all text-center",
-                      subtitleMode === m.id
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/40 border-border/80 hover:bg-muted text-foreground"
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Auto Next Toggle */}
-            <div className="pt-2 border-t border-border/70 flex items-center justify-between text-xs">
-              <span className="font-bold text-muted-foreground">Tự Động Chuyển Câu:</span>
+            {/* Progressive Disclosure: Subtitles & Auto Next */}
+            <div className="border border-border/80 rounded-xl bg-muted/20 overflow-hidden">
               <button
-                onClick={() => setAutoNext((v) => !v)}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-bold border transition-all",
-                  autoNext
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
-                    : "bg-muted border-border text-muted-foreground"
-                )}
+                type="button"
+                onClick={() => setIsAdvancedOpen((v) => !v)}
+                className="w-full px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
               >
-                {autoNext ? "BẬT (Auto)" : "TẮT (Thủ công)"}
+                <span>Phụ đề & Tự chuyển câu</span>
+                <span className="text-[10px] text-primary">{isAdvancedOpen ? "▲" : "▼"}</span>
               </button>
+
+              {isAdvancedOpen && (
+                <div className="p-2.5 pt-1 space-y-2 border-t border-border/60 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    {[
+                      { id: "japanese", label: "Kanji" },
+                      { id: "japanese_reading", label: "Kanji + Kana" },
+                      { id: "vietnamese", label: "Dịch Việt" },
+                      { id: "hidden", label: "Audio-Only 🎧" },
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setSubtitleMode(m.id as any)}
+                        className={cn(
+                          "py-1 rounded-lg font-bold border transition-all text-center",
+                          subtitleMode === m.id
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card border-border hover:bg-muted text-foreground"
+                        )}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="pt-1 flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-muted-foreground">Tự chuyển câu:</span>
+                    <button
+                      onClick={() => setAutoNext((v) => !v)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all",
+                        autoNext ? "bg-emerald-600 text-white border-emerald-600" : "bg-muted border-border text-muted-foreground"
+                      )}
+                    >
+                      {autoNext ? "BẬT" : "TẮT"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Big CTA Button */}
             <Button
               variant="akane"
               size="lg"
-              className="w-full font-bold gap-2 text-sm shadow-md h-12"
+              className="w-full font-bold gap-2 text-xs shadow-md h-10 rounded-xl"
               onClick={onStartSession}
             >
-              <Play className="h-4 w-4 fill-current" />
-              <span>Bắt Đầu {duration} Phút • {selectedMode.ja}</span>
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Bắt Đầu {duration === 0 ? "Vô Hạn" : `${duration}p`} • {selectedMode.ja}</span>
             </Button>
 
             {error && (
-              <div className="text-xs text-red-600 border border-red-200 bg-red-50 dark:bg-red-950/20 rounded-xl p-2.5">
+              <div className="text-[11px] text-red-600 border border-red-200 bg-red-50 dark:bg-red-950/20 rounded-xl p-2">
                 {error}
               </div>
             )}
-          </Card>
-
-          {/* Quick Cheatsheet Promotion Card */}
-          <Card
-            onClick={onOpenCheatsheet}
-            className="p-4 bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20 transition-all cursor-pointer space-y-1.5 group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Cẩm Nang Kính Ngữ Công Sở</span>
-              </div>
-              <span className="text-[11px] text-amber-600 font-bold group-hover:translate-x-0.5 transition-transform">
-                Mở ➔
-              </span>
-            </div>
-            <p className="text-[11px] text-foreground/80 leading-relaxed">
-              Bảng 25+ động từ bất quy tắc, ma trận quan hệ Trong/Ngoài (Uchi/Soto) và quy tắc tránh Nhị trùng kính ngữ.
-            </p>
           </Card>
         </div>
       </div>

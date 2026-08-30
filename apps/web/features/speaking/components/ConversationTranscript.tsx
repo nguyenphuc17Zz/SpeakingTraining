@@ -4,6 +4,8 @@ import React, { useEffect, useRef } from "react";
 import { ConversationTurn, CorrectionItem, RecordingState, TurnAnalysis } from "../types";
 import { Volume2, Sparkles, Clock, CheckCircle2, ChevronRight, Mic, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { speakJapaneseText } from "../services/web-speech";
+import { soundFX } from "@/lib/sound-fx";
 
 interface ConversationTranscriptProps {
   turns: ConversationTurn[];
@@ -136,21 +138,48 @@ export function ConversationTranscript({
               )}
 
               {/* Action Bar for Assistant Turns */}
-              {!isUser && onReplayVoice && (
-                <div className="mt-2 pt-1.5 flex items-center justify-between border-t border-border/60 text-[10px] text-muted-foreground">
+              {!isUser && (
+                <div className="mt-2 pt-1.5 flex items-center justify-between border-t border-border/60 text-[10px] text-muted-foreground flex-wrap gap-1.5">
                   <div className="flex items-center gap-1.5 font-mono">
                     <Badge variant="outline" size="sm" className="text-[9px] py-0 px-1.5">
                       {turn.ai_model || "gemini"}
                     </Badge>
                   </div>
-                  <button
-                    onClick={() => onReplayVoice(turn.transcript)}
-                    className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors py-0.5 px-1.5 rounded hover:bg-primary/10"
-                    title="Replay Voice"
-                  >
-                    <Volume2 className="h-3 w-3" />
-                    <span>Listen again</span>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => speakJapaneseText(turn.transcript, { rate: 0.82 })}
+                      className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors py-0.5 px-1.5 rounded hover:bg-muted"
+                      title="Nghe tốc độ chậm (0.82x)"
+                    >
+                      <span>🐢 0.8x</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundFX.playFurin();
+                        speakJapaneseText(turn.transcript, { rate: 0.95 });
+                      }}
+                      className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors py-0.5 px-1.5 rounded hover:bg-primary/10 font-bold"
+                      title="Luyện Shadowing nhại giọng theo câu của AI"
+                    >
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      <span>🗣️ Shadowing</span>
+                    </button>
+
+                    {onReplayVoice && (
+                      <button
+                        type="button"
+                        onClick={() => onReplayVoice(turn.transcript)}
+                        className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors py-0.5 px-1.5 rounded hover:bg-primary/10"
+                        title="Nghe lại giọng gốc"
+                      >
+                        <Volume2 className="h-3 w-3" />
+                        <span>Nghe lại</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

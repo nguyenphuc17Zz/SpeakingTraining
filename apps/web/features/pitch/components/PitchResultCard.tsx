@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +13,12 @@ import {
   Sparkles,
   Volume2,
   Clock,
+  Layers,
+  Lightbulb,
+  Music,
 } from "lucide-react";
-import { PitchExercise, PitchResult } from "../services/pitch-api";
-import { speakJapaneseText } from "@/features/speaking/services/web-speech";
+import { PitchExercise, PitchResult, MoraToken } from "../services/pitch-api";
+import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +39,7 @@ export function PitchResultCard({
   onAskCoach,
   onCancelAutoNext,
 }: PitchResultCardProps) {
+  const [isTTSPlaying, setIsTTSPlaying] = useState(false);
   const isPerfect = result.isPerfect || (result.score ?? 0) >= 90;
   const isSuccess = result.success;
   const isTimeout = result.timedOut;
@@ -44,6 +49,28 @@ export function PitchResultCard({
   const pc = exercise?.extra_metadata?.pitch_config || {};
   const canonical = pc.canonical || exercise?.canonical || "";
   const metrics = result.pitchMetrics || {};
+  const moraBreakdown: MoraToken[] = result.moraBreakdown || pc.mora_breakdown || [];
+  const downstepNotation = result.downstepNotation || pc.downstep_notation || "";
+  const pitfallVi = result.pitfallVi || pc.pitfall_vi || "";
+
+  // Auto-play model pitch TTS on result show
+  useEffect(() => {
+    if (!canonical) return;
+
+    setIsTTSPlaying(true);
+    const timer = setTimeout(() => {
+      speakJapaneseText(canonical, {
+        rate: 0.95,
+        onEnd: () => setIsTTSPlaying(false),
+        onError: () => setIsTTSPlaying(false),
+      });
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      stopWebSpeech();
+    };
+  }, [canonical, result.exerciseId]);
 
   const pitchAccuracy = metrics.pitch_accuracy ?? score;
   const moraScore = metrics.mora_score ?? 90;
@@ -51,7 +78,7 @@ export function PitchResultCard({
   const naturalnessScore = metrics.naturalness_score ?? 85;
 
   return (
-    <div className="p-6 rounded-3xl border border-border/80 bg-card shadow-md washi-texture space-y-6 animate-in fade-in zoom-in-95 duration-200">
+    <div className="p-5 md:p-6 rounded-3xl border border-border/80 bg-card shadow-md washi-texture space-y-5 animate-in fade-in zoom-in-95 duration-200">
       {/* Result Status Banner */}
       <div
         className={cn(
@@ -85,23 +112,31 @@ export function PitchResultCard({
             )}
           </div>
           <div>
-            <h3 className="font-black text-sm">
-              {isPerfect
-                ? "🏆 CAO ĐỘ HOÀN HẢO (PERFECT PITCH)"
-                : isSuccess
-                ? "✅ CHÍNH XÁC (CORRECT ACCENT)"
-                : isTimeout
-                ? "⏰ HẾT THỜI GIAN PHẢN XẠ"
-                : "⚠️ CẦN ĐIỀU CHỈNH CAO ĐỘ"}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm">
+                {isPerfect
+                  ? "🏆 CAO ĐỘ HOÀN HẢO (PERFECT PITCH)"
+                  : isSuccess
+                  ? "✅ CHÍNH XÁC (CORRECT ACCENT)"
+                  : isTimeout
+                  ? "⏰ HẾT THỜI GIAN PHẢN XẠ"
+                  : "⚠️ CẦN ĐIỀU CHỈNH CAO ĐỘ"}
+              </h3>
+              {downstepNotation && (
+                <span className="text-xs font-jp font-bold px-2 py-0.5 rounded bg-background/80 border text-primary">
+                  {downstepNotation}
+                </span>
+              )}
+            </div>
             <p className="text-xs opacity-85">
-              {isPerfect
-                ? "Đường cao độ F0 và độ đều phách đạt chuẩn giọng Tokyo bản xứ!"
-                : isSuccess
-                ? "Phát âm tốt, tiếp tục duy trì cao độ ổn định nhé."
-                : isTimeout
-                ? "Hãy bấm 'Thử lại (R)' để phản xạ nhanh hơn trong ngưỡng thời gian."
-                : "Chú ý vị trí hạ giọng (downstep) hoặc độ dài phách trường âm."}
+              {result.feedback ||
+                (isPerfect
+                  ? "Đường cao độ F0 và độ đều phách đạt chuẩn giọng Tokyo bản xứ!"
+                  : isSuccess
+                  ? "Phát âm tốt, tiếp tục duy trì cao độ ổn định nhé."
+                  : isTimeout
+                  ? "Hãy bấm 'Thử lại (R)' để phản xạ nhanh hơn trong ngưỡng thời gian."
+                  : "Chú ý vị trí hạ giọng (downstep) hoặc độ dài phách trường âm.")}
             </p>
           </div>
         </div>
@@ -145,6 +180,42 @@ export function PitchResultCard({
         </div>
       </div>
 
+      {/* Mora-by-Mora Step Breakdown */}
+      {moraBreakdown && moraBreakdown.length > 0 && (
+        <div className="p-4 rounded-2xl bg-muted/30 border border-border/70 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+            <span className="flex items-center gap-1.5 text-primary">
+              <Layers className="h-3.5 w-3.5" />
+              <span>Phân Tích Từng Phách Chi Tiết (Mora-by-Mora Breakdown)</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">{moraBreakdown.length} phách</span>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            {moraBreakdown.map((m, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "px-3 py-2 rounded-xl border flex flex-col items-center gap-0.5 text-center min-w-[56px] shadow-2xs font-jp",
+                  m.tone === "H"
+                    ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+                    : "bg-sky-500/10 border-sky-500/30 text-sky-700 dark:text-sky-300"
+                )}
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-black">{m.mora}</span>
+                  {m.is_downstep && <span className="text-rose-500 font-bold text-xs">ꜜ</span>}
+                </div>
+                <span className="text-[10px] font-bold font-mono">
+                  {m.tone === "H" ? "Cao (H)" : "Thấp (L)"}
+                </span>
+                <span className="text-[9px] text-muted-foreground font-sans">Phách {m.index}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Dual Voice Comparison */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* User Voice */}
@@ -152,8 +223,14 @@ export function PitchResultCard({
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>🗣️ Bạn đã phát âm (Your Voice):</span>
           </div>
-          <div className="p-3 rounded-xl bg-card border border-border/80 text-base font-bold font-jp text-foreground">
-            {result.userTranscript || "(Đã ghi âm giọng nói)"}
+          <div className="p-3 rounded-xl bg-card border border-border/80 text-base font-bold font-jp text-foreground min-h-[3rem] flex items-center">
+            {result.userTranscript ? (
+              <UniversalFurigana text={result.userTranscript} fontSize="lg" />
+            ) : (
+              <span className="text-xs text-muted-foreground italic font-sans font-normal">
+                (Không nhận diện được giọng nói)
+              </span>
+            )}
           </div>
         </div>
 
@@ -172,11 +249,22 @@ export function PitchResultCard({
               <span>Nghe lại</span>
             </button>
           </div>
-          <div className="p-3 rounded-xl bg-card border border-sky-500/30 text-base font-bold font-jp text-foreground">
-            {canonical}
+          <div className="p-3 rounded-xl bg-card border border-sky-500/30 text-base font-bold font-jp text-foreground min-h-[3rem] flex items-center">
+            <UniversalFurigana text={canonical} fontSize="lg" />
           </div>
         </div>
       </div>
+
+      {/* Vietnamese Pitch Pitfall Diagnostics Card */}
+      {pitfallVi && (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+          <Lightbulb className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold">Mẹo ngữ điệu cho người Việt:</span>
+            <p className="leading-relaxed">{pitfallVi}</p>
+          </div>
+        </div>
+      )}
 
       {/* Action Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">

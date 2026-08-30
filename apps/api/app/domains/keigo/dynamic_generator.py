@@ -1,6 +1,7 @@
 """AIKeigoGenerator — 100% dynamic on-the-fly Keigo & Register Exercise Generation via Gemini AI & Sudachi.
 
 No static hardcoded list. Generates infinite authentic Japanese Keigo challenges in real-time across 20+ business situations.
+Includes Multi-Tier Scaffolding Hints, Keigo Anatomy Breakdown, and Persona Simulation.
 Gracefully falls back to deterministic KeigoTransformationEngine & Factory if AI is unreachable.
 """
 
@@ -24,6 +25,7 @@ from app.domains.ai.contracts import (
 from app.domains.ai.router import AIRouter
 from app.domains.japanese.provider import get_language_provider
 from app.domains.keigo.exercise_factory import KeigoExerciseFactory, TIMER_DEFAULTS
+from app.domains.keigo.keigo_vocab_pool import get_all_keigo_vocab
 from app.domains.keigo.social_context import (
     Group,
     PersonRole,
@@ -60,6 +62,55 @@ BUSINESS_TOPICS_POOL = [
 ]
 
 
+def _extract_hints_and_anatomy(
+    data: dict[str, Any],
+    default_root: str,
+    default_formula: str,
+    default_rationale: str,
+    canonical: str,
+    prompt: str = "",
+    pitfall: str = "",
+) -> tuple[dict[str, str], dict[str, str]]:
+    hints = data.get("hints") or {}
+    t1 = hints.get("tier1") or data.get("hint_tier_1") or data.get("hint_1")
+    t2 = hints.get("tier2") or data.get("hint_tier_2") or data.get("hint_2")
+    if not t1:
+        t1 = f"Động từ: {default_root} ➔ {default_rationale}"
+    if not t2:
+        prefix = canonical[:4] if len(canonical) >= 4 else canonical[:2]
+        t2 = f"Gợi ý bắt đầu: 「{prefix}...」 | Mẫu câu: {default_formula}"
+
+    anatomy_data = data.get("anatomy") or {}
+    anatomy = {
+        "root_verb": str(anatomy_data.get("root_verb") or data.get("root_verb") or default_root),
+        "formula": str(anatomy_data.get("formula") or data.get("formula") or default_formula),
+        "rationale": str(anatomy_data.get("rationale") or data.get("rationale") or default_rationale),
+        "pitfall_warning": str(anatomy_data.get("pitfall_warning") or data.get("pitfall_warning") or pitfall or "Tránh nhầm lẫn giữa Tôn kính (nâng người) và Khiêm nhường (hạ mình)"),
+    }
+    return {"tier1": str(t1), "tier2": str(t2)}, anatomy
+
+
+def _extract_persona(data: dict[str, Any], topic: str = "") -> dict[str, str]:
+    persona_data = data.get("persona") or {}
+    name = persona_data.get("name") or data.get("persona_name")
+    role = persona_data.get("role") or data.get("persona_role")
+    avatar = persona_data.get("avatar") or data.get("persona_avatar")
+    if not name:
+        if "SOTO" in str(data.get("listener_group", "")) or "CUSTOMER" in str(data.get("listener_role", "")):
+            name = "Khách hàng Sato (佐藤様)"
+            role = "CUSTOMER / PARTNER"
+            avatar = "💼"
+        elif "MANAGER" in str(data.get("listener_role", "")) or "MANAGER" in str(data.get("referent_role", "")):
+            name = "Trưởng phòng Tanaka (田中部長)"
+            role = "MANAGER"
+            avatar = "👨‍💼"
+        else:
+            name = "Đối tác Yamada (山田様)"
+            role = "BUSINESS PARTNER"
+            avatar = "🧑‍💼"
+    return {"name": str(name), "role": str(role or "COLLABORATOR"), "avatar": str(avatar or "🧑‍💼")}
+
+
 class AIKeigoGenerator:
     """Generates infinite, creative, non-repeating Keigo speaking exercises using Gemini AI and Sudachi."""
 
@@ -80,7 +131,9 @@ class AIKeigoGenerator:
     ) -> dict[str, Any]:
         """Generates dynamic Keigo exercise via Gemini AI with linguistic verification."""
         try:
-            if sub_mode == "keigo_sonkeigo":
+            if sub_mode == "keigo_vocab_blitz":
+                return await self._generate_dynamic_vocab_blitz(difficulty, pressure_level, user_id)
+            elif sub_mode == "keigo_sonkeigo":
                 return await self._generate_dynamic_sonkeigo(difficulty, pressure_level, user_id)
             elif sub_mode == "keigo_kenjougo":
                 return await self._generate_dynamic_kenjougo(difficulty, pressure_level, user_id)
@@ -95,8 +148,8 @@ class AIKeigoGenerator:
             elif sub_mode == "keigo_naturalness":
                 return await self._generate_dynamic_naturalness(difficulty, pressure_level, user_id)
             else:
-                # Default / Mixed mode: randomly pick one of the core sub-modes
                 eff = random.choice([
+                    "keigo_vocab_blitz",
                     "keigo_sonkeigo",
                     "keigo_kenjougo",
                     "keigo_teineigo",
@@ -108,6 +161,60 @@ class AIKeigoGenerator:
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] AI generation exception, falling back to rule factory: {e}")
             return self.factory.generate(sub_mode=sub_mode, difficulty=difficulty)
+
+    async def _generate_dynamic_vocab_blitz(
+        self,
+        difficulty: str,
+        pressure_level: str,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Generates dynamic 1-to-1 Keigo Verb Flash-Blitz exercise from rich pool."""
+        timer_ms = min(timer_for_level(pressure_level), 4000)
+        pool = get_all_keigo_vocab()
+        entry = random.choice(pool)
+
+        target_name = "Tôn Kính Ngữ (尊敬語 ↑)" if entry.target_type == "sonkeigo" else "Khiêm Nhường Ngữ (謙譲語 ↓)" if entry.target_type == "kenjougo" else "Kính Ngữ / Lịch Sự"
+        prompt = f"{entry.source_word} ({entry.meaning_vi})"
+        canonical = entry.canonical
+        variants = [canonical] + [v for v in entry.acceptable_variants if v != canonical]
+
+        hints = {
+            "tier1": f"Động từ: {entry.source_word} ({entry.meaning_vi}) ➔ Cần biến sang {entry.target_label_vi}",
+            "tier2": f"Gợi ý bắt đầu: 「{entry.canonical[:2]}...」 | Dạng: {entry.formula or 'Bất quy tắc'}",
+        }
+        anatomy = {
+            "root_verb": f"{entry.source_word} ({entry.meaning_vi})",
+            "formula": entry.formula or "Dạng bất quy tắc",
+            "rationale": entry.explanation_vi or entry.subject_hint_vi or f"Dùng cho {target_name}",
+            "pitfall_warning": "Tránh dùng nhầm hướng Tôn kính (nâng người) vs Khiêm nhường (hạ mình)",
+        }
+        persona = {
+            "name": "Keigo Drill Sensei",
+            "role": "DRILL COACH",
+            "avatar": "🥋",
+        }
+
+        return {
+            "title": "Keigo Flash-Blitz: Phản Xạ Động Từ (瞬間反射 ⚡)",
+            "objective": f"Phản xạ nhanh động từ {entry.target_label_vi} trong {timer_ms/1000:.1f}s",
+            "scenario": f"Chuyển nhanh từ thường sang {entry.target_label_vi}",
+            "instructions": f"Hãy nói ngay dạng {entry.target_label_vi} của 「{entry.source_word}」",
+            "prompt": prompt,
+            "source": entry.source_word,
+            "canonical": canonical,
+            "acceptable_variants": variants,
+            "translation": f"{entry.source_word}: {entry.meaning_vi} ➔ {canonical}",
+            "vietnamese": f"{entry.source_word}: {entry.meaning_vi}",
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
+            "timer_limit_ms": timer_ms,
+            "pressure_level": pressure_level,
+            "difficulty": difficulty,
+            "constraints": [f"Chuyển đúng dạng {entry.target_label_vi}"],
+            "target_patterns": variants[:2],
+            "estimated_minutes": 1,
+        }
 
     async def _generate_dynamic_sonkeigo(
         self,
@@ -133,6 +240,12 @@ class AIKeigoGenerator:
             f"  \"canonical\": \"<câu đáp án Tôn kính ngữ chuẩn, VD: 部長、こちらの資料をご覧になりましたか？>\",\n"
             f"  \"acceptable_variants\": [\"<biến thể tương đương 1>\", \"<biến thể tương đương 2>\"],\n"
             f"  \"translation_vi\": \"<dịch nghĩa câu gốc tiếng Việt>\",\n"
+            f"  \"hint_tier_1\": \"<gợi ý cấp 1: động từ gốc và hướng tôn kính, VD: Động từ: 見る ➔ Cần dùng Tôn kính ngữ (尊敬語 ↑) vì chủ ngữ là Trưởng phòng>\",\n"
+            f"  \"hint_tier_2\": \"<gợi ý cấp 2: chữ đầu hoặc khung câu, VD: 部長、こちらの資料をご.../ご覧に...>\",\n"
+            f"  \"root_verb\": \"<động từ gốc, VD: 見る (Xem/Nhìn)>\",\n"
+            f"  \"formula\": \"<công thức, VD: Dạng bất quy tắc: ご覧になる hoặc お+V_stem+になる>\",\n"
+            f"  \"rationale\": \"<lý do, VD: Nâng cao hành động của đối phương/cấp trên>\",\n"
+            f"  \"pitfall_warning\": \"<lỗi cần tránh, VD: Tránh dùng 拝見する (đây là Khiêm nhường ngữ)>\",\n"
             f"  \"speaker_role\": \"SELF\",\n"
             f"  \"listener_role\": \"MANAGER\",\n"
             f"  \"referent_role\": \"MANAGER\",\n"
@@ -165,6 +278,15 @@ class AIKeigoGenerator:
                 "relationship": "BUSINESS",
                 "situation": chosen_topic.split("(")[0].strip(),
             }
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Hành động của đối phương",
+                default_formula="Dạng bất quy tắc hoặc お+V_stem+になる",
+                default_rationale="Nâng cao hành động của người nghe/đối tác (尊敬語 ↑)",
+                canonical=canonical,
+                pitfall="Tránh dùng Khiêm nhường ngữ (謙譲語) cho hành động của đối tác",
+            )
+            persona = _extract_persona(data, chosen_topic)
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Sonkeigo generation fallback: {e}")
             return self.factory.generate_shift(Register.POLITE, Register.BUSINESS_KEIGO, difficulty)
@@ -181,6 +303,9 @@ class AIKeigoGenerator:
             "translation": trans_vi,
             "vietnamese": trans_vi,
             "social_context": ctx,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -213,6 +338,12 @@ class AIKeigoGenerator:
             f"  \"canonical\": \"<câu đáp án Khiêm nhường chuẩn, VD: 明日の14時に御社へ伺います。>\",\n"
             f"  \"acceptable_variants\": [\"<biến thể 1>\", \"<biến thể 2>\"],\n"
             f"  \"translation_vi\": \"<dịch nghĩa tiếng Việt>\",\n"
+            f"  \"hint_tier_1\": \"<gợi ý cấp 1: động từ gốc và hướng khiêm nhường, VD: Động từ: 行く ➔ Dùng Khiêm nhường ngữ (謙譲語 ↓) vì chủ ngữ là bản thân>\",\n"
+            f"  \"hint_tier_2\": \"<gợi ý cấp 2: chữ đầu, VD: 明日の14時に御社へ伺... / 参り...>\",\n"
+            f"  \"root_verb\": \"<động từ gốc, VD: 行く (Đi)>\",\n"
+            f"  \"formula\": \"<công thức, VD: Dạng bất quy tắc: 伺う / 参る hoặc お+V_stem+する/いたす>\",\n"
+            f"  \"rationale\": \"<lý do, VD: Hạ thấp hành động bản thân/công ty mình khi nói với người ngoài>\",\n"
+            f"  \"pitfall_warning\": \"<lỗi cần tránh, VD: Tránh dùng いらっしゃる (đây là Tôn kính ngữ)>\",\n"
             f"  \"speaker_role\": \"SELF\",\n"
             f"  \"listener_role\": \"CUSTOMER\",\n"
             f"  \"referent_role\": \"SELF\",\n"
@@ -245,6 +376,15 @@ class AIKeigoGenerator:
                 "relationship": "CUSTOMER_PROVIDER",
                 "situation": chosen_topic.split("(")[0].strip(),
             }
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Hành động của bản thân",
+                default_formula="Dạng bất quy tắc hoặc お+V_stem+する/いたす",
+                default_rationale="Hạ thấp bản thân/người công ty mình trước đối tác (謙譲語 ↓)",
+                canonical=canonical,
+                pitfall="Tránh dùng Tôn kính ngữ (尊敬語) cho bản thân",
+            )
+            persona = _extract_persona(data, chosen_topic)
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Kenjougo generation fallback: {e}")
             return self.factory.generate_shift(Register.POLITE, Register.BUSINESS_KEIGO, difficulty)
@@ -261,6 +401,9 @@ class AIKeigoGenerator:
             "translation": trans_vi,
             "vietnamese": trans_vi,
             "social_context": ctx,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -284,7 +427,7 @@ class AIKeigoGenerator:
             f"Hãy tạo 1 bài tập Thể Lịch Sự & Mỹ Từ (丁寧語・美化語) trong giao tiếp văn phòng. "
             f"Chủ đề: '{chosen_topic}'. [Nonce: {nonce}]\n"
             f"Yêu cầu: Cho 1 câu văn suồng sã hoặc thiếu mỹ từ お/ご, yêu cầu chuyển sang câu chuẩn lịch sự desu/masu/gozaimasu.\n"
-            f"Trả về JSON: {{\"source_prompt\": \"<câu gốc>\", \"scenario\": \"<bối cảnh>\", \"instructions\": \"<hướng dẫn>\", \"canonical\": \"<câu chuẩn>\", \"acceptable_variants\": [\"<câu tương đương>\"], \"translation_vi\": \"<dịch tiếng Việt>\"}}"
+            f"Trả về JSON: {{\"source_prompt\": \"<câu gốc>\", \"scenario\": \"<bối cảnh>\", \"instructions\": \"<hướng dẫn>\", \"canonical\": \"<câu chuẩn>\", \"acceptable_variants\": [\"<câu tương đương>\"], \"translation_vi\": \"<dịch tiếng Việt>\", \"hint_tier_1\": \"<gợi ý cấp 1>\", \"hint_tier_2\": \"<gợi ý cấp 2>\", \"root_verb\": \"<từ/động từ chính>\", \"formula\": \"<công thức desu/masu/gozaimasu + お/ご>\", \"rationale\": \"<lý do lịch sự>\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -302,6 +445,14 @@ class AIKeigoGenerator:
             canonical = data.get("canonical", "お名前をお伺いしてもよろしいでしょうか？")
             variants = data.get("acceptable_variants", [canonical, "お名前を教えていただけますか？"])
             trans_vi = data.get("translation_vi", "Tôi có thể xin quý danh của quý khách được không ạ?")
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Thể lịch sự",
+                default_formula="Thêm お/ご + desu/masu/gozaimasu",
+                default_rationale="Nói lịch sự nhã nhặn, tôn trọng đối phương",
+                canonical=canonical,
+            )
+            persona = _extract_persona(data, chosen_topic)
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Teineigo generation fallback: {e}")
             return self.factory.generate_shift(Register.TAMEGUCHI, Register.POLITE, difficulty)
@@ -317,6 +468,9 @@ class AIKeigoGenerator:
             "acceptable_variants": variants,
             "translation": trans_vi,
             "vietnamese": trans_vi,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -341,7 +495,7 @@ class AIKeigoGenerator:
             f"Chủ đề: '{chosen_topic}'. [Nonce: {nonce}]\n"
             f"Cho 1 câu nói thân mật (Tameguchi) ngắn gọn giữa bạn bè hoặc suy nghĩ nội tâm, "
             f"yêu cầu người học chuyển sang câu Kính ngữ thương mại (Business Keigo) hoàn chỉnh.\n"
-            f"Trả về JSON: {{\"source_prompt\": \"<câu thân mật>\", \"scenario\": \"<bối cảnh>\", \"instructions\": \"<hướng dẫn>\", \"canonical\": \"<câu thương mại chuẩn>\", \"acceptable_variants\": [\"<câu biến thể>\"], \"translation_vi\": \"<dịch tiếng Việt>\"}}"
+            f"Trả về JSON: {{\"source_prompt\": \"<câu thân mật>\", \"scenario\": \"<bối cảnh>\", \"instructions\": \"<hướng dẫn>\", \"canonical\": \"<câu thương mại chuẩn>\", \"acceptable_variants\": [\"<câu biến thể>\"], \"translation_vi\": \"<dịch tiếng Việt>\", \"hint_tier_1\": \"<gợi ý cấp 1>\", \"hint_tier_2\": \"<gợi ý cấp 2>\", \"root_verb\": \"<từ gốc>\", \"formula\": \"<cấu trúc thương mại>\", \"rationale\": \"<lý do chuyển đổi>\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -359,6 +513,14 @@ class AIKeigoGenerator:
             canonical = data.get("canonical", "少々お待ちいただけますでしょうか。")
             variants = data.get("acceptable_variants", [canonical, "少々お待ちくださいませ。"])
             trans_vi = data.get("translation_vi", "Xin vui lòng đợi một chút.")
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Chuyển thể văn phong",
+                default_formula="Thân mật ➔ Kính ngữ thương mại",
+                default_rationale="Sử dụng trong giao tiếp với khách hàng/đối tác",
+                canonical=canonical,
+            )
+            persona = _extract_persona(data, chosen_topic)
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Shift generation fallback: {e}")
             return self.factory.generate_shift(Register.TAMEGUCHI, Register.BUSINESS_KEIGO, difficulty)
@@ -374,6 +536,9 @@ class AIKeigoGenerator:
             "acceptable_variants": variants,
             "translation": trans_vi,
             "vietnamese": trans_vi,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -396,7 +561,7 @@ class AIKeigoGenerator:
             f"Hãy tạo 1 tình huống kinh điển thử thách phân biệt Trong/Ngoài (Uchi - Soto) trong văn hóa công sở Nhật. [Nonce: {nonce}]\n"
             f"Ví dụ: Đối tác ngoài gọi điện hỏi về Giám đốc/Trưởng phòng bên bạn. "
             f"Người học phải phản xạ hạ sếp mình xuống bằng Khiêm nhường ngữ và bỏ chức danh (VD: 社長の田中は席を外しております).\n"
-            f"Trả về JSON: {{\"prompt\": \"<câu hỏi của đối tác ngoài>\", \"scenario\": \"<bối cảnh vai vế rõ ràng>\", \"instructions\": \"<hướng dẫn chọn đúng hướng Kính ngữ>\", \"canonical\": \"<câu trả lời chuẩn>\", \"acceptable_variants\": [\"<biến thể>\"], \"translation_vi\": \"<dịch tiếng Việt>\", \"speaker_group\": \"UCHI\", \"listener_group\": \"SOTO\", \"referent_group\": \"UCHI\"}}"
+            f"Trả về JSON: {{\"prompt\": \"<câu hỏi của đối tác ngoài>\", \"scenario\": \"<bối cảnh vai vế rõ ràng>\", \"instructions\": \"<hướng dẫn chọn đúng hướng Kính ngữ>\", \"canonical\": \"<câu trả lời chuẩn>\", \"acceptable_variants\": [\"<biến thể>\"], \"translation_vi\": \"<dịch tiếng Việt>\", \"hint_tier_1\": \"<gợi ý cấp 1>\", \"hint_tier_2\": \"<gợi ý cấp 2>\", \"root_verb\": \"<từ/hành động chính>\", \"formula\": \"<quy tắc bỏ chức danh + Khiêm nhường>\", \"rationale\": \"<giải thích Uchi-Soto>\", \"speaker_group\": \"UCHI\", \"listener_group\": \"SOTO\", \"referent_group\": \"UCHI\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -424,6 +589,15 @@ class AIKeigoGenerator:
                 "relationship": "CUSTOMER_PROVIDER",
                 "situation": "電話応対",
             }
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Sếp công ty mình (Uchi)",
+                default_formula="Bỏ chức danh 'san/sama' + Dùng Khiêm nhường ngữ (謙譲語 ↓)",
+                default_rationale="Nói về người công ty mình với đối tác ngoài (Soto) phải hạ thấp mình",
+                canonical=canonical,
+                pitfall="Không dùng Tôn kính ngữ (おっしゃる/いらっしゃる) cho sếp mình trước mặt khách ngoài",
+            )
+            persona = _extract_persona(data, "電話応対")
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Uchi-Soto generation fallback: {e}")
             return self.factory.generate_uchi_soto(difficulty)
@@ -439,6 +613,9 @@ class AIKeigoGenerator:
             "translation": trans_vi,
             "vietnamese": trans_vi,
             "social_context": ctx,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -461,7 +638,7 @@ class AIKeigoGenerator:
             f"Hãy tạo 1 câu tiếng Nhật có LỖI SAI KÍNH NGỮ thực tế (Nhị trùng kính ngữ 二重敬語 hoặc lộn hướng Tôn kính/Khiêm nhường). [Nonce: {nonce}]\n"
             f"Yêu cầu người học phát hiện lỗi và nói lại câu đúng hoàn chỉnh.\n"
             f"Ví dụ lỗi: おっしゃられる (lỗi nhị trùng), 社長がお召し上がりになられた (lỗi thừa kính ngữ), ご覧いたす (lộn hướng).\n"
-            f"Trả về JSON: {{\"faulty_sentence_ja\": \"<câu có lỗi sai>\", \"error_type\": \"<DOUBLE_KEIGO | WRONG_DIRECTION>\", \"scenario\": \"<mô tả lỗi>\", \"instructions\": \"<hướng dẫn sửa lỗi>\", \"canonical_fix_ja\": \"<câu đã sửa đúng hoàn chỉnh>\", \"acceptable_variants\": [\"<câu sửa đúng biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\"}}"
+            f"Trả về JSON: {{\"faulty_sentence_ja\": \"<câu có lỗi sai>\", \"error_type\": \"<DOUBLE_KEIGO | WRONG_DIRECTION>\", \"scenario\": \"<mô tả lỗi>\", \"instructions\": \"<hướng dẫn sửa lỗi>\", \"canonical_fix_ja\": \"<câu đã sửa đúng hoàn chỉnh>\", \"acceptable_variants\": [\"<câu sửa đúng biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\", \"hint_tier_1\": \"<gợi ý lỗi nằm ở đâu>\", \"hint_tier_2\": \"<gợi ý cách sửa>\", \"root_verb\": \"<từ bị lỗi>\", \"formula\": \"<cách sửa chuẩn mực>\", \"rationale\": \"<giải thích tại sao sai>\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -480,6 +657,19 @@ class AIKeigoGenerator:
             variants = data.get("acceptable_variants", [canonical, "社長が言われました。"])
             trans_vi = data.get("translation_vi", "Giám đốc đã nói như vậy.")
             err_type = data.get("error_type", "DOUBLE_KEIGO")
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Lỗi trùng kính ngữ",
+                default_formula="Bỏ hậu tố 'られる' thừa",
+                default_rationale="Đã dùng động từ tôn kính đặc biệt thì không cộng thêm られる",
+                canonical=canonical,
+                pitfall="Nhị trùng kính ngữ làm câu rườm rà và sai chuẩn mực",
+            )
+            persona = {
+                "name": "Bác Sĩ Kính Ngữ (Keigo Doctor)",
+                "role": "EXPERT DIAGNOSTICIAN",
+                "avatar": "🩺",
+            }
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Doctor generation fallback: {e}")
             return self.factory.generate_doctor(difficulty)
@@ -495,6 +685,9 @@ class AIKeigoGenerator:
             "acceptable_variants": variants,
             "translation": trans_vi,
             "vietnamese": trans_vi,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -515,7 +708,7 @@ class AIKeigoGenerator:
 
         prompt_text = (
             f"Hãy tạo 1 câu giao tiếp tiếng Nhật và yêu cầu người học đánh giá mức độ tự nhiên công sở. [Nonce: {nonce}]\n"
-            f"Trả về JSON: {{\"sentence_ja\": \"<câu tiếng Nhật>\", \"scenario\": \"<bối cảnh>\", \"is_natural\": true/false, \"expected_label\": \"NATURAL | INAPPROPRIATE\", \"canonical_correction\": \"<câu tự nhiên nhất>\", \"acceptable_variants\": [\"<câu biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\"}}"
+            f"Trả về JSON: {{\"sentence_ja\": \"<câu tiếng Nhật>\", \"scenario\": \"<bối cảnh>\", \"is_natural\": true/false, \"expected_label\": \"NATURAL | INAPPROPRIATE\", \"canonical_correction\": \"<câu tự nhiên nhất>\", \"acceptable_variants\": [\"<câu biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\", \"hint_tier_1\": \"<gợi ý độ tự nhiên>\", \"hint_tier_2\": \"<gợi ý cách nói chuẩn>\", \"root_verb\": \"<từ/ngữ cảnh>\", \"formula\": \"<cách diễn đạt tự nhiên>\", \"rationale\": \"<giải thích ngữ dụng học>\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -533,6 +726,14 @@ class AIKeigoGenerator:
             variants = data.get("acceptable_variants", [canonical])
             trans_vi = data.get("translation_vi", "Ngày mai tôi sẽ gặp giám đốc.")
             label = data.get("expected_label", "NATURAL")
+            hints, anatomy = _extract_hints_and_anatomy(
+                data,
+                default_root="Độ tự nhiên ngữ dụng",
+                default_formula="Diễn đạt chuẩn công sở Nhật",
+                default_rationale="Tránh các câu nói đúng ngữ pháp nhưng người Nhật không dùng",
+                canonical=canonical,
+            )
+            persona = _extract_persona(data, "自然度判定")
         except Exception as e:
             logger.warning(f"[AIKeigoGenerator] Naturalness generation fallback: {e}")
             return self.factory.generate_naturalness(difficulty)
@@ -548,6 +749,9 @@ class AIKeigoGenerator:
             "acceptable_variants": variants,
             "translation": trans_vi,
             "vietnamese": trans_vi,
+            "hints": hints,
+            "anatomy": anatomy,
+            "persona": persona,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,

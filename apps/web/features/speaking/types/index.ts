@@ -122,6 +122,23 @@ export interface ConversationAnalysisSummary {
   pending_jobs_count: number;
 }
 
+export interface ScaffoldingSuggestion {
+  intent?: "positive" | "concern" | "question" | string;
+  ja: string;
+  vi: string;
+}
+
+export interface ScaffoldingVocab {
+  ja: string;
+  reading?: string;
+  vi: string;
+}
+
+export interface ScaffoldingHint {
+  suggestions: ScaffoldingSuggestion[];
+  key_vocab: ScaffoldingVocab[];
+}
+
 export interface ConversationTurn {
   id: string;
   session_id: string;
@@ -143,8 +160,10 @@ export interface ConversationTurn {
     total_ms?: number;
     speech_duration_ms?: number;
     confidence?: number;
+    scaffolding?: ScaffoldingHint;
   } | null;
   feedback_hint?: string | null;
+  scaffolding?: ScaffoldingHint | null;
   analysis?: TurnAnalysis | null;
   started_at: string;
   ended_at?: string | null;

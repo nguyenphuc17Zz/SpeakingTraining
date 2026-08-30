@@ -62,9 +62,11 @@ class AIReflexGenerator:
         pressure_level: str = "normal",
         verb: str | None = None,
         conjugation_target: str | None = None,
+        topic: str | None = None,
         user_id: str = "reflex_user",
+        **kwargs,
     ) -> dict[str, Any]:
-        """Generates dynamic reflex exercise via Gemini AI with Sudachi morphological verification."""
+        """Routes reflex generation to specialized AI prompt templates or high-speed deterministic factory."""
         try:
             if sub_mode == "reflex_conjugation":
                 # Conjugation is fully deterministic and randomized across 600+ verbs and all 11 forms
@@ -79,19 +81,22 @@ class AIReflexGenerator:
                     difficulty=difficulty,
                     pressure_level=pressure_level,
                     user_id=user_id,
+                    transformation_category=kwargs.get("transformation_category"),
                 )
             elif sub_mode == "reflex_context":
                 return await self._generate_dynamic_context(
                     difficulty=difficulty,
                     pressure_level=pressure_level,
                     user_id=user_id,
+                    context_category=kwargs.get("context_category"),
                 )
             elif sub_mode == "reflex_vocabulary":
                 # Vocabulary recall is fully deterministic — no AI needed
                 return self.factory.generate_vocabulary(
-                    direction="random",
+                    direction="vi_to_ja",
                     difficulty=difficulty,
                     pressure_level=pressure_level,
+                    vocab_category=kwargs.get("vocab_category"),
                 )
             elif sub_mode == "reflex_keigo_vocab":
                 # Keigo vocabulary blitz is fully deterministic — no AI needed
@@ -99,12 +104,20 @@ class AIReflexGenerator:
                     target_type="all",
                     difficulty=difficulty,
                     pressure_level=pressure_level,
+                    keigo_category=kwargs.get("keigo_category"),
                 )
-            else:
-                return await self._generate_dynamic_qna(
+            elif sub_mode == "reflex_qna":
+                # Speed Q&A with full topic filtering, speech starters, and 3-angle model answers
+                return self.factory.generate_qna(
+                    topic=topic,
                     difficulty=difficulty,
                     pressure_level=pressure_level,
-                    user_id=user_id,
+                )
+            else:
+                return self.factory.generate_qna(
+                    topic=topic,
+                    difficulty=difficulty,
+                    pressure_level=pressure_level,
                 )
         except Exception as e:
             logger.warning(f"[AIReflexGenerator] Global generation exception, falling back to factory: {e}")
@@ -112,6 +125,7 @@ class AIReflexGenerator:
                 sub_mode=sub_mode,
                 verb=verb,
                 target_form=conjugation_target,
+                topic=topic,
                 difficulty=difficulty,
                 pressure_level=pressure_level,
             )
@@ -124,85 +138,13 @@ class AIReflexGenerator:
         pressure_level: str,
         user_id: str,
     ) -> dict[str, Any]:
-        """Generates conjugation using morphological dictionary and AI verification."""
-        timer_ms = timer_for_level(pressure_level)
-
-        # All 11 Candidate forms (comprehensive coverage across all Japanese forms)
-        all_forms = [
-            ConjugationForm.NAI,
-            ConjugationForm.TA,
-            ConjugationForm.TE,
-            ConjugationForm.POTENTIAL,
-            ConjugationForm.PASSIVE,
-            ConjugationForm.CAUSATIVE,
-            ConjugationForm.CAUSATIVE_PASSIVE,
-            ConjugationForm.VOLITIONAL,
-            ConjugationForm.BA,
-            ConjugationForm.TARA,
-            ConjugationForm.IMPERATIVE,
-        ]
-        chosen_form = target_form or self.factory._get_next_form(all_forms)
-
-        # If verb is not provided, query Gemini to dynamically suggest an authentic JLPT verb for this level
-        if not verb:
-            nonce = uuid.uuid4().hex[:8]
-            recent_v = list(self.factory.recent_verbs)[-10:]
-            avoid_v = f" TUYỆT ĐỐI TRÁNH các động từ sau: {recent_v}." if recent_v else ""
-            prompt_text = (
-                f"Hãy đưa ra 1 động từ tiếng Nhật phong phú, tự nhiên và thực tế trong đời sống tiếng Nhật "
-                f"để luyện phản xạ chia thể '{chosen_form}'.{avoid_v} [Nonce: {nonce}] "
-                f"Trả về JSON định dạng: {{\"verb\": \"<chữ Hán/Kana gốc>\", \"reading\": \"<Hiragana>\", \"meaning_vi\": \"<nghĩa tiếng Việt ngắn gọn>\"}}"
-            )
-            req = AIRequest(
-                messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
-                system_instruction="Bạn là chuyên gia ngôn ngữ học tiếng Nhật. Trả về duy nhất JSON hợp lệ, không kèm markdown thừa.",
-                response_format=ResponseFormat(type=ResponseFormatType.JSON_OBJECT),
-                temperature=0.9,
-                metadata={"idempotency_key": str(uuid.uuid4())},
-            )
-            try:
-                resp = await self.ai_router.generate(task=AITask.EXERCISE_GENERATION, request=req, user_id=user_id)
-                data = json.loads(resp.content.strip())
-                verb = data.get("verb", "食べる")
-                meaning_vi = data.get("meaning_vi", "Ăn")
-                reading = data.get("reading", "たべる")
-            except Exception as e:
-                logger.warning(f"[AIReflexGenerator] AI verb generation fallback: {e}")
-                return self.factory.generate_conjugation(
-                    verb=verb,
-                    target_form=chosen_form,
-                    difficulty=difficulty,
-                    pressure_level=pressure_level,
-                )
-        else:
-            meaning_vi = "Động từ tiếng Nhật"
-            reading = self.lang_provider.get_reading(verb) or verb
-
-        target = self.conj_engine.conjugate(verb, chosen_form)
-
-        return {
-            "title": f"瞬発力・活用: {verb} → {target.form.value}",
-            "objective": f"Chia động từ {verb} ({meaning_vi}) sang dạng {target.form.value} trong {timer_ms/1000:.1f}s",
-            "scenario": f"Động từ: {verb} ({meaning_vi})",
-            "instructions": f"Nghe/nhìn động từ '{verb}' ({meaning_vi}) và nói ngay dạng {target.form.value} trước khi hết giờ.",
-            "prompt": verb,
-            "prompt_reading": reading,
-            "translation": meaning_vi,
-            "vietnamese": meaning_vi,
-            "target": target.canonical,
-            "canonical": target.canonical,
-            "acceptable_variants": target.accepted,
-            "alternatives": target.alternatives,
-            "variant_notes": target.variant_notes,
-            "verb_class": target.verb_class.value,
-            "form": target.form.value,
-            "timer_limit_ms": timer_ms,
-            "pressure_level": pressure_level,
-            "difficulty": difficulty,
-            "constraints": ["Nói chính xác dạng chia, không thêm filler dài."],
-            "target_patterns": [target.canonical] + target.accepted,
-            "estimated_minutes": 3,
-        }
+        """Generates conjugation using high-speed morphological dictionary with 50 forms."""
+        return self.factory.generate_conjugation(
+            verb=verb,
+            target_form=target_form,
+            difficulty=difficulty,
+            pressure_level=pressure_level,
+        )
 
     async def _generate_dynamic_qna(
         self,
@@ -221,7 +163,7 @@ class AIReflexGenerator:
             f"Hãy sáng tạo 1 câu hỏi giao tiếp tiếng Nhật tự nhiên, bất ngờ và phong phú "
             f"thuộc chủ đề '{chosen_topic}' ({topic_sub}) để người học luyện phản xạ trả lời trong {timer_ms/1000:.1f}s.{avoid_instruction} "
             f"[Nonce: {nonce}] "
-            f"Trả về JSON: {{\"question_ja\": \"<câu hỏi tiếng Nhật tự nhiên>\", \"translation_vi\": \"<dịch nghĩa tiếng Việt>\", \"sample_answer_ja\": \"<câu trả lời mẫu ngắn gọn tự nhiên>\", \"topic\": \"{chosen_topic}\"}}"
+            f"Trả về JSON: {{\"question_ja\": \"<câu hỏi tiếng Nhật tự nhiên>\", \"translation_vi\": \"<dịch nghĩa tiếng Việt>\", \"key_vocab\": [{{\"ja\": \"<từ vựng 1>\", \"vi\": \"<nghĩa 1>\"}}, {{\"ja\": \"<từ vựng 2>\", \"vi\": \"<nghĩa 2>\"}}], \"idea_sparks\": [\"<hướng 1>\", \"<hướng 2>\", \"<hướng 3>\"], \"sample_answer_ja\": \"<câu trả lời mẫu ngắn gọn>\", \"multi_answers\": {{\"positive\": {{\"ja\": \"<khẳng định>\", \"vi\": \"<nghĩa>\"}}, \"negative\": {{\"ja\": \"<phủ định>\", \"vi\": \"<nghĩa>\"}}, \"extended\": {{\"ja\": \"<mở rộng>\", \"vi\": \"<nghĩa>\"}}}}, \"topic\": \"{chosen_topic}\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -236,6 +178,13 @@ class AIReflexGenerator:
             q_ja = data.get("question_ja", "休日は何をしていますか？")
             trans_vi = data.get("translation_vi", "Ngày nghỉ bạn thường làm gì?")
             sample_ans = data.get("sample_answer_ja", "家で映画を観てのんびりしています。")
+            key_vocab = data.get("key_vocab", [{"ja": "のんびり過ごす", "vi": "thư thả nghỉ ngơi"}, {"ja": "気分転換", "vi": "đổi gió, giải tỏa"}])
+            idea_sparks = data.get("idea_sparks", ["Thư giãn tại nhà", "Đi cafe / Dạo phố", "Bận rộn / Học tập"])
+            multi_ans = data.get("multi_answers", {
+                "positive": {"ja": sample_ans, "vi": "Tôi thường ở nhà xem phim thư giãn."},
+                "negative": {"ja": "最近は忙しくて、あまり休めていません。", "vi": "Dạo này bận nên tôi chưa nghỉ ngơi mấy."},
+                "extended": {"ja": "カフェに行って資格の勉強をすることが多いです。", "vi": "Tôi hay ra quán cafe học thêm chứng chỉ."},
+            })
             topic = data.get("topic", chosen_topic)
         except Exception as e:
             logger.warning(f"[AIReflexGenerator] AI Q&A generation fallback: {e}")
@@ -253,6 +202,9 @@ class AIReflexGenerator:
             "topic": topic,
             "canonical": sample_ans,
             "acceptable_variants": [sample_ans],
+            "key_vocab": key_vocab,
+            "idea_sparks": idea_sparks,
+            "multi_answers": multi_ans,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,
@@ -267,17 +219,19 @@ class AIReflexGenerator:
         difficulty: str,
         pressure_level: str,
         user_id: str,
+        transformation_category: str | None = None,
     ) -> dict[str, Any]:
         """Generates dynamic Sentence Transformation via Gemini AI."""
         timer_ms = timer_for_level(pressure_level)
         nonce = uuid.uuid4().hex[:8]
         recent_t = list(self.factory.recent_transforms)[-6:]
         avoid_t = f" Tránh các câu gốc sau: {recent_t}." if recent_t else ""
+        cat_inst = f" Dựa trên chuyên đề hoặc từ khóa ngữ pháp yêu cầu: '{transformation_category}'." if transformation_category and transformation_category != "all" else ""
 
         prompt_text = (
-            f"Hãy sáng tạo 1 bài tập biến đổi câu tiếng Nhật (Sentence Transformation) phong phú, thực tế.{avoid_t} [Nonce: {nonce}] "
-            f"Ví dụ: đổi câu thể lịch sự sang thể ngắn, bị động, sai khiến, bị sai khiến, điều kiện ば/たら, hoặc ý chí. "
-            f"Trả về JSON: {{\"source_sentence_ja\": \"<câu gốc tiếng Nhật>\", \"task_instruction_ja\": \"<yêu cầu biến đổi>\", \"expected_sentence_ja\": \"<câu sau khi biến đổi đúng>\", \"translation_vi\": \"<dịch nghĩa câu gốc tiếng Việt>\"}}"
+            f"Hãy sáng tạo 1 bài tập biến đổi câu tiếng Nhật (Sentence Transformation) phong phú, thực tế.{cat_inst}{avoid_t} [Nonce: {nonce}] "
+            f"Ví dụ: đổi câu thể lịch sự sang thể ngắn, bị động, sai khiến, bị sai khiến, điều kiện ば/たら, hoặc kính ngữ. "
+            f"Trả về JSON: {{\"source_sentence_ja\": \"<câu gốc tiếng Nhật>\", \"task_instruction_ja\": \"<yêu cầu biến đổi>\", \"target_label\": \"<nhãn thể ngắn gọn>\", \"formula\": \"<công thức biến đổi>\", \"grammar_note\": \"<giải thích ngữ pháp ngắn gọn>\", \"expected_sentence_ja\": \"<câu sau khi biến đổi đúng>\", \"translation_vi\": \"<dịch nghĩa câu gốc tiếng Việt>\", \"category\": \"{transformation_category or 'casual'}\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -291,22 +245,36 @@ class AIReflexGenerator:
             data = json.loads(resp.content.strip())
             source_ja = data.get("source_sentence_ja", "今日は東京に行きます。")
             task_ja = data.get("task_instruction_ja", "カジュアルな過去形にしてください。")
+            target_label = data.get("target_label", task_ja)
+            formula = data.get("formula", "")
+            grammar_note = data.get("grammar_note", "")
             expected_ja = data.get("expected_sentence_ja", "今日は東京に行った。")
             trans_vi = data.get("translation_vi", "Hôm nay tôi đi Tokyo.")
+            cat = data.get("category", transformation_category or "casual")
         except Exception as e:
             logger.warning(f"[AIReflexGenerator] AI Transformation fallback: {e}")
-            return self.factory.generate_transformation(difficulty=difficulty, pressure_level=pressure_level)
+            return self.factory.generate_transformation(
+                difficulty=difficulty,
+                pressure_level=pressure_level,
+                transformation_category=transformation_category,
+            )
 
         return {
-            "title": f"瞬発・文型変換: {task_ja}",
+            "title": f"瞬発・文型変換: {target_label}",
             "objective": f"Biến đổi câu theo yêu cầu trong {timer_ms/1000:.1f}s",
             "scenario": trans_vi,
-            "instructions": f"Câu gốc: '{source_ja}' — Yêu cầu: {task_ja} — Nói ngay câu đã biến đổi.",
+            "instructions": f"Câu gốc: '{source_ja}' — Đổi sang: {target_label}",
             "prompt": source_ja,
+            "source": source_ja,
             "prompt_translation": trans_vi,
             "translation": trans_vi,
             "vietnamese": trans_vi,
             "task": task_ja,
+            "target_label": target_label,
+            "formula": formula,
+            "grammar_note": grammar_note,
+            "category": cat,
+            "transformation_category": cat,
             "expected": expected_ja,
             "canonical": expected_ja,
             "acceptable_variants": [expected_ja],
@@ -323,6 +291,7 @@ class AIReflexGenerator:
         difficulty: str,
         pressure_level: str,
         user_id: str,
+        context_category: str | None = None,
     ) -> dict[str, Any]:
         """Generates dynamic Contextual Reaction scenario via Gemini AI."""
         timer_ms = timer_for_level(pressure_level)
@@ -334,11 +303,12 @@ class AIReflexGenerator:
         chosen_role = random.choice(roles_pool)
         recent_c = list(self.factory.recent_contexts)[-6:]
         avoid_c = f" Tránh các tình huống sau: {recent_c}." if recent_c else ""
+        cat_inst = f" Dựa trên bối cảnh hoặc từ khóa tình huống yêu cầu: '{context_category}'." if context_category and context_category != "all" else ""
 
         prompt_text = (
             f"Hãy sáng tạo 1 tình huống giao tiếp tiếng Nhật thực tế bất ngờ "
-            f"giữa người học và '{chosen_role}'.{avoid_c} [Nonce: {nonce}] "
-            f"Trả về JSON: {{\"scenario_prompt_ja\": \"<lời thoại đối phương, ví dụ: {chosen_role}: ...>\", \"intent_vi\": \"<ý định bạn cần phản hồi ngắn gọn>\", \"expected_response_ja\": \"<câu trả lời chuẩn mẫu tiếng Nhật>\", \"translation_vi\": \"<dịch nghĩa tình huống tiếng Việt>\", \"role\": \"{chosen_role}\"}}"
+            f"giữa người học và '{chosen_role}'.{cat_inst}{avoid_c} [Nonce: {nonce}] "
+            f"Trả về JSON: {{\"speaker_ja\": \"<lời thoại đối phương, không kèm tiền tố vai trò>\", \"speaker_vi\": \"<dịch nghĩa lời thoại tiếng Việt>\", \"intent\": \"<nhiệm vụ/ý định bạn cần phản hồi ngắn gọn>\", \"key_vocab\": [{{\"ja\": \"...\", \"vi\": \"...\"}}], \"idea_sparks\": [\"🟢 ...\", \"🟡 ...\", \"🔴 ...\"], \"expected_response_ja\": \"<câu trả lời chuẩn mẫu tiếng Nhật>\", \"role\": \"{chosen_role}\", \"cultural_note\": \"<bí quyết ứng xử ngắn gọn>\"}}"
         )
         req = AIRequest(
             messages=[AIMessage(role=AIMessageRole.USER, content=prompt_text)],
@@ -350,28 +320,44 @@ class AIReflexGenerator:
         try:
             resp = await self.ai_router.generate(task=AITask.EXERCISE_GENERATION, request=req, user_id=user_id)
             data = json.loads(resp.content.strip())
-            scenario_ja = data.get("scenario_prompt_ja", "Colleague: 手伝いましょうか？")
-            intent_vi = data.get("intent_vi", "Cảm ơn và nhờ bê hộp này giúp.")
+            speaker_ja = data.get("speaker_ja") or data.get("scenario_prompt_ja", "手伝いましょうか？")
+            speaker_vi = data.get("speaker_vi") or data.get("translation_vi", "Để mình phụ một tay nhé?")
+            intent_vi = data.get("intent") or data.get("intent_vi", "Cảm ơn và nhờ bê hộp này giúp.")
             expected_ja = data.get("expected_response_ja", "ありがとうございます！これをお願いできますか？")
-            trans_vi = data.get("translation_vi", "Đồng nghiệp ngỏ ý giúp đỡ.")
             role = data.get("role", chosen_role)
+            key_vocab = data.get("key_vocab", [])
+            idea_sparks = data.get("idea_sparks", [])
+            cultural_note = data.get("cultural_note", "")
         except Exception as e:
             logger.warning(f"[AIReflexGenerator] AI Contextual fallback: {e}")
-            return self.factory.generate_context(difficulty=difficulty, pressure_level=pressure_level)
+            return self.factory.generate_context(
+                difficulty=difficulty,
+                pressure_level=pressure_level,
+                context_category=context_category,
+            )
 
         return {
             "title": f"瞬発・状況対応: {role}",
-            "objective": f"Phản ứng tự nhiên theo tình huống trong {timer_ms/1000:.1f}s",
-            "scenario": trans_vi,
-            "instructions": f"Tình huống: {scenario_ja} — Ý định: {intent_vi} — Nói ngay phản hồi tiếng Nhật tự nhiên.",
-            "prompt": scenario_ja,
-            "prompt_translation": trans_vi,
-            "translation": trans_vi,
-            "vietnamese": trans_vi,
+            "objective": f"Phản xạ tự nhiên theo tình huống trong {timer_ms/1000:.1f}s",
+            "scenario": speaker_vi,
+            "instructions": f"Đối phương ({role}): '{speaker_ja}' — Nhiệm vụ: {intent_vi}",
+            "prompt": speaker_ja,
+            "speaker_ja": speaker_ja,
+            "speaker_vi": speaker_vi,
+            "prompt_translation": speaker_vi,
+            "translation": speaker_vi,
+            "vietnamese": speaker_vi,
             "intent": intent_vi,
+            "role": role,
+            "category": context_category or "workplace",
+            "context_category": context_category or "workplace",
+            "key_vocab": key_vocab,
+            "idea_sparks": idea_sparks,
             "expected": expected_ja,
             "canonical": expected_ja,
+            "sample_answer": expected_ja,
             "acceptable_variants": [expected_ja],
+            "cultural_note": cultural_note,
             "relationship": role,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,

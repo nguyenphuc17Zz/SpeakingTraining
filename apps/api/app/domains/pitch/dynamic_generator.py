@@ -38,6 +38,62 @@ PITCH_TOPICS_POOL = [
 ]
 
 
+def compute_pitch_mora_helpers(
+    reading: str,
+    pitch_pattern: list[str] | None = None,
+    downstep_index: int = 0,
+) -> tuple[list[dict[str, Any]], str]:
+    """Computes mora tokens breakdown and NHK downstep notation."""
+    if not reading:
+        return [], ""
+
+    moras = []
+    i = 0
+    chars = list(reading)
+    while i < len(chars):
+        c = chars[i]
+        if i + 1 < len(chars) and chars[i + 1] in "ゃゅょャュョぁぃぅぇぉァィゥェォ":
+            moras.append(c + chars[i + 1])
+            i += 2
+        else:
+            moras.append(c)
+            i += 1
+
+    pat = pitch_pattern or []
+    breakdown = []
+    notation_parts = []
+
+    for idx, m in enumerate(moras):
+        if idx < len(pat):
+            tone = pat[idx]
+        else:
+            if downstep_index == 0:
+                tone = "L" if idx == 0 and len(moras) > 1 else "H"
+            elif downstep_index == 1:
+                tone = "H" if idx == 0 else "L"
+            elif idx + 1 <= downstep_index:
+                tone = "L" if idx == 0 else "H"
+            else:
+                tone = "L"
+
+        is_ds = downstep_index > 0 and (idx + 1 == downstep_index)
+        breakdown.append({
+            "index": idx + 1,
+            "mora": m,
+            "tone": tone.upper(),
+            "is_downstep": is_ds,
+        })
+
+        notation_parts.append(m)
+        if is_ds:
+            notation_parts.append("ꜜ")
+
+    if downstep_index == 0 and len(moras) > 0:
+        notation_parts.append("￣")
+
+    return breakdown, "".join(notation_parts)
+
+
 class AIPitchGenerator:
     """Generates infinite, creative, non-repeating Pitch Accent speaking exercises using Gemini AI."""
 
@@ -68,7 +124,6 @@ class AIPitchGenerator:
             elif sub_mode == "pitch_recognition":
                 return await self._generate_dynamic_recognition(difficulty, pressure_level, user_id)
             else:
-                # Default / Mixed mode: pick one randomly
                 eff = random.choice([
                     "pitch_minimal_pair",
                     "mora_length",
@@ -147,6 +202,13 @@ class AIPitchGenerator:
             logger.warning(f"[AIPitchGenerator] Minimal pair generation fallback: {e}")
             return self.factory.generate_minimal_pair(difficulty, pressure_level)
 
+        is_target_a = target == word_a
+        chosen_pat = pat_a if is_target_a else pat_b
+        chosen_type = type_a if is_target_a else type_b
+        downstep_idx = 1 if "1" in chosen_type or "頭高" in chosen_type else (0 if "0" in chosen_type or "平板" in chosen_type else 2)
+
+        mora_breakdown, downstep_notation = compute_pitch_mora_helpers(reading, chosen_pat, downstep_idx)
+
         return {
             "title": f"Minimal Pair: {word_a} vs {word_b}",
             "objective": f"Phân biệt cao độ {word_a} ({type_a}) vs {word_b} ({type_b}) cùng đọc '{reading}' trong {timer_ms/1000:.1f}s",
@@ -169,7 +231,11 @@ class AIPitchGenerator:
                 "reading": reading,
                 "context": ctx,
             },
-            "pitch_pattern": pat_a if target == word_a else pat_b,
+            "pitch_pattern": chosen_pat,
+            "downstep_index": downstep_idx,
+            "downstep_notation": downstep_notation,
+            "mora_breakdown": mora_breakdown,
+            "pitfall_vi": "Người Việt hay nhầm cao độ H với dấu sắc tiếng Việt ('Á-mè'). Hãy giữ âm đầu cao nhẹ nhàng và hạ xuống ở âm thứ 2.",
             "translation": f"{word_a}: {meaning_a} ↔ {word_b}: {meaning_b}",
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
@@ -218,15 +284,21 @@ class AIPitchGenerator:
             logger.warning(f"[AIPitchGenerator] Mora generation fallback: {e}")
             return self.factory.generate_mora_length(difficulty, pressure_level)
 
+        target_mora_list = long_m if target == long_w else short_m
+        target_reading = "".join(target_mora_list)
+        pat = ["L"] + ["H"] * (len(target_mora_list) - 1)
+        mora_breakdown, downstep_notation = compute_pitch_mora_helpers(target_reading, pat, 0)
+
         return {
             "title": f"Mora Length: {short_w} vs {long_w}",
-            "objective": f"Phát âm chuẩn {len(long_m)} phách ({m_type}) của từ '{target}' trong {timer_ms/1000:.1f}s",
+            "objective": f"Phát âm chuẩn {len(target_mora_list)} phách ({m_type}) của từ '{target}' trong {timer_ms/1000:.1f}s",
             "scenario": f"Phân biệt phách: {short_w} ({len(short_m)} mora - {short_vi}) vs {long_w} ({len(long_m)} mora - {long_vi})",
             "instructions": f"Hãy phát âm đúng độ dài phách của từ mục tiêu: '{target}'",
             "prompt": f"{short_w} ({len(short_m)} mora) / {long_w} ({len(long_m)} mora)",
             "canonical": target,
+            "reading": target_reading,
             "target": target,
-            "acceptable_variants": [target, short_w, long_w],
+            "acceptable_variants": [target, short_w, long_w, target_reading],
             "mora_info": {
                 "short_word": short_w,
                 "short_mora": short_m,
@@ -236,6 +308,11 @@ class AIPitchGenerator:
                 "long_meaning": long_vi,
                 "mora_type": m_type,
             },
+            "pitch_pattern": pat,
+            "downstep_index": 0,
+            "downstep_notation": downstep_notation,
+            "mora_breakdown": mora_breakdown,
+            "pitfall_vi": "Người học thường ngắt phách quá sớm ở âm ngắt (っ) hoặc không kéo dài đủ 2 nhịp ở trường âm. Hãy giữ nhịp đều như máy đếm nhịp.",
             "translation": f"{short_w} ({short_vi}) ↔ {long_w} ({long_vi})",
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
@@ -279,6 +356,9 @@ class AIPitchGenerator:
             logger.warning(f"[AIPitchGenerator] Devoicing generation fallback: {e}")
             return self.factory.generate_devoicing(difficulty, pressure_level)
 
+        pat = ["L"] + ["H"] * (max(1, len(reading) - 1))
+        mora_breakdown, downstep_notation = compute_pitch_mora_helpers(reading, pat, 0)
+
         return {
             "title": f"Devoicing: Vô Thanh Hóa ({devoiced})",
             "objective": f"Phát âm chuẩn vô thanh hóa âm '{devoiced}' trong từ '{word}' ({timer_ms/1000:.1f}s)",
@@ -294,6 +374,11 @@ class AIPitchGenerator:
                 "explanation": expl,
                 "meaning": meaning,
             },
+            "pitch_pattern": pat,
+            "downstep_index": 0,
+            "downstep_notation": downstep_notation,
+            "mora_breakdown": mora_breakdown,
+            "pitfall_vi": f"Tránh phát âm rõ ràng nguyên âm ở âm '{devoiced}'. Hãy thả lỏng thanh quản để âm gió xì ra tự nhiên.",
             "translation": meaning,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
@@ -338,6 +423,8 @@ class AIPitchGenerator:
             logger.warning(f"[AIPitchGenerator] Contour generation fallback: {e}")
             return self.factory.generate_contour(difficulty, pressure_level)
 
+        mora_breakdown, downstep_notation = compute_pitch_mora_helpers(reading, pat, drop)
+
         return {
             "title": f"Pitch Contour: {acc_type}",
             "objective": f"Phát âm đúng đường cao độ {acc_type} của từ '{word}' trong {timer_ms/1000:.1f}s",
@@ -349,12 +436,16 @@ class AIPitchGenerator:
             "target": word,
             "acceptable_variants": [word, reading],
             "pitch_pattern": pat,
+            "downstep_index": drop,
+            "downstep_notation": downstep_notation,
+            "mora_breakdown": mora_breakdown,
             "contour_info": {
                 "accent_type": acc_type,
                 "pattern": pat,
                 "drop_position": drop,
                 "meaning": meaning,
             },
+            "pitfall_vi": f"Quy tắc cao độ Tokyo: Âm thứ nhất và thứ hai luôn khác nhau (L-H hoặc H-L). Hãy chú ý nấc hạ giọng ở phách {drop if drop > 0 else 'không hạ (Heiban)'}.",
             "translation": meaning,
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
@@ -401,11 +492,36 @@ class AIPitchGenerator:
             logger.warning(f"[AIPitchGenerator] Recognition generation fallback: {e}")
             return self.factory.generate_recognition(difficulty, pressure_level)
 
+        pat = ["H", "L"] if "1" in spoken_type or "頭高" in spoken_type else ["L", "H"]
+        downstep_idx = 1 if "1" in spoken_type or "頭高" in spoken_type else (0 if "0" in spoken_type or "平板" in spoken_type else 2)
+        mora_breakdown, downstep_notation = compute_pitch_mora_helpers(reading, pat, downstep_idx)
+
+        # 50/50 randomize quiz option order
+        is_first_correct = random.choice([True, False])
+        quiz_options = [
+            {
+                "option_id": "A",
+                "key": "1",
+                "word": spoken if is_first_correct else distractor,
+                "meaning": correct_m if is_first_correct else distractor_m,
+                "accent_type": spoken_type if is_first_correct else distractor_type,
+                "is_correct": is_first_correct,
+            },
+            {
+                "option_id": "B",
+                "key": "2",
+                "word": distractor if is_first_correct else spoken,
+                "meaning": distractor_m if is_first_correct else correct_m,
+                "accent_type": distractor_type if is_first_correct else spoken_type,
+                "is_correct": not is_first_correct,
+            },
+        ]
+
         return {
             "title": f"Pitch Recognition: {reading}",
             "objective": f"Nghe phát âm '{reading}' và nhận diện đúng nghĩa ({spoken} vs {distractor}) trong {timer_ms/1000:.1f}s",
             "scenario": f"Luyện tai nghe phân biệt cao độ: '{reading}'",
-            "instructions": f"Lắng nghe âm thanh và nói to từ vựng đúng: '{spoken}' ({correct_m})",
+            "instructions": f"Lắng nghe âm thanh và chọn đáp án chuẩn [Phím 1 hoặc 2]: '{spoken}' ({correct_m})",
             "prompt": reading,
             "reading": reading,
             "canonical": spoken,
@@ -420,7 +536,13 @@ class AIPitchGenerator:
                 "distractor_type": distractor_type,
                 "distractor_meaning": distractor_m,
             },
-            "translation": f"A: {spoken} ({correct_m}) vs B: {distractor} ({distractor_m})",
+            "quiz_options": quiz_options,
+            "pitch_pattern": pat,
+            "downstep_index": downstep_idx,
+            "downstep_notation": downstep_notation,
+            "mora_breakdown": mora_breakdown,
+            "pitfall_vi": "Hãy tập trung nghe phách đầu tiên có cao hơn phách thứ hai hay không để phân biệt tức thì.",
+            "translation": f"A: {quiz_options[0]['word']} ({quiz_options[0]['meaning']}) ↔ B: {quiz_options[1]['word']} ({quiz_options[1]['meaning']})",
             "timer_limit_ms": timer_ms,
             "pressure_level": pressure_level,
             "difficulty": difficulty,

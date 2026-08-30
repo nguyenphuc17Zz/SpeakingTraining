@@ -2,7 +2,7 @@
 
 import { apiClient } from "@/services/api-client";
 
-export type SituationsPressureLevel = "relaxed" | "normal" | "fast" | "reflex" | "extreme";
+export type SituationsPressureLevel = "infinite" | "relaxed" | "normal" | "fast" | "reflex" | "extreme";
 
 export interface SituationalGoal {
   id: string;
@@ -11,6 +11,18 @@ export interface SituationalGoal {
   description?: string;
   status?: "NOT_STARTED" | "COMPLETED" | "FAILED";
   hidden?: boolean;
+}
+
+export interface SituationsKeyword {
+  word: string;
+  reading?: string;
+  meaning: string;
+}
+
+export interface SituationsHints {
+  tier1_keywords?: SituationsKeyword[];
+  tier2_frame?: string;
+  tier3_model?: string;
 }
 
 export interface SituationalData {
@@ -26,6 +38,9 @@ export interface SituationalData {
   unexpected_event?: string;
   useful_phrases?: string[];
   vocabulary_hints?: string;
+  hints?: SituationsHints;
+  quick_starters?: string[];
+  cultural_tip?: string;
   is_custom?: boolean;
   custom_topic?: string | null;
 }
@@ -53,6 +68,9 @@ export interface SituationsExercise {
   reading?: string;
   translation?: string;
   situationalData?: SituationalData;
+  hints?: SituationsHints;
+  quickStarters?: string[];
+  culturalTip?: string;
   extra_metadata?: any;
 }
 
@@ -74,6 +92,7 @@ export interface SituationsResult {
     fluency?: number;
     naturalness?: number;
   };
+  culturalTip?: string;
 }
 
 export interface GenerateSituationsParams {
@@ -107,7 +126,7 @@ export async function generateExercise(params: GenerateSituationsParams = {}): P
   });
   if (category && category !== "all") q.set("category", category);
   if (customTopic && customTopic.trim()) q.set("custom_topic", customTopic.trim());
-  if (timerLimitMs) q.set("timer_limit_ms", String(timerLimitMs));
+  if (timerLimitMs !== undefined) q.set("timer_limit_ms", String(timerLimitMs));
   if (difficulty) q.set("difficulty", difficulty);
 
   const res = await apiClient.post<any>(`/situations/exercises/generate?${q.toString()}`);
@@ -117,13 +136,16 @@ export async function generateExercise(params: GenerateSituationsParams = {}): P
   return {
     ...res,
     subMode: sc.sub_mode || subMode,
-    timerLimitMs: sc.timer_limit_ms || timerLimitMs || 6000,
+    timerLimitMs: sc.timer_limit_ms !== undefined ? sc.timer_limit_ms : (timerLimitMs !== undefined ? timerLimitMs : 6000),
     pressureLevel: sc.pressure_level || pressureLevel,
     canonical: sc.canonical || res.canonical || sData.npc_opening_dialogue || res.prompt,
     acceptableVariants: sc.accepted || res.acceptableVariants || [],
     prompt: sc.prompt || res.prompt || sData.npc_opening_dialogue,
     translation: sc.translation || sData.npc_dialogue_vi || res.scenario || "",
     situationalData: sData,
+    hints: sData.hints || sc.hints,
+    quickStarters: sData.quick_starters || sc.quick_starters || [],
+    culturalTip: sData.cultural_tip || sc.cultural_tip || "",
   };
 }
 
@@ -159,5 +181,6 @@ export async function submitAttempt(payload: {
       fluency: 85,
       naturalness: 87,
     },
+    culturalTip: res.culturalTip || (res as any).cultural_tip,
   };
 }

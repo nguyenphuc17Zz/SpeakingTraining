@@ -98,6 +98,8 @@ export interface TranscriptSegment {
   candidate_categories: CandidateCategory[];
   recommendation_score?: number;
   recommendation_reason?: string;
+  translation?: string;
+  vietnamese_translation?: string;
 }
 
 export interface ShadowingCandidate {
@@ -234,6 +236,16 @@ export interface PracticeAttemptFeedback {
   mastery: string;
   mastery_delta: number;
   review_scheduled_at?: string;
+  metrics?: {
+    mora_accuracy?: number;
+    speech_rate_mora_sec?: number;
+    target_rate_mora_sec?: number;
+    tempo_score?: number;
+    pitch_score?: number;
+    diff_tokens?: any[];
+    [key: string]: any;
+  };
+  diff_tokens?: any[];
 }
 
 export interface Bookmark {

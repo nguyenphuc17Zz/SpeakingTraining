@@ -27,6 +27,12 @@ export interface UseReflexSessionOptions {
   autoNext?: boolean;
   autoNextDelayMs?: number;
   startTrigger?: "manual" | "auto";
+  conjugationTarget?: string;
+  qnaTopic?: string;
+  transformationCategory?: string;
+  contextCategory?: string;
+  vocabCategory?: string;
+  keigoCategory?: string;
 }
 
 export function useReflexSession(opts: UseReflexSessionOptions) {
@@ -37,6 +43,12 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
     autoNext = false,
     autoNextDelayMs = 4500,
     startTrigger = "manual",
+    conjugationTarget,
+    qnaTopic,
+    transformationCategory,
+    contextCategory,
+    vocabCategory,
+    keigoCategory,
   } = opts;
 
   const [phase, setPhase] = useState<ReflexPhase>("idle");
@@ -69,6 +81,23 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
 
   const startTriggerRef = useRef(startTrigger);
   startTriggerRef.current = startTrigger;
+
+  const conjugationTargetRef = useRef(conjugationTarget);
+  conjugationTargetRef.current = conjugationTarget;
+
+  const qnaTopicRef = useRef(qnaTopic);
+  qnaTopicRef.current = qnaTopic;
+
+  const transformationCategoryRef = useRef(transformationCategory);
+  transformationCategoryRef.current = transformationCategory;
+
+  const contextCategoryRef = useRef(contextCategory);
+  contextCategoryRef.current = contextCategory;
+
+  const vocabCategoryRef = useRef(vocabCategory);
+  vocabCategoryRef.current = vocabCategory;
+  const keigoCategoryRef = useRef(keigoCategory);
+  keigoCategoryRef.current = keigoCategory;
 
   const promptCompletedAtRef = useRef<number | null>(null);
   const reactionLatencyRef = useRef<number | null>(null);
@@ -223,7 +252,6 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
       startAnswering();
     }
   }, [startAnswering]);
-
   // Mixed adaptive rotation
   const resolveMixedSubMode = useCallback(() => {
     if (subMode !== "mixed") return subMode;
@@ -241,7 +269,17 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
       setPrefetched(rest);
       const nextMode = resolveMixedSubMode();
       reflexApi
-        .generateExercise({ subMode: nextMode, pressureLevel, timerLimitMs: overrideTimerRef.current })
+        .generateExercise({
+          subMode: nextMode,
+          pressureLevel,
+          timerLimitMs: overrideTimerRef.current,
+          conjugationTarget: conjugationTargetRef.current,
+          topic: qnaTopicRef.current,
+          transformationCategory: transformationCategoryRef.current,
+          contextCategory: contextCategoryRef.current,
+          vocabCategory: vocabCategoryRef.current,
+          keigoCategory: keigoCategoryRef.current,
+        })
         .then((ex) => setPrefetched((p) => [...p, ex] as any))
         .catch(() => {});
       return next as ReflexExercise;
@@ -250,6 +288,12 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
       subMode: effMode,
       pressureLevel,
       timerLimitMs: overrideTimerRef.current,
+      conjugationTarget: conjugationTargetRef.current,
+      topic: qnaTopicRef.current,
+      transformationCategory: transformationCategoryRef.current,
+      contextCategory: contextCategoryRef.current,
+      vocabCategory: vocabCategoryRef.current,
+      keigoCategory: keigoCategoryRef.current,
     });
   }, [pressureLevel, prefetched, resolveMixedSubMode]);
 
@@ -539,6 +583,8 @@ function mapApiResult(
     fallbackTranscript ||
     "";
 
+  const promptReading = rc.word_reading || rc.prompt_reading || ex.extra_metadata?.word_reading || "";
+
   return {
     exerciseId: ex.id,
     success: !!api.success,
@@ -558,8 +604,15 @@ function mapApiResult(
     canonicalAnswer: canonical,
     acceptableVariants: variants,
     promptText,
+    promptReading,
     promptTranslation,
     targetForm: rc.conjugation_target || rc.form,
     verb: rc.verb,
+    direction: rc.direction,
+    targetType: rc.target_type,
+    targetLabel: rc.target_label_vi,
+    tripletSonkeigo: rc.triplet_sonkeigo,
+    tripletKenjougo: rc.triplet_kenjougo,
+    explanationVi: rc.explanation_vi,
   };
 }

@@ -51,6 +51,7 @@ export default function SituationsPage() {
   const [isCheatsheetOpen, setIsCheatsheetOpen] = useState(false);
   const [isKeybindingsOpen, setIsKeybindingsOpen] = useState(false);
   const [coachHint, setCoachHint] = useState<string | null>(null);
+  const [hintTier, setHintTier] = useState<number>(0);
 
   const { matchesAction, keybindings } = useSystemKeybindings();
 
@@ -96,6 +97,11 @@ export default function SituationsPage() {
 
   const activeExercise = session.exercise;
   const playedPromptExerciseIdRef = useRef<string | null>(null);
+
+  // Reset hint tier when exercise changes
+  useEffect(() => {
+    setHintTier(0);
+  }, [session.exercise?.id]);
 
   const playPromptAudio = useCallback(
     (autoTransition = false) => {
@@ -206,10 +212,27 @@ export default function SituationsPage() {
         e.preventDefault();
         soundFX.playSuikinkutsu();
         session.startNext();
+      } else if (
+        (matchesAction(e, "situationsReplayModel") ||
+          matchesAction(e, "situationsListenPrompt") ||
+          matchesAction(e, "drillReplayAudio")) &&
+        session.phase === "result"
+      ) {
+        e.preventDefault();
+        const sc = session.exercise?.extra_metadata?.situational_config || {};
+        const canonical = sc.canonical || session.exercise?.canonical || "";
+        if (canonical) {
+          soundFX.playFurin();
+          speakJapaneseText(canonical, { rate: 0.95 });
+        }
       } else if (matchesAction(e, "situationsListenPrompt")) {
         e.preventDefault();
         soundFX.playFurin();
         playPromptAudio(false);
+      } else if (matchesAction(e, "situationsToggleHint")) {
+        e.preventDefault();
+        soundFX.playFurin();
+        setHintTier((prev) => (prev + 1) % 4);
       } else if (matchesAction(e, "situationsToggleInputMode")) {
         e.preventDefault();
         soundFX.playFurin();
@@ -237,7 +260,7 @@ export default function SituationsPage() {
   }, [session.phase, transcriptInput, isCheatsheetOpen, isKeybindingsOpen, matchesAction, playPromptAudio]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6">
+    <div className="w-full text-foreground space-y-3">
       {/* 1. Lobby View */}
       {session.phase === "idle" && (
         <SituationsLobby
@@ -262,10 +285,10 @@ export default function SituationsPage() {
 
       {/* 2. Active Session View */}
       {session.phase !== "idle" && session.phase !== "summary" && (
-        <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
+        <div className="max-w-5xl mx-auto space-y-3 animate-in fade-in duration-200">
           {/* Top Session Navigation Header */}
-          <div className="p-4 rounded-2xl border border-border bg-card washi-texture flex flex-wrap items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl border border-border bg-card washi-texture flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+            <div className="flex items-center gap-2.5">
               <Button
                 variant="ghost"
                 size="sm"
@@ -273,21 +296,21 @@ export default function SituationsPage() {
                   soundFX.playFurin();
                   session.setPhase("idle");
                 }}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-xl"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg"
                 title="Về Sảnh chính (Esc)"
               >
-                <Home className="h-4 w-4" />
+                <Home className="h-3.5 w-3.5" />
               </Button>
 
-              <Badge variant="matcha" size="sm" className="font-bold">
+              <Badge variant="matcha" size="sm" className="font-bold text-[10px]">
                 TÌNH HUỐNG THỰC CHIẾN
               </Badge>
 
-              <span className="text-xs font-bold text-muted-foreground">
+              <span className="text-[11px] font-bold text-muted-foreground">
                 Câu #{session.results.length + 1}
               </span>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-muted/60 text-foreground border border-border shadow-2xs">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-muted/60 text-foreground border border-border shadow-2xs">
                 <Clock className="h-3 w-3 text-primary" />
                 <span>
                   {duration === 0
@@ -295,19 +318,6 @@ export default function SituationsPage() {
                     : `Phiên: ${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")} / ${duration}m`}
                 </span>
               </div>
-            </div>
-
-            {/* Middle Reflex Timer Bar */}
-            <div className="w-full sm:w-64">
-              <SituationsTimerBar
-                remainingMs={session.timer.remainingMs}
-                timerLimitMs={session.timer.totalLimitMs}
-                progress={session.timer.progress}
-                state={session.timer.state}
-                isActive={session.timer.isActive}
-                isPaused={session.timer.isPaused}
-                variant="bar"
-              />
             </div>
 
             <div className="flex items-center gap-2">
@@ -318,9 +328,9 @@ export default function SituationsPage() {
                   soundFX.playFurin();
                   setIsCheatsheetOpen(true);
                 }}
-                className="h-8 gap-1.5 text-xs font-bold shadow-2xs"
+                className="h-7 gap-1 text-[11px] font-bold shadow-2xs"
               >
-                <BookOpen className="h-3.5 w-3.5" />
+                <BookOpen className="h-3 w-3" />
                 <span className="hidden sm:inline">Sổ tay (C)</span>
               </Button>
 
@@ -328,117 +338,170 @@ export default function SituationsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => session.setPhase("summary")}
-                className="h-8 text-xs font-bold text-muted-foreground hover:text-foreground"
+                className="h-7 text-[11px] font-bold text-muted-foreground hover:text-foreground"
               >
-                Kết thúc phiên
+                Kết thúc
               </Button>
             </div>
           </div>
 
           {/* Loading State */}
           {session.phase === "loading" && (
-            <div className="p-16 rounded-3xl border border-border bg-card washi-texture flex flex-col items-center justify-center gap-3 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="p-12 rounded-3xl border border-border bg-card washi-texture flex flex-col items-center justify-center gap-2 text-center">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
               <div className="text-sm font-bold text-foreground">AI Đang Tạo Tình Huống Sống Động...</div>
               <p className="text-xs text-muted-foreground">Đang thiết lập địa điểm, nhân vật NPC và mục tiêu nhiệm vụ</p>
             </div>
           )}
 
-          {/* Prompt Playing & Ready State */}
+          {/* Active Workout Cockpit (2-Column No-Scroll Layout) */}
           {(session.phase === "prompt_playing" ||
             session.phase === "ready" ||
             session.phase === "waiting_for_speech" ||
             session.phase === "recording" ||
             session.phase === "evaluating") && (
-            <div className="space-y-6">
-              <SituationsPromptCard
-                exercise={activeExercise}
-                subtitleMode={subtitleMode}
-                onPlayAudio={() => playPromptAudio(false)}
-                phase={session.phase}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
+              {/* Left Column: Context & Dialogue (2 cols) */}
+              <div className="lg:col-span-2 space-y-3">
+                <SituationsPromptCard
+                  exercise={activeExercise}
+                  subtitleMode={subtitleMode}
+                  onPlayAudio={() => playPromptAudio(false)}
+                  phase={session.phase}
+                  hintTier={hintTier}
+                  onSetHintTier={setHintTier}
+                />
+              </div>
 
-              {/* Speech Capture Controller Box */}
-              <div className="p-6 rounded-3xl border border-border bg-card washi-texture shadow-sm space-y-4 text-center">
-                {session.phase === "ready" && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground font-semibold">
-                      NPC đã dứt lời. Nhấn nút bên dưới hoặc phím <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[10px] font-bold">Space</kbd> để bắt đầu nói.
-                    </p>
-                    <Button
-                      variant="akane"
-                      size="lg"
-                      onClick={() => {
-                        soundFX.playFurin();
-                        session.startVoiceRecording();
-                      }}
-                      className="gap-2 font-bold text-xs px-8 h-11 rounded-2xl shadow-md"
-                    >
-                      <Mic className="h-4 w-4" />
-                      <span>Bắt Đầu Trả Lời (Space)</span>
-                    </Button>
+              {/* Right Column: Interaction Cockpit (1 col) */}
+              <div className="space-y-3">
+                {/* Reflex Timer Bar */}
+                <div className="p-3.5 rounded-2xl bg-card border border-border/80 washi-texture shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+                    <span>Áp Lực Phản Xạ</span>
+                    <span>{session.timer.isInfinite ? "∞ Vô hạn" : `${(session.timer.remainingMs / 1000).toFixed(1)}s`}</span>
                   </div>
-                )}
+                  <SituationsTimerBar
+                    remainingMs={session.timer.remainingMs}
+                    timerLimitMs={session.timer.totalLimitMs}
+                    progress={session.timer.progress}
+                    state={session.timer.state}
+                    isActive={session.timer.isActive}
+                    isPaused={session.timer.isPaused}
+                    variant="bar"
+                  />
+                </div>
 
-                {(session.phase === "waiting_for_speech" || session.phase === "recording") && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <span className={cn(
-                        "h-3 w-3 rounded-full animate-ping",
-                        session.isUserSpeaking ? "bg-emerald-500" : "bg-rose-500"
-                      )} />
-                      <span className="text-xs font-bold text-foreground">
-                        {session.isUserSpeaking ? "🗣️ Đang nhận diện giọng nói của bạn..." : "🎤 Hãy phát âm câu đối đáp tiếng Nhật..."}
-                      </span>
-                    </div>
-
-                    {/* Speech Transcript Preview */}
-                    <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 min-h-[56px] flex items-center justify-center">
-                      <span className="text-base font-bold font-jp text-primary">
-                        {session.speech.transcript || "Đang lắng nghe..."}
-                      </span>
-                    </div>
-
-                    {/* Manual Text Fallback */}
-                    {inputMode === "text" && (
-                      <div className="flex gap-2 max-w-lg mx-auto">
-                        <input
-                          value={transcriptInput}
-                          onChange={(e) => setTranscriptInput(e.target.value)}
-                          placeholder="Hoặc gõ câu đối đáp tiếng Nhật..."
-                          className="flex-1 bg-background border border-border rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-primary font-jp"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={handleDirectSubmit}
-                          className="text-xs font-bold gap-1.5 rounded-xl"
-                        >
-                          <Send className="h-3.5 w-3.5" />
-                          <span>Gửi</span>
-                        </Button>
+                {/* Speech Capture Controller Box */}
+                <div className="p-4 rounded-2xl border border-border bg-card washi-texture shadow-xs space-y-3 text-center">
+                  {session.phase === "prompt_playing" && (
+                    <div className="py-4 space-y-2">
+                      <div className="h-9 w-9 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 mx-auto animate-pulse">
+                        <Volume2 className="h-4 w-4" />
                       </div>
-                    )}
-
-                    <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground pt-1">
-                      <button
-                        onClick={() => setInputMode((m) => (m === "voice" ? "text" : "voice"))}
-                        className="hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                        <span>{inputMode === "voice" ? "Chuyển sang gõ text (T)" : "Chuyển sang thu âm mic (T)"}</span>
-                      </button>
+                      <p className="text-xs font-bold text-foreground">NPC đang nói câu mở đầu...</p>
+                      <span className="text-[11px] text-muted-foreground">Hãy lắng nghe kỹ để đối đáp phù hợp</span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {session.phase === "evaluating" && (
-                  <div className="py-6 flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="text-xs font-bold text-muted-foreground">
-                      AI Đang Đánh Giá Mức Độ Đạt Mục Tiêu...
-                    </span>
-                  </div>
-                )}
+                  {session.phase === "ready" && (
+                    <div className="space-y-3 py-1">
+                      <p className="text-[11px] text-muted-foreground font-semibold">
+                        NPC đã dứt lời. Nhấn nút bên dưới hoặc phím{" "}
+                        <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[10px] font-bold">
+                          {formatKeyDisplay(keybindings.situationsStartVoice)}
+                        </kbd>{" "}
+                        để bắt đầu nói.
+                      </p>
+                      <Button
+                        variant="akane"
+                        size="lg"
+                        onClick={() => {
+                          soundFX.playFurin();
+                          session.startVoiceRecording();
+                        }}
+                        className="w-full gap-2 font-bold text-xs h-10 rounded-xl shadow-md"
+                      >
+                        <Mic className="h-4 w-4" />
+                        <span>Bắt Đầu Trả Lời (Space)</span>
+                      </Button>
+                    </div>
+                  )}
+
+                  {(session.phase === "waiting_for_speech" || session.phase === "recording") && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className={cn(
+                          "h-2.5 w-2.5 rounded-full animate-ping",
+                          session.isUserSpeaking ? "bg-emerald-500" : "bg-rose-500"
+                        )} />
+                        <span className="text-xs font-bold text-foreground">
+                          {session.isUserSpeaking ? "🗣️ Đang nhận diện..." : "🎤 Hãy nói câu đối đáp..."}
+                        </span>
+                      </div>
+
+                      {/* Speech Transcript Preview */}
+                      <div className="p-3 rounded-xl bg-muted/40 border border-border/80 min-h-[48px] flex items-center justify-center">
+                        <span className="text-sm font-bold font-jp text-primary">
+                          {session.speech.transcript || "Đang lắng nghe..."}
+                        </span>
+                      </div>
+
+                      {/* Manual Text Fallback */}
+                      {inputMode === "text" && (
+                        <div className="flex gap-1.5">
+                          <input
+                            value={transcriptInput}
+                            onChange={(e) => setTranscriptInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleDirectSubmit();
+                              }
+                            }}
+                            placeholder="Gõ câu đối đáp tiếng Nhật..."
+                            className="flex-1 bg-background border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary font-jp"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={handleDirectSubmit}
+                            className="text-xs font-bold gap-1 rounded-xl h-8 px-3"
+                          >
+                            <Send className="h-3 w-3" />
+                            <span>Gửi</span>
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground pt-0.5">
+                        <button
+                          onClick={() => setInputMode((m) => (m === "voice" ? "text" : "voice"))}
+                          className="hover:underline flex items-center gap-1 font-semibold text-primary"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                          <span>{inputMode === "voice" ? "Chuyển sang gõ Text (T)" : "Chuyển sang Mic (T)"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {session.phase === "evaluating" && (
+                    <div className="py-5 flex flex-col items-center justify-center gap-1.5">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-xs font-bold text-muted-foreground">
+                        AI Đang Đánh Giá Ngữ Dụng & Mục Tiêu...
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Keyboard Shortcuts Helper */}
+                <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 text-[10px] text-muted-foreground flex flex-wrap items-center justify-between gap-1.5">
+                  <span><kbd className="px-1 py-0.2 rounded bg-muted border font-bold">Space</kbd> Nói</span>
+                  <span><kbd className="px-1 py-0.2 rounded bg-muted border font-bold">H</kbd> Gợi ý</span>
+                  <span><kbd className="px-1 py-0.2 rounded bg-muted border font-bold">L</kbd> Nghe</span>
+                  <span><kbd className="px-1 py-0.2 rounded bg-muted border font-bold">Esc</kbd> Sảnh</span>
+                </div>
               </div>
             </div>
           )}

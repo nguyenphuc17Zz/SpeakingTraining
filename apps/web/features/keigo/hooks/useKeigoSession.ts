@@ -45,6 +45,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
   const [error, setError] = useState<string | null>(null);
   const [prefetched, setPrefetched] = useState<KeigoExercise[]>([]);
   const [isPaused, setIsPaused] = useState(false);
+  const [hintLevel, setHintLevel] = useState<0 | 1 | 2>(0);
   const [stats, setStats] = useState({
     total: 0,
     correct: 0,
@@ -69,6 +70,9 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
 
   const startTriggerRef = useRef(startTrigger);
   startTriggerRef.current = startTrigger;
+
+  const hintLevelRef = useRef<0 | 1 | 2>(hintLevel);
+  hintLevelRef.current = hintLevel;
 
   const promptCompletedAtRef = useRef<number | null>(null);
   const reactionLatencyRef = useRef<number | null>(null);
@@ -169,10 +173,11 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
   const resolveMixed = useCallback(() => {
     if (subMode !== "mixed") return subMode;
     const r = Math.random();
-    if (r < 0.20) return "keigo_sonkeigo";
-    if (r < 0.40) return "keigo_kenjougo";
-    if (r < 0.60) return "keigo_teineigo";
-    if (r < 0.80) return "keigo_transformation";
+    if (r < 0.15) return "keigo_vocab_blitz";
+    if (r < 0.35) return "keigo_sonkeigo";
+    if (r < 0.55) return "keigo_kenjougo";
+    if (r < 0.70) return "keigo_teineigo";
+    if (r < 0.85) return "keigo_transformation";
     return "keigo_context";
   }, [subMode]);
 
@@ -220,6 +225,14 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
     speechPreviewRef.current.startPreview();
   }, [timer]);
 
+  const cycleHint = useCallback(() => {
+    setHintLevel((prev) => ((prev + 1) % 3 as 0 | 1 | 2));
+  }, []);
+
+  const resetHint = useCallback(() => {
+    setHintLevel(0);
+  }, []);
+
   const startNext = useCallback(async () => {
     if (autoNextTimerRef.current) {
       clearTimeout(autoNextTimerRef.current);
@@ -234,6 +247,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
       setPhase("loading");
       setError(null);
       setResult(null);
+      setHintLevel(0);
       reactionLatencyRef.current = null;
       promptCompletedAtRef.current = null;
       latestTranscriptRef.current = "";
@@ -273,6 +287,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
     setPhase("evaluating");
 
     const capturedText = latestTranscriptRef.current.trim();
+    const curHintLevel = hintLevelRef.current;
     try {
       const payload: any = {
         reaction_latency_ms: reactionLatencyRef.current,
@@ -280,9 +295,11 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
         timed_out: true,
         late_response: false,
         user_transcript: capturedText || "",
+        used_hint: curHintLevel > 0,
+        hint_level: curHintLevel,
       };
       const res = await keigoApi.submitAttempt(currentEx.id, payload);
-      const mapped = mapApiResult(res, currentEx, true, audioBlobUrl, capturedText);
+      const mapped = mapApiResult(res, currentEx, true, curHintLevel, audioBlobUrl, capturedText);
       setResult(mapped);
       setResults((r) => [...r, mapped]);
       updateStats(mapped);
@@ -327,6 +344,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
 
       const latency = reactionLatencyRef.current;
       const isLate = opts?.late || (latency !== null && latency > currentEx.timerLimitMs);
+      const curHintLevel = hintLevelRef.current;
 
       const payload: any = {
         user_transcript: transcript,
@@ -336,11 +354,13 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
         late_response: !!isLate,
         speech_confidence: 0.92,
         response_speed_ms: latency,
+        used_hint: curHintLevel > 0,
+        hint_level: curHintLevel,
       };
 
       try {
         const res = await keigoApi.submitAttempt(currentEx.id, payload);
-        const mapped = mapApiResult(res, currentEx, false, audioBlobUrl, transcript);
+        const mapped = mapApiResult(res, currentEx, false, curHintLevel, audioBlobUrl, transcript);
         setResult(mapped);
         setResults((r) => [...r, mapped]);
         updateStats(mapped);
@@ -378,6 +398,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
     setResults([]);
     setStats({ total: 0, correct: 0, avgLatency: 0, bestLatency: Number.POSITIVE_INFINITY });
     setIsPaused(false);
+    setHintLevel(0);
     const m1 = resolveMixed();
     const m2 = resolveMixed();
     Promise.all([
@@ -409,6 +430,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
       reactionLatencyRef.current = null;
       latestTranscriptRef.current = "";
       setResult(null);
+      setHintLevel(0);
       setPhase("waiting_for_speech");
       timer.reset(exerciseRef.current.timerLimitMs);
       timer.start();
@@ -426,6 +448,9 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
     results,
     stats,
     timer,
+    hintLevel,
+    cycleHint,
+    resetHint,
     recorder: {
       volumeLevel: mic.volumeLevel,
       isRecording: mic.isRecording,
@@ -456,6 +481,7 @@ function mapApiResult(
   api: any,
   ex: KeigoExercise,
   timedOut: boolean,
+  hintLevel: number = 0,
   userAudioUrl?: string,
   fallbackTranscript?: string
 ): KeigoResult {
@@ -487,11 +513,16 @@ function mapApiResult(
     timedOut: !!keigoMetrics.timed_out || timedOut,
     lateResponse: !!keigoMetrics.late_response,
     masteryDeltas: api.target_mastery_delta || {},
-    isPerfect: (api.score >= 80 && api.success) || false,
+    isPerfect: (api.score >= 80 && api.success && hintLevel === 0) || false,
     doubleKeigo: keigoMetrics.double_keigo || api.metrics?.double_keigo,
     userAudioUrl,
     canonicalAnswer: canonical,
     acceptableVariants: ex.acceptableVariants || ex.target_patterns || [],
     targetRegister: ex.extra_metadata?.keigo_config?.target_register,
+    hints: ex.hints,
+    anatomy: ex.anatomy,
+    persona: ex.persona,
+    usedHint: hintLevel > 0,
+    hintLevel,
   };
 }

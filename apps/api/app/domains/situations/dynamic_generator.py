@@ -141,7 +141,8 @@ class AISituationsGenerator:
             f"2. NPC mở đầu bằng 1 câu thoại tiếng Nhật tự nhiên, ngữ điệu chân thực và đúng vai trò.\n"
             f"3. Người học có 2-3 mục tiêu nhiệm vụ rõ ràng (Goals) cần phản xạ đối đáp tiếng Nhật để hoàn thành.\n"
             f"4. Đưa ra 1 sự kiện phát sinh bất ngờ (Twist / Unexpected Incident) phù hợp với bối cảnh này để thử thách phản xạ.\n"
-            f"5. Cung cấp câu đáp án mẫu tiếng Nhật hoàn hảo, các mẫu câu gợi ý hữu ích và từ vựng.\n\n"
+            f"5. Cung cấp câu đáp án mẫu tiếng Nhật hoàn hảo, các mẫu câu gợi ý hữu ích và từ vựng.\n"
+            f"6. Cung cấp Gợi ý 3 cấp độ (Scaffolding Hints: Tier 1 từ khóa, Tier 2 khung câu mồi, Tier 3 câu phản xạ bản xứ), Chip gợi ý mở đầu (Quick Starters) và Mẹo văn hóa thực chiến (Cultural Tip).\n\n"
             f"Trả về JSON định dạng duy nhất:\n"
             f"{{\n"
             f"  \"situation_title\": \"<tên ngắn gọn tình huống, VD: Đặt phòng tại Ryokan Onsen>\",\n"
@@ -159,7 +160,13 @@ class AISituationsGenerator:
             f"  \"canonical_response\": \"<câu đáp án mẫu tiếng Nhật hoàn hảo>\",\n"
             f"  \"acceptable_variants\": [\"<biến thể 1>\", \"<biến thể 2>\"],\n"
             f"  \"useful_phrases\": [\"<mẫu câu 1>\", \"<mẫu câu 2>\"],\n"
-            f"  \"vocabulary_hints\": \"<gợi ý từ vựng>\"\n"
+            f"  \"hints\": {{\n"
+            f"    \"tier1_keywords\": [{{\"word\": \"<từ vựng 1>\", \"reading\": \"<Hiragana>\", \"meaning\": \"<nghĩa tiếng Việt>\"}}, {{\"word\": \"<từ vựng 2>\", \"reading\": \"<Hiragana>\", \"meaning\": \"<nghĩa tiếng Việt>\"}}],\n"
+            f"    \"tier2_frame\": \"<khung câu mồi có chỗ trống, VD: 〜をお願いできますか / 〜はありますか>\",\n"
+            f"    \"tier3_model\": \"<câu phản xạ hoàn chỉnh chuẩn bản xứ>\"\n"
+            f"  }},\n"
+            f"  \"quick_starters\": [\"すみません、...\", \"〜をお願いできますか？\", \"確認したいのですが...\"],\n"
+            f"  \"cultural_tip\": \"<lời khuyên ứng biến văn hóa Nhật Bản trong tình huống này>\"\n"
             f"}}"
         )
 
@@ -186,7 +193,13 @@ class AISituationsGenerator:
             canonical = data.get("canonical_response", opening)
             variants = data.get("acceptable_variants", [canonical])
             phrases = data.get("useful_phrases", [])
-            vocab = data.get("vocabulary_hints", "")
+            hints = data.get("hints", {
+                "tier1_keywords": [{"word": canonical.split()[0] if canonical else "すみません", "reading": "すみません", "meaning": "Xin lỗi/Làm phiền"}],
+                "tier2_frame": "〜をお願いします",
+                "tier3_model": canonical,
+            })
+            quick_starters = data.get("quick_starters", ["すみません、...", "〜をお願いできますか？", "確認したいのですが..."])
+            cultural_tip = data.get("cultural_tip", "Thêm 'Sumimasen ga...' ở đầu câu để tạo sự nhã nhặn tự nhiên của người Nhật.")
         except Exception as e:
             logger.warning(f"[AISituationsGenerator] Dynamic generation fallback: {e}")
             scenario = self.factory.generate(category=chosen_cat_key if chosen_cat_key in SITUATIONAL_CATEGORIES else "food", difficulty=difficulty, duration_minutes=duration, mode=mode)
@@ -203,7 +216,13 @@ class AISituationsGenerator:
             canonical = "すみません、これをひとつお願いします。"
             variants = [canonical]
             phrases = ["これをお願いします", "いくらですか"]
-            vocab = "すみません (Xin lỗi/Làm phiền)"
+            hints = {
+                "tier1_keywords": [{"word": "注文", "reading": "ちゅうもん", "meaning": "Gọi món"}, {"word": "これ", "reading": "これ", "meaning": "Cái này"}],
+                "tier2_frame": "すみません、〜をお願いします",
+                "tier3_model": canonical,
+            }
+            quick_starters = ["すみません、...", "これをお願いします", "おすすめは何ですか？"]
+            cultural_tip = "Khi gọi nhân viên quán ở Nhật, hãy nói to 'Sumimasen!' một cách dứt khoát và kèm theo nụ cười thân thiện."
 
         return {
             "title": title,
@@ -226,7 +245,9 @@ class AISituationsGenerator:
                 "goals": goals,
                 "unexpected_event": event,
                 "useful_phrases": phrases,
-                "vocabulary_hints": vocab,
+                "hints": hints,
+                "quick_starters": quick_starters,
+                "cultural_tip": cultural_tip,
                 "is_custom": is_custom,
                 "custom_topic": custom_topic if is_custom else None,
             },
