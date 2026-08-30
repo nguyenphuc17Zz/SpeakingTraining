@@ -33,6 +33,8 @@ import {
   Compass,
   Star,
   Activity,
+  BookText,
+  Crown,
 } from "lucide-react";
 import { useReflexSession } from "@/features/reflex/hooks/useReflexSession";
 import { ReflexTimer } from "@/features/reflex/components/ReflexTimer";
@@ -98,17 +100,41 @@ const DEDICATED_MODES = [
     source: "Đến muộn do trễ tàu",
     target: "大変申し訳ありません",
   },
+  {
+    id: "reflex_vocabulary",
+    title: "Vocabulary Blitz",
+    titleJa: "語彙",
+    icon: BookText,
+    badgeVariant: "fuji" as const,
+    iconColor: "text-violet-500 bg-violet-500/10 border-violet-500/20",
+    accentColor: "text-violet-600 dark:text-violet-400",
+    desc: "Nhớ nghĩa từ vựng JLPT N5-N1 theo phản xạ siêu tốc",
+    source: "諦める",
+    target: "bỏ cuộc 🇯🇵→🇻🇳",
+  },
+  {
+    id: "reflex_keigo_vocab",
+    title: "Keigo Word Blitz",
+    titleJa: "敬語単語",
+    icon: Crown,
+    badgeVariant: "kintsugi" as const,
+    iconColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    accentColor: "text-amber-600 dark:text-amber-400",
+    desc: "Phản xạ nhanh Tôn kính ngữ, Khiêm nhường ngữ & Từ thương mại",
+    source: "食べる",
+    target: "召し上がる 👑",
+  },
 ];
 
 const PRESSURE_LEVELS = [
-  { id: "relaxed", label: "Relaxed", labelJa: "ゆっくり", icon: "🐢", ms: 6000, desc: "Dễ • An toàn cho Beginner" },
-  { id: "normal", label: "Normal", labelJa: "普通", icon: "🚶", ms: 4000, desc: "Cân bằng • Nhịp tự nhiên" },
-  { id: "fast", label: "Fast", labelJa: "速め", icon: "🏃", ms: 3000, desc: "Tăng tốc • Phản xạ nhanh" },
-  { id: "reflex", label: "Reflex", labelJa: "瞬発", icon: "⚡", ms: 2500, desc: "Thực chiến • Nhịp bản xứ" },
-  { id: "extreme", label: "Extreme", labelJa: "超速", icon: "🔥", ms: 1800, desc: "Cực hạn • Không do dự" },
+  { id: "relaxed", label: "Relaxed", labelJa: "ゆっくり", icon: "🐢", ms: 6000, desc: "6.0s • Thong thả, tập trung độ chuẩn xác" },
+  { id: "normal", label: "Normal", labelJa: "普通", icon: "🚶", ms: 4000, desc: "4.0s • Cân bằng, nhịp nói tự nhiên" },
+  { id: "fast", label: "Fast", labelJa: "速め", icon: "🏃", ms: 3000, desc: "3.0s • Tăng tốc, phản xạ dứt khoát" },
+  { id: "reflex", label: "Reflex", labelJa: "瞬発", icon: "⚡", ms: 2500, desc: "2.5s • Thực chiến, nhịp người bản xứ" },
+  { id: "extreme", label: "Extreme", labelJa: "超速", icon: "🔥", ms: 1800, desc: "1.8s • Cực hạn, phản xạ chớp mắt" },
 ] as const;
 
-const DURATION_OPTIONS = [3, 5, 10, 20] as const;
+const DURATION_OPTIONS = [0, 3, 5, 10, 20] as const;
 
 export default function ReflexPage() {
   const [subMode, setSubMode] = useState("mixed");
@@ -118,13 +144,65 @@ export default function ReflexPage() {
   const [transcriptInput, setTranscriptInput] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [duration, setDuration] = useState<3 | 5 | 10 | 20>(5);
+  const [duration, setDuration] = useState<0 | 3 | 5 | 10 | 20>(5);
   const [sessionRemainingSec, setSessionRemainingSec] = useState(duration * 60);
+  const [sessionElapsedSec, setSessionElapsedSec] = useState(0);
   const [autoNext, setAutoNext] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const sessionEndTimestampRef = useRef<number | null>(null);
   const sessionPausedRemainingMsRef = useRef<number>(duration * 60 * 1000);
+  const isSettingsLoadedRef = useRef(false);
+
+  // 1. Load saved user preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("speaking_training_reflex_settings_v1");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.subMode && typeof parsed.subMode === "string") {
+          setSubMode(parsed.subMode);
+        }
+        if (parsed.pressure && typeof parsed.pressure === "string") {
+          setPressure(parsed.pressure);
+        }
+        if (parsed.duration !== undefined && [0, 3, 5, 10, 20].includes(parsed.duration)) {
+          setDuration(parsed.duration);
+        }
+        if (parsed.subtitleMode && typeof parsed.subtitleMode === "string") {
+          setSubtitleMode(parsed.subtitleMode);
+        }
+        if (parsed.startTrigger && typeof parsed.startTrigger === "string") {
+          setStartTrigger(parsed.startTrigger);
+        }
+        if (parsed.autoNext !== undefined && typeof parsed.autoNext === "boolean") {
+          setAutoNext(parsed.autoNext);
+        }
+      }
+    } catch (e) {
+      console.warn("[ReflexPage] Failed to load saved settings:", e);
+    } finally {
+      isSettingsLoadedRef.current = true;
+    }
+  }, []);
+
+  // 2. Persist preferences whenever any setting changes
+  useEffect(() => {
+    if (!isSettingsLoadedRef.current) return;
+    try {
+      const settings = {
+        subMode,
+        pressure,
+        duration,
+        subtitleMode,
+        startTrigger,
+        autoNext,
+      };
+      localStorage.setItem("speaking_training_reflex_settings_v1", JSON.stringify(settings));
+    } catch (e) {
+      console.warn("[ReflexPage] Failed to save settings:", e);
+    }
+  }, [subMode, pressure, duration, subtitleMode, startTrigger, autoNext]);
 
   const { matchesAction, keybindings } = useSystemKeybindings();
 
@@ -138,17 +216,28 @@ export default function ReflexPage() {
   // Sync duration selection in lobby
   useEffect(() => {
     if (session.phase === "idle" || session.phase === "summary" || showSummary) {
-      setSessionRemainingSec(duration * 60);
+      setSessionRemainingSec(duration === 0 ? 0 : duration * 60);
+      setSessionElapsedSec(0);
       sessionEndTimestampRef.current = null;
       sessionPausedRemainingMsRef.current = duration * 60 * 1000;
     }
   }, [duration, session.phase, showSummary]);
 
-  // Robust session duration countdown
+  // Robust session duration countdown / elapsed tracking
   useEffect(() => {
     const isSessionActive = session.phase !== "idle" && session.phase !== "summary" && !showSummary;
     if (!isSessionActive) return;
 
+    // Endless mode (∞ Vô hạn): Count elapsed time upwards
+    if (duration === 0) {
+      if (session.isPaused) return;
+      const interval = setInterval(() => {
+        setSessionElapsedSec((s) => s + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+
+    // Fixed duration countdown
     if (session.isPaused) {
       if (sessionEndTimestampRef.current !== null) {
         const remaining = Math.max(0, sessionEndTimestampRef.current - Date.now());
@@ -177,7 +266,7 @@ export default function ReflexPage() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [session.phase, session.isPaused, showSummary, session.setPhase]);
+  }, [duration, session.phase, session.isPaused, showSummary, session.setPhase]);
 
   const timerMs = PRESSURE_LEVELS.find((p) => p.id === pressure)?.ms ?? 4000;
   const activeExercise = session.exercise;
@@ -650,7 +739,7 @@ export default function ReflexPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Thời lượng phiên
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {DURATION_OPTIONS.map((d) => (
                     <button
                       key={d}
@@ -663,7 +752,7 @@ export default function ReflexPage() {
                           : "bg-background border-border hover:bg-muted text-muted-foreground"
                       )}
                     >
-                      {d} Phút
+                      {d === 0 ? "∞ Vô hạn" : `${d} Phút`}
                     </button>
                   ))}
                 </div>
@@ -852,18 +941,18 @@ export default function ReflexPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Live Session Countdown Clock */}
+          {/* Live Session Countdown Clock / Elapsed Clock */}
           <div
             className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-mono font-bold shadow-2xs"
-            title={`Thời lượng phiên: ${duration} phút`}
+            title={duration === 0 ? "Chế độ luyện tập không giới hạn thời gian (Endless)" : `Thời lượng phiên: ${duration} phút`}
           >
             <Clock className="h-3.5 w-3.5" />
             <span>
-              Phiên:{" "}
-              {Math.floor(sessionRemainingSec / 60)
-                .toString()
-                .padStart(2, "0")}
-              :{(sessionRemainingSec % 60).toString().padStart(2, "0")} / {duration}m
+              {duration === 0 ? (
+                `Phiên: ${Math.floor(sessionElapsedSec / 60).toString().padStart(2, "0")}:${(sessionElapsedSec % 60).toString().padStart(2, "0")} / ∞`
+              ) : (
+                `Phiên: ${Math.floor(sessionRemainingSec / 60).toString().padStart(2, "0")}:${(sessionRemainingSec % 60).toString().padStart(2, "0")} / ${duration}m`
+              )}
             </span>
           </div>
 

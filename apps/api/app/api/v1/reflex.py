@@ -44,7 +44,7 @@ async def list_pressure_profiles():
 
 @router.get("/exercises/generate", response_model=ExerciseDTO)
 async def generate_reflex_exercise_get(
-    sub_mode: str = Query(default="reflex_qna", description="reflex_conjugation|reflex_qna|reflex_transformation|reflex_context"),
+    sub_mode: str = Query(default="reflex_qna", description="reflex_conjugation|reflex_qna|reflex_transformation|reflex_context|reflex_vocabulary|reflex_keigo_vocab"),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
     verb: str | None = Query(default=None),
@@ -59,7 +59,7 @@ async def generate_reflex_exercise_get(
 
 @router.post("/exercises/generate", response_model=ExerciseDTO)
 async def generate_reflex_exercise(
-    sub_mode: str = Query(default="reflex_qna", description="reflex_conjugation|reflex_qna|reflex_transformation|reflex_context"),
+    sub_mode: str = Query(default="reflex_qna", description="reflex_conjugation|reflex_qna|reflex_transformation|reflex_context|reflex_vocabulary|reflex_keigo_vocab"),
     pressure_level: str = Query(default="normal"),
     difficulty: str | None = Query(default=None),
     verb: str | None = Query(default=None),
@@ -79,7 +79,7 @@ async def generate_reflex_exercise(
     if pressure_level not in PRESSURE_PROFILES:
         pressure_level = "normal"
     eff_timer = timer_limit_ms or timer_for_level(pressure_level)
-    eff_diff = difficulty or PRESSURE_PROFILES[pressure_level]["difficulty"]
+    eff_diff = difficulty or "all"
 
     # Generate dynamic payload via AIReflexGenerator
     ai_gen = AIReflexGenerator(db)
@@ -108,6 +108,8 @@ async def generate_reflex_exercise(
             "reflex_qna": "fluency",
             "reflex_transformation": "grammar",
             "reflex_context": "naturalness",
+            "reflex_vocabulary": "vocabulary",
+            "reflex_keigo_vocab": "keigo",
         }
         target_type = affinity_map.get(sub_mode, "grammar")
         match = next((i for i in items if i.item_type == target_type), None)
@@ -183,6 +185,19 @@ async def generate_reflex_exercise(
                 "canonical": data.get("canonical") or data.get("expected"),
                 "acceptable_variants": data.get("acceptable_variants", []),
                 "prompt": data.get("prompt"),
+                "prompt_reading": data.get("prompt_reading"),
+                "prompt_translation": data.get("prompt_translation"),
+                "direction": data.get("direction"),
+                "word_type": data.get("word_type"),
+                "word_reading": data.get("word_reading"),
+                "word_meaning_vi": data.get("word_meaning_vi"),
+                "synonyms_vi": data.get("synonyms_vi", []),
+                "jlpt_level": data.get("jlpt_level"),
+                "target_type": data.get("target_type"),
+                "target_label_vi": data.get("target_label_vi"),
+                "triplet_sonkeigo": data.get("triplet_sonkeigo"),
+                "triplet_kenjougo": data.get("triplet_kenjougo"),
+                "explanation_vi": data.get("explanation_vi"),
                 "task": data.get("task"),
                 "intent": data.get("intent"),
             },

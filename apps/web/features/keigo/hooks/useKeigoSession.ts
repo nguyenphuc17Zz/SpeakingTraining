@@ -76,6 +76,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
   const speechSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoNextTimerRef = useRef<NodeJS.Timeout | null>(null);
   const promptSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const createdAudioUrlsRef = useRef<string[]>([]);
 
   // 1. Microphone Hardware Hook
   const mic = useMicrophone();
@@ -131,9 +132,9 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
     },
   });
 
-  // Release microphone whenever session is NOT actively capturing speech
+  // Release microphone whenever session is NOT actively capturing speech or evaluating
   useEffect(() => {
-    if (phase !== "waiting_for_speech" && phase !== "recording") {
+    if (phase !== "waiting_for_speech" && phase !== "recording" && phase !== "evaluating") {
       mic.releaseMicrophone();
       speechPreview.stopPreview();
     }
@@ -146,8 +147,14 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
       if (speechSubmitTimerRef.current) clearTimeout(speechSubmitTimerRef.current);
       if (autoNextTimerRef.current) clearTimeout(autoNextTimerRef.current);
       if (promptSafetyTimerRef.current) clearTimeout(promptSafetyTimerRef.current);
+      createdAudioUrlsRef.current.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+      createdAudioUrlsRef.current = [];
     };
-  }, []);
+  }, [mic, speechPreview]);
 
   const timerLimit = overrideTimer ?? exercise?.timerLimitMs ?? 5000;
   const timer = useKeigoTimer({
@@ -253,26 +260,29 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
 
     timer.stop();
     speechPreviewRef.current.stopPreview();
-    setPhase("evaluating");
 
     let audioBlobUrl: string | undefined;
     try {
       const blob = await micRef.current.stopRecording();
       if (blob && blob.size > 0) {
         audioBlobUrl = URL.createObjectURL(blob);
+        createdAudioUrlsRef.current.push(audioBlobUrl);
       }
     } catch {}
 
+    setPhase("evaluating");
+
+    const capturedText = latestTranscriptRef.current.trim();
     try {
       const payload: any = {
         reaction_latency_ms: reactionLatencyRef.current,
         timer_limit_ms: currentEx.timerLimitMs,
         timed_out: true,
         late_response: false,
-        user_transcript: latestTranscriptRef.current.trim() || "",
+        user_transcript: capturedText || "",
       };
       const res = await keigoApi.submitAttempt(currentEx.id, payload);
-      const mapped = mapApiResult(res, currentEx, true, audioBlobUrl);
+      const mapped = mapApiResult(res, currentEx, true, audioBlobUrl, capturedText);
       setResult(mapped);
       setResults((r) => [...r, mapped]);
       updateStats(mapped);
@@ -303,15 +313,17 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
 
       timer.stop();
       speechPreviewRef.current.stopPreview();
-      setPhase("evaluating");
 
       let audioBlobUrl: string | undefined;
       try {
         const blob = await micRef.current.stopRecording();
         if (blob && blob.size > 0) {
           audioBlobUrl = URL.createObjectURL(blob);
+          createdAudioUrlsRef.current.push(audioBlobUrl);
         }
       } catch {}
+
+      setPhase("evaluating");
 
       const latency = reactionLatencyRef.current;
       const isLate = opts?.late || (latency !== null && latency > currentEx.timerLimitMs);
@@ -328,7 +340,7 @@ export function useKeigoSession(opts: UseKeigoSessionOptions) {
 
       try {
         const res = await keigoApi.submitAttempt(currentEx.id, payload);
-        const mapped = mapApiResult(res, currentEx, false, audioBlobUrl);
+        const mapped = mapApiResult(res, currentEx, false, audioBlobUrl, transcript);
         setResult(mapped);
         setResults((r) => [...r, mapped]);
         updateStats(mapped);
@@ -444,7 +456,8 @@ function mapApiResult(
   api: any,
   ex: KeigoExercise,
   timedOut: boolean,
-  userAudioUrl?: string
+  userAudioUrl?: string,
+  fallbackTranscript?: string
 ): KeigoResult {
   const keigoMetrics = api.metrics?.keigo || api.metrics?.reflex || {};
   const canonical =
@@ -453,12 +466,20 @@ function mapApiResult(
     api.feedback?.split("->")[1]?.trim() ||
     "";
 
+  const resolvedTranscript =
+    api.metrics?.keigo?.transcript ||
+    api.metrics?.reflex?.transcript ||
+    api.transcript ||
+    api.user_transcript ||
+    fallbackTranscript ||
+    "";
+
   return {
     exerciseId: ex.id,
     success: !!api.success,
     score: api.score ?? (api.success ? 90 : 30),
     feedback: api.feedback || (api.success ? "Chính xác! Sử dụng đúng chuẩn mực kính ngữ." : "Chưa hoàn toàn chuẩn xác."),
-    transcript: api.metrics?.keigo?.transcript || api.user_transcript || "",
+    transcript: resolvedTranscript,
     normalized: "",
     assessment: api.metrics?.keigo?.assessment || keigoMetrics.assessment || null,
     reactionLatencyMs: keigoMetrics.reaction_latency_ms ?? api.response_speed_ms ?? null,

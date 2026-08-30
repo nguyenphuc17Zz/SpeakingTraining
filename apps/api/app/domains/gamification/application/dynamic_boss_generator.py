@@ -20,7 +20,24 @@ SAMPLE_BOSS_PROMPTS = [
     {"topic": "Xoa Dịu Khách Hàng VIP Đòi Hủy Đơn Hàng Do Giao Chậm", "difficulty": "extreme", "level": 12},
     {"topic": "Phỏng Vấn Vòng Cuối Giám Đốc Nhân Sự Tập Đoàn Đa Quốc Gia", "difficulty": "extreme", "level": 15},
     {"topic": "Thuyết Phục Đồng Nghiệp Tiền Bối Hỗ Trợ Đề Án Bị Phản Đối", "difficulty": "normal", "level": 4},
+    {"topic": "Giải Trình Với Cảnh Sát Đồn Koban Khi Bị Mất Toàn Bộ Hộ Chiếu & Giấy Tờ", "difficulty": "normal", "level": 3},
+    {"topic": "Đàm Phán Thuê Nhà Chung Cư Tại Shibuya Trước Chủ Nhà Kỹ Tính", "difficulty": "normal", "level": 4},
+    {"topic": "Xử Lý Sự Cố Khách Hàng Dị Ứng Thực Phẩm Tại Nhà Hàng Cao Cấp Ginza", "difficulty": "hard", "level": 8},
+    {"topic": "Họp Báo Trả Lời Phỏng Vấn Truyền Thông Khi Sản Phẩm Bị Thu Hồi", "difficulty": "extreme", "level": 14},
+    {"topic": "Đàm Phán Mua Lại Bản Quyền Độc Quyền Với Tác Giả Nhật Bản", "difficulty": "hard", "level": 9},
+    {"topic": "Thương Thảo Giảm 15% Chi Phí Sản Xuất Với Nhà Cung Ứng Khó Tính", "difficulty": "hard", "level": 8},
+    {"topic": "Xin Lỗi Khách Hàng Doanh Nghiệp Vì Hệ Thống Ngân Hàng Ngừng Hoạt Động", "difficulty": "extreme", "level": 13},
+    {"topic": "Thuyết Phục Ban Giám Khảo Cấp Học Bổng Toàn Phần MEXT", "difficulty": "hard", "level": 7},
 ]
+
+_BOSS_PROMPTS_QUEUE: list[dict[str, Any]] = []
+
+
+def _get_next_boss_prompt() -> dict[str, Any]:
+    global _BOSS_PROMPTS_QUEUE
+    if not _BOSS_PROMPTS_QUEUE:
+        _BOSS_PROMPTS_QUEUE = random.sample(SAMPLE_BOSS_PROMPTS, len(SAMPLE_BOSS_PROMPTS))
+    return _BOSS_PROMPTS_QUEUE.pop(0)
 
 
 class DynamicBossGenerator:
@@ -39,7 +56,7 @@ class DynamicBossGenerator:
     ) -> BossDefinition:
         """Dynamically designs and persists a new high-stakes Boss challenge."""
         if not topic or topic.strip() == "" or topic == "random":
-            chosen = random.choice(SAMPLE_BOSS_PROMPTS)
+            chosen = _get_next_boss_prompt()
             topic = chosen["topic"]
             difficulty = chosen["difficulty"]
             required_level = chosen["level"]

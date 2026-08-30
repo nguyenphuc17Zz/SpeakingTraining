@@ -42,14 +42,45 @@ export default function KeigoPage() {
   const [showSummary, setShowSummary] = useState(false);
   const [showCheatsheet, setShowCheatsheet] = useState(false);
   const [showKeybindingsModal, setShowKeybindingsModal] = useState(false);
-  const [duration, setDuration] = useState<3 | 5 | 10 | 20>(5);
+  const [duration, setDuration] = useState<0 | 3 | 5 | 10 | 20>(5);
   const [sessionRemainingSec, setSessionRemainingSec] = useState(duration * 60);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [autoNext, setAutoNext] = useState(false);
 
   const sessionEndTimestampRef = useRef<number | null>(null);
   const sessionPausedRemainingMsRef = useRef<number>(duration * 60 * 1000);
 
   const { matchesAction, keybindings } = useSystemKeybindings();
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedSubMode = localStorage.getItem("speaking_keigo_submode");
+      if (savedSubMode) setSubMode(savedSubMode);
+      const savedPressure = localStorage.getItem("speaking_keigo_pressure");
+      if (savedPressure) setPressure(savedPressure as any);
+      const savedDuration = localStorage.getItem("speaking_keigo_duration");
+      if (savedDuration !== null) setDuration(Number(savedDuration) as any);
+      const savedSubtitle = localStorage.getItem("speaking_keigo_subtitle");
+      if (savedSubtitle) setSubtitleMode(savedSubtitle as any);
+      const savedTrigger = localStorage.getItem("speaking_keigo_trigger");
+      if (savedTrigger) setStartTrigger(savedTrigger as any);
+      const savedAutoNext = localStorage.getItem("speaking_keigo_autonext");
+      if (savedAutoNext !== null) setAutoNext(savedAutoNext === "true");
+    } catch (e) {}
+  }, []);
+
+  // Save preferences on change
+  useEffect(() => {
+    try {
+      localStorage.setItem("speaking_keigo_submode", subMode);
+      localStorage.setItem("speaking_keigo_pressure", pressure);
+      localStorage.setItem("speaking_keigo_duration", String(duration));
+      localStorage.setItem("speaking_keigo_subtitle", subtitleMode);
+      localStorage.setItem("speaking_keigo_trigger", startTrigger);
+      localStorage.setItem("speaking_keigo_autonext", String(autoNext));
+    } catch (e) {}
+  }, [subMode, pressure, duration, subtitleMode, startTrigger, autoNext]);
 
   const session = useKeigoSession({
     subMode,
@@ -61,6 +92,7 @@ export default function KeigoPage() {
   useEffect(() => {
     if (session.phase === "idle" || session.phase === "summary" || showSummary) {
       setSessionRemainingSec(duration * 60);
+      setElapsedSec(0);
       sessionEndTimestampRef.current = null;
       sessionPausedRemainingMsRef.current = duration * 60 * 1000;
     }
@@ -69,6 +101,14 @@ export default function KeigoPage() {
   useEffect(() => {
     const isSessionActive = session.phase !== "idle" && session.phase !== "summary" && !showSummary;
     if (!isSessionActive) return;
+
+    if (duration === 0) {
+      // Endless session timer: count elapsed seconds upward
+      const interval = setInterval(() => {
+        setElapsedSec((prev) => prev + 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
 
     if (session.isPaused) {
       if (sessionEndTimestampRef.current !== null) {
@@ -99,7 +139,7 @@ export default function KeigoPage() {
     }, 500);
 
     return () => clearInterval(interval);
-  }, [session.phase, session.isPaused, showSummary, session.setPhase]);
+  }, [session.phase, session.isPaused, showSummary, session.setPhase, duration]);
 
   const timerMs = PRESSURE_LEVELS.find((p) => p.id === pressure)?.ms ?? 5000;
   const activeExercise = session.exercise;
@@ -330,7 +370,7 @@ export default function KeigoPage() {
             )}
           >
             <Clock className="h-3.5 w-3.5 text-primary" />
-            <span>{formatSessionTime(sessionRemainingSec)}</span>
+            <span>{duration === 0 ? `Phiên: ${formatSessionTime(elapsedSec)} / ∞` : formatSessionTime(sessionRemainingSec)}</span>
           </div>
 
           <Button

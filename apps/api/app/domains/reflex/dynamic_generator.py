@@ -67,12 +67,12 @@ class AIReflexGenerator:
         """Generates dynamic reflex exercise via Gemini AI with Sudachi morphological verification."""
         try:
             if sub_mode == "reflex_conjugation":
-                return await self._generate_dynamic_conjugation(
+                # Conjugation is fully deterministic and randomized across 600+ verbs and all 11 forms
+                return self.factory.generate_conjugation(
                     verb=verb,
                     target_form=conjugation_target,
                     difficulty=difficulty,
                     pressure_level=pressure_level,
-                    user_id=user_id,
                 )
             elif sub_mode == "reflex_transformation":
                 return await self._generate_dynamic_transformation(
@@ -85,6 +85,20 @@ class AIReflexGenerator:
                     difficulty=difficulty,
                     pressure_level=pressure_level,
                     user_id=user_id,
+                )
+            elif sub_mode == "reflex_vocabulary":
+                # Vocabulary recall is fully deterministic — no AI needed
+                return self.factory.generate_vocabulary(
+                    direction="random",
+                    difficulty=difficulty,
+                    pressure_level=pressure_level,
+                )
+            elif sub_mode == "reflex_keigo_vocab":
+                # Keigo vocabulary blitz is fully deterministic — no AI needed
+                return self.factory.generate_keigo_vocabulary(
+                    target_type="all",
+                    difficulty=difficulty,
+                    pressure_level=pressure_level,
                 )
             else:
                 return await self._generate_dynamic_qna(
@@ -113,13 +127,21 @@ class AIReflexGenerator:
         """Generates conjugation using morphological dictionary and AI verification."""
         timer_ms = timer_for_level(pressure_level)
 
-        # Candidate forms by difficulty
-        forms_by_diff = {
-            "easy": [ConjugationForm.NAI, ConjugationForm.TA, ConjugationForm.TE],
-            "normal": [ConjugationForm.POTENTIAL, ConjugationForm.PASSIVE, ConjugationForm.BA, ConjugationForm.TARA, ConjugationForm.VOLITIONAL],
-            "hard": [ConjugationForm.CAUSATIVE, ConjugationForm.CAUSATIVE_PASSIVE, ConjugationForm.IMPERATIVE],
-        }
-        chosen_form = target_form or random.choice(forms_by_diff.get(difficulty, forms_by_diff["normal"]))
+        # All 11 Candidate forms (comprehensive coverage across all Japanese forms)
+        all_forms = [
+            ConjugationForm.NAI,
+            ConjugationForm.TA,
+            ConjugationForm.TE,
+            ConjugationForm.POTENTIAL,
+            ConjugationForm.PASSIVE,
+            ConjugationForm.CAUSATIVE,
+            ConjugationForm.CAUSATIVE_PASSIVE,
+            ConjugationForm.VOLITIONAL,
+            ConjugationForm.BA,
+            ConjugationForm.TARA,
+            ConjugationForm.IMPERATIVE,
+        ]
+        chosen_form = target_form or self.factory._get_next_form(all_forms)
 
         # If verb is not provided, query Gemini to dynamically suggest an authentic JLPT verb for this level
         if not verb:
@@ -127,7 +149,7 @@ class AIReflexGenerator:
             recent_v = list(self.factory.recent_verbs)[-10:]
             avoid_v = f" TUYỆT ĐỐI TRÁNH các động từ sau: {recent_v}." if recent_v else ""
             prompt_text = (
-                f"Hãy đưa ra 1 động từ tiếng Nhật phong phú, thực tế phù hợp trình độ JLPT '{difficulty}' "
+                f"Hãy đưa ra 1 động từ tiếng Nhật phong phú, tự nhiên và thực tế trong đời sống tiếng Nhật "
                 f"để luyện phản xạ chia thể '{chosen_form}'.{avoid_v} [Nonce: {nonce}] "
                 f"Trả về JSON định dạng: {{\"verb\": \"<chữ Hán/Kana gốc>\", \"reading\": \"<Hiragana>\", \"meaning_vi\": \"<nghĩa tiếng Việt ngắn gọn>\"}}"
             )
@@ -196,7 +218,7 @@ class AIReflexGenerator:
         avoid_instruction = f" TUYỆT ĐỐI KHÔNG lặp lại các câu hỏi sau: {recent_prompts}." if recent_prompts else ""
 
         prompt_text = (
-            f"Hãy sáng tạo 1 câu hỏi giao tiếp tiếng Nhật tự nhiên, bất ngờ và thú vị (trình độ {difficulty}) "
+            f"Hãy sáng tạo 1 câu hỏi giao tiếp tiếng Nhật tự nhiên, bất ngờ và phong phú "
             f"thuộc chủ đề '{chosen_topic}' ({topic_sub}) để người học luyện phản xạ trả lời trong {timer_ms/1000:.1f}s.{avoid_instruction} "
             f"[Nonce: {nonce}] "
             f"Trả về JSON: {{\"question_ja\": \"<câu hỏi tiếng Nhật tự nhiên>\", \"translation_vi\": \"<dịch nghĩa tiếng Việt>\", \"sample_answer_ja\": \"<câu trả lời mẫu ngắn gọn tự nhiên>\", \"topic\": \"{chosen_topic}\"}}"
@@ -253,7 +275,7 @@ class AIReflexGenerator:
         avoid_t = f" Tránh các câu gốc sau: {recent_t}." if recent_t else ""
 
         prompt_text = (
-            f"Hãy sáng tạo 1 bài tập biến đổi câu tiếng Nhật (Sentence Transformation) độc đáo ở mức {difficulty}.{avoid_t} [Nonce: {nonce}] "
+            f"Hãy sáng tạo 1 bài tập biến đổi câu tiếng Nhật (Sentence Transformation) phong phú, thực tế.{avoid_t} [Nonce: {nonce}] "
             f"Ví dụ: đổi câu thể lịch sự sang thể ngắn, bị động, sai khiến, bị sai khiến, điều kiện ば/たら, hoặc ý chí. "
             f"Trả về JSON: {{\"source_sentence_ja\": \"<câu gốc tiếng Nhật>\", \"task_instruction_ja\": \"<yêu cầu biến đổi>\", \"expected_sentence_ja\": \"<câu sau khi biến đổi đúng>\", \"translation_vi\": \"<dịch nghĩa câu gốc tiếng Việt>\"}}"
         )
@@ -314,7 +336,7 @@ class AIReflexGenerator:
         avoid_c = f" Tránh các tình huống sau: {recent_c}." if recent_c else ""
 
         prompt_text = (
-            f"Hãy sáng tạo 1 tình huống giao tiếp tiếng Nhật thực tế bất ngờ (trình độ {difficulty}) "
+            f"Hãy sáng tạo 1 tình huống giao tiếp tiếng Nhật thực tế bất ngờ "
             f"giữa người học và '{chosen_role}'.{avoid_c} [Nonce: {nonce}] "
             f"Trả về JSON: {{\"scenario_prompt_ja\": \"<lời thoại đối phương, ví dụ: {chosen_role}: ...>\", \"intent_vi\": \"<ý định bạn cần phản hồi ngắn gọn>\", \"expected_response_ja\": \"<câu trả lời chuẩn mẫu tiếng Nhật>\", \"translation_vi\": \"<dịch nghĩa tình huống tiếng Việt>\", \"role\": \"{chosen_role}\"}}"
         )

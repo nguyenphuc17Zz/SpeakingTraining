@@ -134,7 +134,7 @@ class AISituationsGenerator:
             scenario_instruction = f"Bối cảnh: {chosen_loc} (Chuyên đề: {cat_label}). Nhân vật NPC: {chosen_npc_role}."
 
         prompt_text = (
-            f"Hãy tạo 1 tình huống giao tiếp thực chiến tiếng Nhật (Situational Roleplay) chân thực, sống động ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 tình huống giao tiếp thực chiến tiếng Nhật (Situational Roleplay) chân thực, sống động và giàu tính thực tế đời sống Nhật Bản. [Nonce: {nonce}]\n"
             f"{scenario_instruction}\n\n"
             f"Yêu cầu:\n"
             f"1. Xác định địa điểm cụ thể và nhân vật NPC đối thoại bằng tiếng Nhật.\n"

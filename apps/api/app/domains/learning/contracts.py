@@ -88,6 +88,8 @@ class ExerciseType(str, Enum):
     REFLEX_QNA = "reflex_qna"
     REFLEX_TRANSFORMATION = "reflex_transformation"
     REFLEX_CONTEXT = "reflex_context"
+    REFLEX_VOCABULARY = "reflex_vocabulary"
+    REFLEX_KEIGO_VOCAB = "reflex_keigo_vocab"
     KEIGO_SONKEIGO = "keigo_sonkeigo"
     KEIGO_KENJOUGO = "keigo_kenjougo"
     KEIGO_TEINEIGO = "keigo_teineigo"

@@ -17,6 +17,7 @@ import {
   Pause,
   Mic,
   Check,
+  Crown,
 } from "lucide-react";
 import type { ReflexResult, ReflexExercise } from "../services/reflex-api";
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
@@ -64,29 +65,52 @@ export function ReflexResultCard({
   const timerLimit = result.timerLimitMs || 3000;
   const latencyRatio = latency != null ? Math.min(1, latency / timerLimit) : 1;
 
-  // Resolve Canonical Answer
+  // Resolve Canonical Answer & Vocabulary Context
+  const isVocab = exercise?.exercise_type === "reflex_vocabulary";
+  const isKeigoVocab = exercise?.exercise_type === "reflex_keigo_vocab";
+  const rc = exercise?.extra_metadata?.reflex_config || {};
+  const vocabDirection = rc.direction || "ja_to_vi";
+  const promptText = rc.prompt || "";
+  const wordReading = rc.word_reading || rc.prompt_reading || "";
+  const wordMeaningVi = rc.word_meaning_vi || rc.prompt_translation || "";
+
+  const keigoTargetType = rc.target_type || "sonkeigo";
+  const keigoTargetLabel = rc.target_label_vi || "Kính ngữ";
+  const tripletSonkeigo = rc.triplet_sonkeigo || "";
+  const tripletKenjougo = rc.triplet_kenjougo || "";
+  const explanationVi = rc.explanation_vi || "";
+
   const canonical =
     result.canonicalAnswer ||
     exercise?.canonical ||
     (exercise?.target_patterns && exercise.target_patterns.length > 0 ? exercise.target_patterns[0] : "") ||
     "";
 
-  // Auto-play model answer TTS when result is first shown (150ms delay for smooth transition)
+  // For TTS: if ja_to_vi, the Japanese word to pronounce is promptText (e.g. 食べる)
+  const ttsText = (isVocab && vocabDirection === "ja_to_vi") ? (promptText || canonical) : canonical;
+
+  const playedExerciseIdRef = useRef<string | null>(null);
+
+  // Auto-play model answer TTS when result is first shown
   useEffect(() => {
-    if (!canonical) return;
+    if (!ttsText) return;
+    const currentId = result.exerciseId || (exercise as any)?.id || "result";
+    if (playedExerciseIdRef.current === currentId) return;
+    playedExerciseIdRef.current = currentId;
+
     setIsTTSPlaying(true);
     const timer = setTimeout(() => {
-      speakJapaneseText(canonical, {
+      speakJapaneseText(ttsText, {
         rate: 0.95,
         onEnd: () => setIsTTSPlaying(false),
         onError: () => setIsTTSPlaying(false),
       });
-    }, 150);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [result.exerciseId, canonical]);
+  }, [result.exerciseId, (exercise as any)?.id, ttsText]);
 
   // Resolve acceptable variants
   const variants =
@@ -120,7 +144,7 @@ export function ReflexResultCard({
   // Play Model Answer TTS
   const handlePlayModelTTS = () => {
     onCancelAutoNext?.();
-    if (!canonical) return;
+    if (!ttsText) return;
 
     if (isUserAudioPlaying && userAudioRef.current) {
       userAudioRef.current.pause();
@@ -134,7 +158,7 @@ export function ReflexResultCard({
     }
 
     setIsTTSPlaying(true);
-    speakJapaneseText(canonical, {
+    speakJapaneseText(ttsText, {
       rate: 0.95,
       onEnd: () => setIsTTSPlaying(false),
       onError: () => setIsTTSPlaying(false),
@@ -361,10 +385,102 @@ export function ReflexResultCard({
               </span>
             </div>
 
-            {/* Big Japanese Canonical Text */}
-            <div className="text-lg md:text-xl font-black font-jp text-primary leading-tight">
-              {canonical || "—"}
-            </div>
+            {targetLabel && (
+              <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold tracking-wide bg-primary/10 text-primary px-2.5 py-0.5 rounded-md border border-primary/20">
+                  {targetLabel}
+                </span>
+              </div>
+            )}
+
+            {/* Keigo Word Special 3-Way Layout */}
+            {isKeigoVocab ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                    keigoTargetType === "sonkeigo"
+                      ? "bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                      : keigoTargetType === "kenjougo"
+                      ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
+                      : "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                  }`}>
+                    {keigoTargetLabel}
+                  </span>
+                  {rc.jlpt_level && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                      JLPT {rc.jlpt_level}
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-xl md:text-2xl font-black font-jp text-primary leading-tight">
+                  {canonical || "—"}
+                </div>
+
+                <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                  <span>Từ gốc:</span>
+                  <span className="font-bold text-foreground font-jp">{promptText}</span>
+                  {wordReading && wordReading !== promptText && (
+                    <span className="text-primary font-jp">({wordReading})</span>
+                  )}
+                  {wordMeaningVi && (
+                    <span>• {wordMeaningVi}</span>
+                  )}
+                </div>
+
+                {explanationVi && (
+                  <p className="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
+                    💡 {explanationVi}
+                  </p>
+                )}
+
+                {/* 3-Way Triplet Comparison for verbs */}
+                {(tripletSonkeigo || tripletKenjougo) && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-card border border-border/80 grid grid-cols-2 gap-2 text-xs">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        👑 Tôn kính (Sonkei)
+                      </span>
+                      <p className="font-bold font-jp text-foreground">{tripletSonkeigo || "—"}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        🙇 Khiêm nhường (Kenjou)
+                      </span>
+                      <p className="font-bold font-jp text-foreground">{tripletKenjougo || "—"}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : isVocab ? (
+              <div className="space-y-1">
+                <div className="text-lg md:text-xl font-black font-jp text-primary leading-tight">
+                  {canonical || "—"}
+                </div>
+                {vocabDirection === "ja_to_vi" ? (
+                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                    <span>Từ gốc:</span>
+                    <span className="font-bold text-foreground font-jp">{promptText}</span>
+                    {wordReading && wordReading !== promptText && (
+                      <span className="text-primary font-jp">({wordReading})</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 flex-wrap">
+                    {wordReading && wordReading !== canonical && (
+                      <span className="font-bold text-primary font-jp">({wordReading})</span>
+                    )}
+                    <span>• Nghĩa:</span>
+                    <span className="font-bold text-foreground">{promptText}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Standard Big Japanese Canonical Text */
+              <div className="text-lg md:text-xl font-black font-jp text-primary leading-tight">
+                {canonical || "—"}
+              </div>
+            )}
 
             {/* Acceptable Variants if any */}
             {variants.length > 0 && variants[0] !== canonical && (

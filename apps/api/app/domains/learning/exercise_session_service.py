@@ -127,6 +127,8 @@ class ExerciseSessionService:
             _reflex_metrics["pitch_confidence"] = pitch_confidence
         if audio_quality is not None:
             _reflex_metrics["audio_quality"] = audio_quality
+        if user_transcript:
+            _reflex_metrics["transcript"] = user_transcript
         # Ensure response_speed_ms is synced with reaction_latency if not explicitly set
         if response_speed_ms is None and _reflex_metrics.get("reaction_latency_ms") is not None:
             response_speed_ms = float(_reflex_metrics["reaction_latency_ms"])

@@ -136,6 +136,7 @@ export const PRESSURE_OPTIONS: { id: SituationsPressureLevel; label: string; lim
 ];
 
 export const DURATION_OPTIONS = [
+  { mins: 0, label: "∞ Vô hạn • Tự do (Không giới hạn)" },
   { mins: 3, label: "3 phút • Khởi động (2 tình huống)" },
   { mins: 5, label: "5 phút • Tiêu chuẩn (3 tình huống)" },
   { mins: 10, label: "10 phút • Chuyên sâu (5 tình huống)" },

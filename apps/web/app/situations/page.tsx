@@ -20,6 +20,7 @@ import {
   Edit3,
   HelpCircle,
   Home,
+  Clock,
 } from "lucide-react";
 import { ReflexTimer as SituationsTimerBar } from "@/features/reflex/components/ReflexTimer";
 import {
@@ -43,6 +44,7 @@ export default function SituationsPage() {
   const [selectedMode, setSelectedMode] = useState<string>("standard");
   const [pressureLevel, setPressureLevel] = useState<SituationsPressureLevel>("normal");
   const [duration, setDuration] = useState<number>(5);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [subtitleMode, setSubtitleMode] = useState<"hidden" | "japanese" | "japanese_reading" | "vietnamese">("japanese");
   const [inputMode, setInputMode] = useState<"voice" | "text">("voice");
   const [transcriptInput, setTranscriptInput] = useState("");
@@ -51,6 +53,36 @@ export default function SituationsPage() {
   const [coachHint, setCoachHint] = useState<string | null>(null);
 
   const { matchesAction, keybindings } = useSystemKeybindings();
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCat = localStorage.getItem("speaking_situations_category");
+      if (savedCat) setSelectedCategory(savedCat);
+      const savedTopic = localStorage.getItem("speaking_situations_customtopic");
+      if (savedTopic) setCustomTopic(savedTopic);
+      const savedMode = localStorage.getItem("speaking_situations_mode");
+      if (savedMode) setSelectedMode(savedMode);
+      const savedPressure = localStorage.getItem("speaking_situations_pressure");
+      if (savedPressure) setPressureLevel(savedPressure as any);
+      const savedDuration = localStorage.getItem("speaking_situations_duration");
+      if (savedDuration !== null) setDuration(Number(savedDuration));
+      const savedSubtitle = localStorage.getItem("speaking_situations_subtitle");
+      if (savedSubtitle) setSubtitleMode(savedSubtitle as any);
+    } catch (e) {}
+  }, []);
+
+  // Save preferences on change
+  useEffect(() => {
+    try {
+      localStorage.setItem("speaking_situations_category", selectedCategory);
+      localStorage.setItem("speaking_situations_customtopic", customTopic);
+      localStorage.setItem("speaking_situations_mode", selectedMode);
+      localStorage.setItem("speaking_situations_pressure", pressureLevel);
+      localStorage.setItem("speaking_situations_duration", String(duration));
+      localStorage.setItem("speaking_situations_subtitle", subtitleMode);
+    } catch (e) {}
+  }, [selectedCategory, customTopic, selectedMode, pressureLevel, duration, subtitleMode]);
 
   const session = useSituationsSession({
     category: selectedCategory,
@@ -108,6 +140,17 @@ export default function SituationsPage() {
       session.speech.stopListening();
     };
   }, []);
+
+  useEffect(() => {
+    if (session.phase === "idle" || session.phase === "summary") {
+      setElapsedSec(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setElapsedSec((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [session.phase]);
 
   useEffect(() => {
     if (session.phase === "result" && session.result) {
@@ -243,6 +286,15 @@ export default function SituationsPage() {
               <span className="text-xs font-bold text-muted-foreground">
                 Câu #{session.results.length + 1}
               </span>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-muted/60 text-foreground border border-border shadow-2xs">
+                <Clock className="h-3 w-3 text-primary" />
+                <span>
+                  {duration === 0
+                    ? `Phiên: ${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")} / ∞`
+                    : `Phiên: ${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, "0")} / ${duration}m`}
+                </span>
+              </div>
             </div>
 
             {/* Middle Reflex Timer Bar */}

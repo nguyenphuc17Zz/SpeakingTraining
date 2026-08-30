@@ -77,6 +77,7 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
   const autoNextTimerRef = useRef<NodeJS.Timeout | null>(null);
   const promptSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const seenPromptsRef = useRef<Set<string>>(new Set());
+  const createdAudioUrlsRef = useRef<string[]>([]);
 
   // 1. Microphone Hardware Hook (volume level & audio recording from Speaking architecture)
   const mic = useMicrophone();
@@ -146,10 +147,16 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
       micRef.current.releaseMicrophone();
       speechPreviewRef.current.stopPreview();
       seenPromptsRef.current.clear();
+      createdAudioUrlsRef.current.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+      createdAudioUrlsRef.current = [];
     };
   }, []);
 
-  // Release microphone and speech resources whenever session is NOT actively capturing speech
+  // Release microphone and speech recognition resources whenever session is NOT actively capturing speech
   useEffect(() => {
     if (phase !== "waiting_for_speech" && phase !== "recording") {
       micRef.current.releaseMicrophone();
@@ -289,7 +296,17 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
     if (autoNextTimerRef.current) clearTimeout(autoNextTimerRef.current);
     timerRef.current.stop();
     speechPreviewRef.current.stopPreview();
-    await micRef.current.stopRecording();
+
+    let userAudioUrl: string | null = null;
+    try {
+      const blob = await micRef.current.stopRecording();
+      if (blob && blob.size > 0) {
+        userAudioUrl = URL.createObjectURL(blob);
+        createdAudioUrlsRef.current.push(userAudioUrl);
+      }
+    } catch (err) {
+      console.debug("[useReflexSession] Error capturing audio blob on timeout:", err);
+    }
 
     setPhase("evaluating");
 
@@ -306,7 +323,7 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
 
     try {
       const res = await reflexApi.submitAttempt(currentEx.id, payload);
-      const mapped: ReflexResult = mapApiResult(res, currentEx, true, null);
+      const mapped: ReflexResult = mapApiResult(res, currentEx, true, userAudioUrl, capturedText);
       setResult(mapped);
       setResults((r) => [...r, mapped]);
       updateStats(mapped);
@@ -328,7 +345,17 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
       if (autoNextTimerRef.current) clearTimeout(autoNextTimerRef.current);
       timerRef.current.stop();
       speechPreviewRef.current.stopPreview();
-      await micRef.current.stopRecording();
+
+      let userAudioUrl: string | null = null;
+      try {
+        const blob = await micRef.current.stopRecording();
+        if (blob && blob.size > 0) {
+          userAudioUrl = URL.createObjectURL(blob);
+          createdAudioUrlsRef.current.push(userAudioUrl);
+        }
+      } catch (err) {
+        console.debug("[useReflexSession] Error capturing audio blob on submit:", err);
+      }
 
       setPhase("evaluating");
 
@@ -347,7 +374,7 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
 
       try {
         const res = await reflexApi.submitAttempt(currentEx.id, payload);
-        const mapped = mapApiResult(res, currentEx, false, null);
+        const mapped = mapApiResult(res, currentEx, false, userAudioUrl, transcript);
         setResult(mapped);
         setResults((r) => [...r, mapped]);
         updateStats(mapped);
@@ -471,7 +498,13 @@ export function useReflexSession(opts: UseReflexSessionOptions) {
   };
 }
 
-function mapApiResult(api: any, ex: ReflexExercise, timedOut: boolean, userAudioUrl?: string | null): ReflexResult {
+function mapApiResult(
+  api: any,
+  ex: ReflexExercise,
+  timedOut: boolean,
+  userAudioUrl?: string | null,
+  fallbackTranscript?: string
+): ReflexResult {
   const reflexMetrics = api.metrics?.reflex || {};
   const rc = ex.extra_metadata?.reflex_config || {};
   
@@ -499,12 +532,19 @@ function mapApiResult(api: any, ex: ReflexExercise, timedOut: boolean, userAudio
     ex.extra_metadata?.translation ||
     "";
 
+  const resolvedTranscript =
+    api.metrics?.reflex?.transcript ||
+    api.transcript ||
+    api.user_transcript ||
+    fallbackTranscript ||
+    "";
+
   return {
     exerciseId: ex.id,
     success: !!api.success,
     score: api.score ?? (api.success ? 100 : 0),
     feedback: api.feedback || (api.success ? "Chính xác!" : "Cần cố gắng thêm."),
-    transcript: api.metrics?.reflex?.transcript || api.transcript || "",
+    transcript: resolvedTranscript,
     normalized: api.metrics?.reflex?.normalized || "",
     assessment: api.metrics?.reflex?.assessment || api.assessment || null,
     reactionLatencyMs: reflexMetrics.reaction_latency_ms ?? api.response_speed_ms ?? null,

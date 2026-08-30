@@ -7,7 +7,7 @@ from typing import Any
 
 from app.domains.pitch.resource_provider import get_pitch_provider
 
-# Tiny example pools (policy, not language DB) — provider is authoritative
+# Comprehensive pitch & phonetic pools (25+ real-world Japanese words/pairs)
 MINIMAL_PAIRS_EXAMPLE = [
     {"a": "雨", "b": "飴", "reading": "あめ", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Cơn mưa", "meaning_b": "Viên kẹo"},
     {"a": "箸", "b": "橋", "reading": "はし", "a_accent": "atamadaka", "b_accent": "odaka", "meaning_a": "Đôi đũa", "meaning_b": "Cây cầu"},
@@ -17,6 +17,21 @@ MINIMAL_PAIRS_EXAMPLE = [
     {"a": "雲", "b": "蜘蛛", "reading": "くも", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Đám mây", "meaning_b": "Con nhện"},
     {"a": "今", "b": "居間", "reading": "いま", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Bây giờ", "meaning_b": "Phòng khách"},
     {"a": "花", "b": "鼻", "reading": "はな", "a_accent": "odaka", "b_accent": "heiban", "meaning_a": "Bông hoa", "meaning_b": "Cái mũi"},
+    {"a": "神", "b": "紙", "reading": "かみ", "a_accent": "atamadaka", "b_accent": "odaka", "meaning_a": "Thần linh", "meaning_b": "Tờ giấy"},
+    {"a": "秋", "b": "空き", "reading": "あき", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Mùa thu", "meaning_b": "Chỗ trống"},
+    {"a": "昼", "b": "蛭", "reading": "ひる", "a_accent": "odaka", "b_accent": "atamadaka", "meaning_a": "Buổi trưa", "meaning_b": "Con đỉa"},
+    {"a": "線", "b": "栓", "reading": "せん", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Tuyến đường", "meaning_b": "Nút chai"},
+    {"a": "猫", "b": "根子", "reading": "ねこ", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Con mèo", "meaning_b": "Gốc rễ"},
+    {"a": "春", "b": "張る", "reading": "はる", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Mùa xuân", "meaning_b": "Kéo căng"},
+    {"a": "冬", "b": "拭ゆ", "reading": "ふゆ", "a_accent": "odaka", "b_accent": "heiban", "meaning_a": "Mùa đông", "meaning_b": "Lau chùi"},
+    {"a": "海", "b": "膿", "reading": "うみ", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Biển cả", "meaning_b": "Mủ vết thương"},
+    {"a": "山", "b": "止む", "reading": "やま", "a_accent": "odaka", "b_accent": "heiban", "meaning_a": "Ngọn núi", "meaning_b": "Ngừng lại"},
+    {"a": "川", "b": "皮", "reading": "かわ", "a_accent": "odaka", "b_accent": "heiban", "meaning_a": "Dòng sông", "meaning_b": "Lớp da"},
+    {"a": "足", "b": "葦", "reading": "あし", "a_accent": "odaka", "b_accent": "heiban", "meaning_a": "Bàn chân", "meaning_b": "Cây lau sậy"},
+    {"a": "目", "b": "芽", "reading": "め", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Đôi mắt", "meaning_b": "Mầm cây"},
+    {"a": "手", "b": "照る", "reading": "て", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Bàn tay", "meaning_b": "Chiếu sáng"},
+    {"a": "歯", "b": "葉", "reading": "は", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Răng", "meaning_b": "Lá cây"},
+    {"a": "木", "b": "気", "reading": "き", "a_accent": "atamadaka", "b_accent": "heiban", "meaning_a": "Cây cối", "meaning_b": "Tâm trạng"},
 ]
 
 MORA_PAIRS_EXAMPLE = [
@@ -27,6 +42,17 @@ MORA_PAIRS_EXAMPLE = [
     {"short": "ビル", "long": "ビール", "type": "Trường âm (長音)", "short_meaning": "Tòa nhà", "long_meaning": "Bia"},
     {"short": "ゆき", "long": "ゆうき", "type": "Trường âm (長音)", "short_meaning": "Tuyết", "long_meaning": "Dũng khí"},
     {"short": "とり", "long": "とおり", "type": "Trường âm (長音)", "short_meaning": "Con chim", "long_meaning": "Con đường"},
+    {"short": "ここ", "long": "こうこう", "type": "Trường âm (長音)", "short_meaning": "Ở đây", "long_meaning": "Trường cấp 3"},
+    {"short": "とる", "long": "とおる", "type": "Trường âm (長音)", "short_meaning": "Cầm / Lấy", "long_meaning": "Đi ngang qua"},
+    {"short": "へや", "long": "へいや", "type": "Trường âm (長音)", "short_meaning": "Căn phòng", "long_meaning": "Đồng bằng"},
+    {"short": "すし", "long": "すうし", "type": "Trường âm (長音)", "short_meaning": "Món sushi", "long_meaning": "Từ chỉ số lượng"},
+    {"short": "せき", "long": "せっき", "type": "Âm ngắt (促音)", "short_meaning": "Cơn ho / Chỗ ngồi", "long_meaning": "Thời đồ đá"},
+    {"short": "まき", "long": "まっき", "type": "Âm ngắt (促音)", "short_meaning": "Củi đốt", "long_meaning": "Giai đoạn cuối"},
+    {"short": "かこ", "long": "かっこ", "type": "Âm ngắt (促音)", "short_meaning": "Quá khứ", "long_meaning": "Dấu ngoặc đơn"},
+    {"short": "いけん", "long": "いっけん", "type": "Âm ngắt (促音)", "short_meaning": "Ý kiến", "long_meaning": "Một căn nhà"},
+    {"short": "はけん", "long": "はっけん", "type": "Âm ngắt (促音)", "short_meaning": "Phái cử (Haken)", "long_meaning": "Phát hiện"},
+    {"short": "ぶか", "long": "ぶっか", "type": "Âm ngắt (促音)", "short_meaning": "Cấp dưới", "long_meaning": "Vật giá"},
+    {"short": "きそ", "long": "きっそう", "type": "Âm ngắt (促音)", "short_meaning": "Cơ sở", "long_meaning": "Tin vui"},
 ]
 
 DEVOICING_EXAMPLE = [
@@ -38,6 +64,17 @@ DEVOICING_EXAMPLE = [
     {"word": "ふたつ", "reading": "ふたつ", "devoiced": "ふ", "meaning": "Hai cái"},
     {"word": "しちがつ", "reading": "しちがつ", "devoiced": "し", "meaning": "Tháng 7"},
     {"word": "くさ", "reading": "くさ", "devoiced": "く", "meaning": "Cỏ dại"},
+    {"word": "たくさん", "reading": "たくさん", "devoiced": "く", "meaning": "Nhiều"},
+    {"word": "した", "reading": "した", "devoiced": "し", "meaning": "Bên dưới"},
+    {"word": "くつ", "reading": "くつ", "devoiced": "く", "meaning": "Đôi giày"},
+    {"word": "ふく", "reading": "ふく", "devoiced": "ふ", "meaning": "Quần áo"},
+    {"word": "きせつ", "reading": "きせつ", "devoiced": "き", "meaning": "Mùa trong năm"},
+    {"word": "しけん", "reading": "しけん", "devoiced": "し", "meaning": "Kỳ thi"},
+    {"word": "すいぞくかん", "reading": "すいぞくかん", "devoiced": "く", "meaning": "Thủy cung"},
+    {"word": "ちかてつ", "reading": "ちかてつ", "devoiced": "ち", "meaning": "Tàu điện ngầm"},
+    {"word": "きく", "reading": "きく", "devoiced": "き", "meaning": "Nghe"},
+    {"word": "ふね", "reading": "ふね", "devoiced": "ふ", "meaning": "Con thuyền"},
+    {"word": "たいせつ", "reading": "たいせつ", "devoiced": "つ", "meaning": "Quan trọng"},
 ]
 
 CONTOUR_WORDS = [
@@ -47,7 +84,21 @@ CONTOUR_WORDS = [
     {"word": "すし", "reading": "すし", "type": "頭高型 [1]", "pattern": ["H", "L"], "meaning": "Món sushi"},
     {"word": "ねこ", "reading": "ねこ", "type": "頭高型 [1]", "pattern": ["H", "L"], "meaning": "Con mèo"},
     {"word": "やま", "reading": "やま", "type": "尾高型 [2]", "pattern": ["L", "H"], "meaning": "Ngọn núi"},
+    {"word": "東京", "reading": "とうきょう", "type": "平板型 [0]", "pattern": ["L", "H", "H", "H"], "meaning": "Tokyo"},
+    {"word": "先生", "reading": "せんせい", "type": "中高型 [3]", "pattern": ["L", "H", "H", "L"], "meaning": "Thầy cô giáo"},
+    {"word": "本", "reading": "ほん", "type": "頭高型 [1]", "pattern": ["H", "L"], "meaning": "Quyển sách"},
+    {"word": "友達", "reading": "ともだち", "type": "平板型 [0]", "pattern": ["L", "H", "H", "H"], "meaning": "Bạn bè"},
+    {"word": "飛行機", "reading": "ひこうき", "type": "中高型 [2]", "pattern": ["L", "H", "L", "L"], "meaning": "Máy bay"},
+    {"word": "電話", "reading": "でんわ", "type": "平板型 [0]", "pattern": ["L", "H", "H"], "meaning": "Điện thoại"},
+    {"word": "大学生", "reading": "だいがくせい", "type": "平板型 [0]", "pattern": ["L", "H", "H", "H", "H"], "meaning": "Sinh viên đại học"},
+    {"word": "雨", "reading": "あめ", "type": "頭高型 [1]", "pattern": ["H", "L"], "meaning": "Cơn mưa"},
+    {"word": "飴", "reading": "あめ", "type": "平板型 [0]", "pattern": ["L", "H"], "meaning": "Viên kẹo"},
 ]
+
+_PITCH_MINIMAL_QUEUE: list[dict[str, Any]] = []
+_PITCH_MORA_QUEUE: list[dict[str, Any]] = []
+_PITCH_DEVOICING_QUEUE: list[dict[str, Any]] = []
+_PITCH_CONTOUR_QUEUE: list[dict[str, Any]] = []
 
 TIMER_DEFAULTS = {
     "pitch_minimal_pair": 4000,
@@ -58,24 +109,40 @@ TIMER_DEFAULTS = {
 }
 
 
+def _get_next_pitch_minimal() -> dict[str, Any]:
+    global _PITCH_MINIMAL_QUEUE
+    if not _PITCH_MINIMAL_QUEUE:
+        _PITCH_MINIMAL_QUEUE = random.sample(MINIMAL_PAIRS_EXAMPLE, len(MINIMAL_PAIRS_EXAMPLE))
+    return _PITCH_MINIMAL_QUEUE.pop(0)
+
+
+def _get_next_pitch_mora() -> dict[str, Any]:
+    global _PITCH_MORA_QUEUE
+    if not _PITCH_MORA_QUEUE:
+        _PITCH_MORA_QUEUE = random.sample(MORA_PAIRS_EXAMPLE, len(MORA_PAIRS_EXAMPLE))
+    return _PITCH_MORA_QUEUE.pop(0)
+
+
+def _get_next_pitch_devoicing() -> dict[str, Any]:
+    global _PITCH_DEVOICING_QUEUE
+    if not _PITCH_DEVOICING_QUEUE:
+        _PITCH_DEVOICING_QUEUE = random.sample(DEVOICING_EXAMPLE, len(DEVOICING_EXAMPLE))
+    return _PITCH_DEVOICING_QUEUE.pop(0)
+
+
+def _get_next_pitch_contour() -> dict[str, Any]:
+    global _PITCH_CONTOUR_QUEUE
+    if not _PITCH_CONTOUR_QUEUE:
+        _PITCH_CONTOUR_QUEUE = random.sample(CONTOUR_WORDS, len(CONTOUR_WORDS))
+    return _PITCH_CONTOUR_QUEUE.pop(0)
+
+
 class PitchExerciseFactory:
     def __init__(self):
         self.provider = get_pitch_provider()
 
-    def _provider_pair(self) -> dict[str, Any] | None:
-        # Try to query provider for same reading different accent
-        # For MVP, try random minimal pair from example via provider validation
-        for cand in MINIMAL_PAIRS_EXAMPLE:
-            e1 = self.provider.lookup(cand["a"])
-            e2 = self.provider.lookup(cand["b"])
-            if e1 and e2 and e1.reading == e2.reading and e1.accent_type != e2.accent_type:
-                return cand
-        return random.choice(MINIMAL_PAIRS_EXAMPLE)
-
     def generate_minimal_pair(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
-        pair = self._provider_pair()
-        if not pair:
-            pair = random.choice(MINIMAL_PAIRS_EXAMPLE)
+        pair = _get_next_pitch_minimal()
         a_entry = self.provider.lookup(pair["a"])
         b_entry = self.provider.lookup(pair["b"])
         return {
@@ -100,7 +167,7 @@ class PitchExerciseFactory:
         }
 
     def generate_mora_length(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
-        pair = random.choice(MORA_PAIRS_EXAMPLE)
+        pair = _get_next_pitch_mora()
         # Try provider mora count
         prov = self.provider
         short_mora = prov.get_mora(pair["short"])
@@ -125,7 +192,8 @@ class PitchExerciseFactory:
         }
 
     def generate_devoicing(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
-        word = random.choice(DEVOICING_EXAMPLE)
+        item = _get_next_pitch_devoicing()
+        word = item["word"]
         entry = self.provider.lookup(word)
         return {
             "title": f"Devoicing: {word}",
@@ -145,7 +213,8 @@ class PitchExerciseFactory:
         }
 
     def generate_contour(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
-        word = random.choice(CONTOUR_WORDS)
+        item = _get_next_pitch_contour()
+        word = item["word"]
         entry = self.provider.lookup(word)
         pattern = entry.pattern if entry else ["L", "H"]
         mora = entry.mora_count if entry else 2
@@ -172,7 +241,7 @@ class PitchExerciseFactory:
         }
 
     def generate_recognition(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
-        pair = self._provider_pair() or random.choice(MINIMAL_PAIRS_EXAMPLE)
+        pair = _get_next_pitch_minimal()
         # Simulate A/B audio choice
         correct = random.choice([pair["a"], pair["b"]])
         return {

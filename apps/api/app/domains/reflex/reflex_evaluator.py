@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+import difflib
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -305,7 +306,249 @@ class ReflexEvaluator:
             "thinking_stall": thinking_stall,
         }
 
+    async def evaluate_vocabulary(
+        self,
+        word: str,
+        direction: str,
+        word_reading: str,
+        word_meaning_vi: str,
+        synonyms_vi: list[str],
+        user_transcript: str,
+        *,
+        timer_limit_ms: int | None = None,
+        reaction_latency_ms: float | None = None,
+        semantic_latency_ms: float | None = None,
+        speech_confidence: float | None = None,
+        timed_out: bool = False,
+        late_response: bool = False,
+        independence: str = "independent",
+    ) -> dict[str, Any]:
+        """Evaluate vocabulary recall: ja→vi (fuzzy meaning match) or vi→ja (exact word/reading match)."""
+        raw = (user_transcript or "").strip()
+        normalized = _normalize_japanese(raw)
+
+        if timed_out or not raw:
+            assessment = ReflexScoringPolicy.build(
+                "reflex_vocabulary",
+                reaction_latency_ms=reaction_latency_ms,
+                timer_limit_ms=timer_limit_ms,
+                speech_confidence=speech_confidence,
+                accuracy_score=0.0,
+                timed_out=True,
+                independence_level=independence,
+            )
+            return {
+                "success": False,
+                "score": assessment.overall.score,
+                "assessment": assessment.to_dict(),
+                "feedback": "Time's up — chưa ghi nhận phản hồi. Đáp án: " + (word_meaning_vi if direction == "ja_to_vi" else word),
+                "evidence": ["No speech detected"],
+                "transcript": raw,
+                "normalized": normalized,
+                "direction": direction,
+            }
+
+        is_correct = False
+        feedback = ""
+
+        if direction == "ja_to_vi":
+            # Fuzzy Vietnamese meaning match
+            all_accepted = [word_meaning_vi] + synonyms_vi
+            raw_lower = raw.lower().strip()
+            # 1. Exact match check
+            for accepted in all_accepted:
+                if raw_lower == accepted.lower().strip():
+                    is_correct = True
+                    break
+            # 2. Fuzzy match — threshold 0.75 similarity
+            if not is_correct:
+                for accepted in all_accepted:
+                    ratio = difflib.SequenceMatcher(None, raw_lower, accepted.lower()).ratio()
+                    if ratio >= 0.75:
+                        is_correct = True
+                        break
+            # 3. Contains check (user says partial but correct key)
+            if not is_correct:
+                for accepted in all_accepted:
+                    key_words = [w for w in accepted.lower().split() if len(w) >= 3]
+                    if key_words and all(kw in raw_lower for kw in key_words):
+                        is_correct = True
+                        break
+
+            if is_correct:
+                feedback = f"Chính xác! {word} ({word_reading}) = {word_meaning_vi}"
+            else:
+                feedback = f"Chưa đúng. {word} ({word_reading}) = {word_meaning_vi}"
+                if synonyms_vi:
+                    feedback += f" (cũng accept: {', '.join(synonyms_vi)})"
+
+        else:  # vi_to_ja
+            # Exact Japanese word or reading match (normalize kana)
+            raw_norm = _normalize_japanese(raw)
+            word_norm = _normalize_japanese(word)
+            reading_norm = _normalize_japanese(word_reading)
+            is_correct = raw_norm == word_norm or raw_norm == reading_norm
+            # Fuzzy fallback for slight mis-readings
+            if not is_correct and len(word_norm) > 1:
+                ratio_word = difflib.SequenceMatcher(None, raw_norm, word_norm).ratio()
+                ratio_read = difflib.SequenceMatcher(None, raw_norm, reading_norm).ratio()
+                if max(ratio_word, ratio_read) >= 0.85:
+                    is_correct = True
+
+            if is_correct:
+                feedback = f"Chính xác! {word_meaning_vi} → {word} ({word_reading})"
+            else:
+                feedback = f"Chưa đúng. {word_meaning_vi} → {word} ({word_reading})"
+
+        accuracy = 100.0 if is_correct else 20.0
+        fluency = 90.0 if is_correct else 40.0
+        if is_correct and reaction_latency_ms is not None and timer_limit_ms:
+            ratio = reaction_latency_ms / timer_limit_ms
+            fluency = 95.0 if ratio < 0.5 else (85.0 if ratio < 0.7 else 75.0)
+
+        assessment = ReflexScoringPolicy.build(
+            "reflex_vocabulary",
+            reaction_latency_ms=reaction_latency_ms,
+            timer_limit_ms=timer_limit_ms,
+            speech_confidence=speech_confidence,
+            accuracy_score=accuracy,
+            naturalness_score=accuracy,
+            fluency_score=fluency,
+            context_fit_score=accuracy,
+            completeness_score=100.0 if is_correct else 20.0,
+            timed_out=False,
+            late_response=late_response,
+            semantic_latency_ms=semantic_latency_ms,
+            independence_level=independence,
+        )
+        is_perfect = is_correct and assessment.overall.score >= 80 and independence == "independent" and not late_response
+
+        return {
+            "success": is_correct,
+            "is_perfect": is_perfect,
+            "score": assessment.overall.score,
+            "assessment": assessment.to_dict(),
+            "feedback": feedback,
+            "evidence": [f"User: {raw}", f"Expected: {word_meaning_vi if direction == 'ja_to_vi' else word}"],
+            "transcript": raw,
+            "normalized": normalized,
+            "direction": direction,
+            "word": word,
+            "word_reading": word_reading,
+            "word_meaning_vi": word_meaning_vi,
+        }
+
+    async def evaluate_keigo_vocabulary(
+        self,
+        source_word: str,
+        target_type: str,
+        target_label_vi: str,
+        canonical: str,
+        acceptable_variants: list[str],
+        user_transcript: str,
+        *,
+        timer_limit_ms: int | None = None,
+        reaction_latency_ms: float | None = None,
+        semantic_latency_ms: float | None = None,
+        speech_confidence: float | None = None,
+        timed_out: bool = False,
+        late_response: bool = False,
+        independence: str = "independent",
+    ) -> dict[str, Any]:
+        """Evaluate rapid Keigo word transformation (Plain -> Sonkeigo/Kenjougo/Business)."""
+        raw = (user_transcript or "").strip()
+        normalized = _normalize_japanese(raw)
+
+        if timed_out or not raw:
+            assessment = ReflexScoringPolicy.build(
+                "reflex_keigo_vocab",
+                reaction_latency_ms=reaction_latency_ms,
+                timer_limit_ms=timer_limit_ms,
+                speech_confidence=speech_confidence,
+                accuracy_score=0.0,
+                timed_out=True,
+                independence_level=independence,
+            )
+            return {
+                "success": False,
+                "score": assessment.overall.score,
+                "assessment": assessment.to_dict(),
+                "feedback": f"Time's up — chưa ghi nhận phản hồi. Đáp án: {canonical}",
+                "evidence": ["No speech detected"],
+                "transcript": raw,
+                "normalized": normalized,
+                "target_type": target_type,
+            }
+
+        # Normalize candidates
+        all_candidates = [canonical] + [v for v in acceptable_variants if v != canonical]
+        norm_candidates = [_normalize_japanese(c) for c in all_candidates]
+
+        is_correct = False
+        matched_text = ""
+
+        # 1. Exact match
+        for cand, norm_cand in zip(all_candidates, norm_candidates):
+            if normalized == norm_cand:
+                is_correct = True
+                matched_text = cand
+                break
+
+        # 2. Fuzzy match (threshold 0.85)
+        if not is_correct:
+            for cand, norm_cand in zip(all_candidates, norm_candidates):
+                ratio = difflib.SequenceMatcher(None, normalized, norm_cand).ratio()
+                if ratio >= 0.85:
+                    is_correct = True
+                    matched_text = cand
+                    break
+
+        if is_correct:
+            feedback = f"Chính xác! {source_word} → {canonical} ✓"
+        else:
+            fb_extra = f" (cũng chấp nhận: {', '.join(acceptable_variants[:3])})" if acceptable_variants else ""
+            feedback = f"Chưa chính xác. {source_word} sang {target_label_vi} là: {canonical}{fb_extra}"
+
+        accuracy = 100.0 if is_correct else 25.0
+        fluency = 90.0 if is_correct else 35.0
+        if is_correct and reaction_latency_ms is not None and timer_limit_ms:
+            ratio = reaction_latency_ms / timer_limit_ms
+            fluency = 95.0 if ratio < 0.5 else (85.0 if ratio < 0.7 else 75.0)
+
+        assessment = ReflexScoringPolicy.build(
+            "reflex_keigo_vocab",
+            reaction_latency_ms=reaction_latency_ms,
+            timer_limit_ms=timer_limit_ms,
+            speech_confidence=speech_confidence,
+            accuracy_score=accuracy,
+            naturalness_score=accuracy,
+            fluency_score=fluency,
+            context_fit_score=accuracy,
+            completeness_score=100.0 if is_correct else 25.0,
+            timed_out=False,
+            late_response=late_response,
+            semantic_latency_ms=semantic_latency_ms,
+            independence_level=independence,
+        )
+        is_perfect = is_correct and assessment.overall.score >= 80 and independence == "independent" and not late_response
+
+        return {
+            "success": is_correct,
+            "is_perfect": is_perfect,
+            "score": assessment.overall.score,
+            "assessment": assessment.to_dict(),
+            "feedback": feedback,
+            "evidence": [f"User: {raw}", f"Target: {target_label_vi}", f"Expected: {canonical}"],
+            "transcript": raw,
+            "normalized": normalized,
+            "target_type": target_type,
+            "source_word": source_word,
+            "canonical": canonical,
+            "matched": matched_text,
+        }
+
     async def _ai_evaluate(self, title: str, objective: str, target_patterns: list[str], user_transcript: str, context: str | None, task: AITask) -> dict[str, Any] | None:
+
         from app.domains.learning.prompts import LearningPrompts
         sys_inst, user_content = LearningPrompts.build_exercise_evaluation_prompt(
             exercise_title=title,

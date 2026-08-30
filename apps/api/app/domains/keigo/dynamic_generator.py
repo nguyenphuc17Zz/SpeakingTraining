@@ -121,7 +121,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập Tôn Kính Ngữ (尊敬語 - Sonkeigo) độc đáo, tự nhiên trong bối cảnh công sở Nhật Bản (trình độ {difficulty}). "
+            f"Hãy tạo 1 bài tập Tôn Kính Ngữ (尊敬語 - Sonkeigo) độc đáo, tự nhiên trong bối cảnh công sở Nhật Bản. "
             f"Chủ đề: '{chosen_topic}' ({topic_detail}). [Nonce: {nonce}]\n"
             f"Quy tắc: Cho 1 câu nói về hành động của Đối tác/Khách hàng/Sếp (thể thông thường hoặc lịch sự nhẹ), "
             f"và yêu cầu người học chuyển sang câu Tôn Kính Ngữ (Sonkeigo) chuẩn mực cao nhất.\n"
@@ -201,7 +201,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập Khiêm Nhường Ngữ (謙譲語 - Kenjougo) thực tế trong công sở Nhật Bản (trình độ {difficulty}). "
+            f"Hãy tạo 1 bài tập Khiêm Nhường Ngữ (謙譲語 - Kenjougo) thực tế trong công sở Nhật Bản. "
             f"Chủ đề: '{chosen_topic}' ({topic_detail}). [Nonce: {nonce}]\n"
             f"Quy tắc: Cho 1 câu nói về hành động của Bản thân / Công ty mình khi nói với Khách hàng/Đối tác, "
             f"và yêu cầu người học chuyển sang câu Khiêm Nhường Ngữ (Kenjougo I/II) chuẩn mực.\n"
@@ -281,7 +281,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập Thể Lịch Sự & Mỹ Từ (丁寧語・美化語) trong giao tiếp văn phòng ({difficulty}). "
+            f"Hãy tạo 1 bài tập Thể Lịch Sự & Mỹ Từ (丁寧語・美化語) trong giao tiếp văn phòng. "
             f"Chủ đề: '{chosen_topic}'. [Nonce: {nonce}]\n"
             f"Yêu cầu: Cho 1 câu văn suồng sã hoặc thiếu mỹ từ お/ご, yêu cầu chuyển sang câu chuẩn lịch sự desu/masu/gozaimasu.\n"
             f"Trả về JSON: {{\"source_prompt\": \"<câu gốc>\", \"scenario\": \"<bối cảnh>\", \"instructions\": \"<hướng dẫn>\", \"canonical\": \"<câu chuẩn>\", \"acceptable_variants\": [\"<câu tương đương>\"], \"translation_vi\": \"<dịch tiếng Việt>\"}}"
@@ -337,7 +337,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập Chuyển Đổi Văn Phong (Register Shift) phản xạ tức thì ({difficulty}). "
+            f"Hãy tạo 1 bài tập Chuyển Đổi Văn Phong (Register Shift) phản xạ tức thì. "
             f"Chủ đề: '{chosen_topic}'. [Nonce: {nonce}]\n"
             f"Cho 1 câu nói thân mật (Tameguchi) ngắn gọn giữa bạn bè hoặc suy nghĩ nội tâm, "
             f"yêu cầu người học chuyển sang câu Kính ngữ thương mại (Business Keigo) hoàn chỉnh.\n"
@@ -393,7 +393,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 tình huống kinh điển thử thách phân biệt Trong/Ngoài (Uchi - Soto) trong văn hóa công sở Nhật ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 tình huống kinh điển thử thách phân biệt Trong/Ngoài (Uchi - Soto) trong văn hóa công sở Nhật. [Nonce: {nonce}]\n"
             f"Ví dụ: Đối tác ngoài gọi điện hỏi về Giám đốc/Trưởng phòng bên bạn. "
             f"Người học phải phản xạ hạ sếp mình xuống bằng Khiêm nhường ngữ và bỏ chức danh (VD: 社長の田中は席を外しております).\n"
             f"Trả về JSON: {{\"prompt\": \"<câu hỏi của đối tác ngoài>\", \"scenario\": \"<bối cảnh vai vế rõ ràng>\", \"instructions\": \"<hướng dẫn chọn đúng hướng Kính ngữ>\", \"canonical\": \"<câu trả lời chuẩn>\", \"acceptable_variants\": [\"<biến thể>\"], \"translation_vi\": \"<dịch tiếng Việt>\", \"speaker_group\": \"UCHI\", \"listener_group\": \"SOTO\", \"referent_group\": \"UCHI\"}}"
@@ -458,7 +458,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 câu tiếng Nhật có LỖI SAI KÍNH NGỮ thực tế (Nhị trùng kính ngữ 二重敬語 hoặc lộn hướng Tôn kính/Khiêm nhường) ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 câu tiếng Nhật có LỖI SAI KÍNH NGỮ thực tế (Nhị trùng kính ngữ 二重敬語 hoặc lộn hướng Tôn kính/Khiêm nhường). [Nonce: {nonce}]\n"
             f"Yêu cầu người học phát hiện lỗi và nói lại câu đúng hoàn chỉnh.\n"
             f"Ví dụ lỗi: おっしゃられる (lỗi nhị trùng), 社長がお召し上がりになられた (lỗi thừa kính ngữ), ご覧いたす (lộn hướng).\n"
             f"Trả về JSON: {{\"faulty_sentence_ja\": \"<câu có lỗi sai>\", \"error_type\": \"<DOUBLE_KEIGO | WRONG_DIRECTION>\", \"scenario\": \"<mô tả lỗi>\", \"instructions\": \"<hướng dẫn sửa lỗi>\", \"canonical_fix_ja\": \"<câu đã sửa đúng hoàn chỉnh>\", \"acceptable_variants\": [\"<câu sửa đúng biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\"}}"
@@ -514,7 +514,7 @@ class AIKeigoGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 câu giao tiếp tiếng Nhật và yêu cầu người học đánh giá mức độ tự nhiên công sở ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 câu giao tiếp tiếng Nhật và yêu cầu người học đánh giá mức độ tự nhiên công sở. [Nonce: {nonce}]\n"
             f"Trả về JSON: {{\"sentence_ja\": \"<câu tiếng Nhật>\", \"scenario\": \"<bối cảnh>\", \"is_natural\": true/false, \"expected_label\": \"NATURAL | INAPPROPRIATE\", \"canonical_correction\": \"<câu tự nhiên nhất>\", \"acceptable_variants\": [\"<câu biến thể>\"], \"translation_vi\": \"<dịch nghĩa tiếng Việt>\"}}"
         )
         req = AIRequest(

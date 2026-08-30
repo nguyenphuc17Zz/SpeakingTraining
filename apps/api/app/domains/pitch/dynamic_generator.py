@@ -102,7 +102,7 @@ class AIPitchGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 cặp từ tối thiểu tiếng Nhật (Minimal Pair) cùng cách đọc Hiragana nhưng khác kiểu cao độ (Pitch Accent Tokyo) ({difficulty}). "
+            f"Hãy tạo 1 cặp từ tối thiểu tiếng Nhật (Minimal Pair) cùng cách đọc Hiragana nhưng khác kiểu cao độ (Pitch Accent Tokyo). "
             f"Chủ đề: '{chosen_topic}'. [Nonce: {nonce}]\n"
             f"Ví dụ: 雨 (あめ [1] - Mưa) vs 飴 (あめ [0] - Kẹo), 箸 (はし [1] - Đũa) vs 橋 (はし [2] - Cây cầu), 酒 (さけ [0] - Rượu) vs 鮭 (さけ [1] - Cá hồi).\n"
             f"Trả về JSON định dạng:\n"
@@ -190,7 +190,7 @@ class AIPitchGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập phân biệt số phách (Mora Count & Length) tiếng Nhật ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 bài tập phân biệt số phách (Mora Count & Length) tiếng Nhật thực tế. [Nonce: {nonce}]\n"
             f"Ví dụ cặp từ: おじさん (4 mora - Chú) vs おじいさん (5 mora - Ông), 来て (2 mora) vs 切って (3 mora), ビル (2 mora) vs ビール (3 mora), 坂 (2 mora) vs 作家 (3 mora).\n"
             f"Trả về JSON: {{\"short_word\": \"<từ ngắn>\", \"short_mora\": [\"お\", \"じ\", \"さ\", \"ん\"], \"short_meaning_vi\": \"<nghĩa ngắn>\", \"long_word\": \"<từ dài>\", \"long_mora\": [\"お\", \"じ\", \"い\", \"さ\", \"ん\"], \"long_meaning_vi\": \"<nghĩa dài>\", \"mora_type\": \"長音 (Trường âm) | 促音 (Âm ngắt) | 撥音 (Âm mũi)\", \"target_word\": \"<từ mục tiêu phát âm>\"}}"
         )
@@ -256,7 +256,7 @@ class AIPitchGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 câu/từ tiếng Nhật có hiện tượng VÔ THANH HÓA NGUYÊN ÂM (母音無声化 - Vowel Devoicing) ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 câu/từ tiếng Nhật có hiện tượng VÔ THANH HÓA NGUYÊN ÂM (母音無声化 - Vowel Devoicing) thực tế trong đời sống. [Nonce: {nonce}]\n"
             f"Ví dụ: です (âm su vô thanh), ました (âm shi vô thanh), 好きです (âm su vô thanh), 月 (âm tsu vô thanh), 聞きます (âm ki vô thanh), 7日 (しちにち).\n"
             f"Trả về JSON: {{\"word_ja\": \"<từ/cụm từ>\", \"reading\": \"<Hiragana>\", \"devoiced_mora\": \"<mora bị vô thanh, VD: す, し, つ, き, く>\", \"meaning_vi\": \"<dịch tiếng Việt>\", \"explanation\": \"<giải thích quy tắc vô thanh>\"}}"
         )
@@ -314,7 +314,7 @@ class AIPitchGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 bài tập luyện đường cao độ tiếng Nhật chuẩn Tokyo (Pitch Contour Curve) ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 bài tập luyện đường cao độ tiếng Nhật chuẩn Tokyo (Pitch Contour Curve). [Nonce: {nonce}]\n"
             f"Chọn 1 trong 4 loại cao độ: 平板型 (Heiban [0] - L H H...), 頭高型 (Atamadaka [1] - H L L...), 中高型 (Nakadaka [2/3] - L H L...), 尾高型 (Odaka [N] - L H H (L)).\n"
             f"Trả về JSON: {{\"word_ja\": \"<từ tiếng Nhật>\", \"reading\": \"<Hiragana>\", \"accent_type\": \"<平板型 [0] | 頭高型 [1] | 中高型 [2] | 尾高型 [3]>\", \"pitch_pattern\": [\"L\", \"H\", \"H\"], \"meaning_vi\": \"<dịch nghĩa>\", \"drop_position\": 0/1/2/3}}"
         )
@@ -375,7 +375,7 @@ class AIPitchGenerator:
         nonce = uuid.uuid4().hex[:8]
 
         prompt_text = (
-            f"Hãy tạo 1 câu hỏi trắc nghiệm luyện tai nghe cao độ tiếng Nhật (Pitch Recognition) ({difficulty}). [Nonce: {nonce}]\n"
+            f"Hãy tạo 1 câu hỏi trắc nghiệm luyện tai nghe cao độ tiếng Nhật (Pitch Recognition) chuẩn Tokyo. [Nonce: {nonce}]\n"
             f"Cho 1 từ đồng âm khác cao độ (VD: はし). Hệ thống phát âm 1 kiểu cao độ và người học chọn nghĩa đúng (Đũa hay Cầu).\n"
             f"Trả về JSON: {{\"reading\": \"<Hiragana, VD: はし>\", \"spoken_word\": \"<từ phát âm, VD: 箸>\", \"spoken_accent_type\": \"頭高型 [1] (Cao - Thấp)\", \"correct_meaning\": \"Đôi đũa\", \"distractor_word\": \"橋\", \"distractor_meaning\": \"Cây cầu\", \"distractor_accent_type\": \"尾高型 [2] (Thấp - Cao)\"}}"
         )

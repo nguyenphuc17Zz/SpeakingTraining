@@ -14,6 +14,8 @@ class ReflexSubMode(str, Enum):
     QNA = "reflex_qna"
     TRANSFORMATION = "reflex_transformation"
     CONTEXT = "reflex_context"
+    VOCABULARY = "reflex_vocabulary"
+    KEIGO_VOCABULARY = "reflex_keigo_vocab"
 
 
 class ConjugationFormDTO(BaseModel):

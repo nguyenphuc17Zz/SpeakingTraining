@@ -87,6 +87,7 @@ export const PITCH_PRESSURE_LEVELS = [
 ];
 
 export const PITCH_DURATIONS = [
+  { min: 0, label: "∞ Vô hạn", desc: "Không giới hạn thời gian" },
   { min: 3, label: "3 phút", desc: "Khởi động nhanh" },
   { min: 5, label: "5 phút", desc: "Tiêu chuẩn mỗi ngày" },
   { min: 10, label: "10 phút", desc: "Luyện chuyên sâu" },
@@ -100,8 +101,8 @@ interface PitchLobbyProps {
   setPressure: (v: any) => void;
   subtitleMode: "hidden" | "japanese" | "japanese_reading" | "vietnamese";
   setSubtitleMode: (v: any) => void;
-  duration: 3 | 5 | 10 | 20;
-  setDuration: (v: 3 | 5 | 10 | 20) => void;
+  duration: 0 | 3 | 5 | 10 | 20;
+  setDuration: (v: 0 | 3 | 5 | 10 | 20) => void;
   autoNext: boolean;
   setAutoNext: (v: boolean) => void;
   onStartSession: () => void;

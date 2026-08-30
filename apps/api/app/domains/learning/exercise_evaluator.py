@@ -266,6 +266,134 @@ class ExerciseEvaluator:
             except Exception as e:
                 logger.warning(f"[ExerciseEvaluator] Situational branch failed, fallback to generic: {e}")
 
+        # Reflex vocabulary deterministic branch: evaluate immediately without LLM latency
+        is_reflex_vocab = exercise.exercise_type == "reflex_vocabulary"
+        if is_reflex_vocab:
+            try:
+                from app.domains.reflex.reflex_evaluator import ReflexEvaluator
+                _rc = (exercise.extra_metadata.get("reflex_config", {}) or {}) if exercise.extra_metadata else {}
+                _dir = _rc.get("direction") or "ja_to_vi"
+                _word = _rc.get("prompt") if _dir == "ja_to_vi" else (_rc.get("canonical") or (target_patterns[0] if target_patterns else ""))
+                _reading = _rc.get("word_reading") or _rc.get("prompt_reading") or ""
+                _meaning = _rc.get("word_meaning_vi") or _rc.get("prompt_translation") or (_rc.get("prompt") if _dir == "vi_to_ja" else "")
+                _synonyms = _rc.get("synonyms_vi") or []
+                _lat = _reflex.get("reaction_latency_ms", response_speed_ms)
+                _timer = _reflex.get("timer_limit_ms") or 3000
+                _conf = _reflex.get("speech_confidence")
+                _indep = _reflex.get("independence") or ("assisted_hint" if used_hint else "independent")
+
+                reflex_eval = ReflexEvaluator(self.db)
+                v_res = await reflex_eval.evaluate_vocabulary(
+                    word=_word,
+                    direction=_dir,
+                    word_reading=_reading,
+                    word_meaning_vi=_meaning,
+                    synonyms_vi=_synonyms,
+                    user_transcript=transcript_clean,
+                    timer_limit_ms=_timer,
+                    reaction_latency_ms=_lat,
+                    semantic_latency_ms=_reflex.get("semantic_latency_ms"),
+                    speech_confidence=_conf,
+                    timed_out=_timed_out,
+                    late_response=_late,
+                    independence=_indep,
+                )
+
+                _vocab_metrics = {
+                    "pattern_found": v_res["success"],
+                    "used_hint": used_hint,
+                    "response_speed_ms": response_speed_ms,
+                    "reaction_latency_ms": _lat,
+                    "timer_limit_ms": _timer,
+                    "timed_out": _timed_out,
+                    "late_response": _late,
+                    "reflex": _reflex,
+                    "vocabulary_assessment": v_res.get("assessment"),
+                }
+                return ExerciseResult(
+                    exercise_id=exercise.id,
+                    user_id=exercise.user_id,
+                    score=float(v_res["score"]),
+                    success=bool(v_res["success"]),
+                    confidence=float(v_res["assessment"]["overall"]["confidence"] if v_res.get("assessment") and "overall" in v_res["assessment"] else 0.95),
+                    target_mastery_delta={},
+                    feedback=v_res["feedback"],
+                    evidence=v_res["evidence"],
+                    metrics=_vocab_metrics,
+                    independence=IndependenceLevel.ASSISTED_HINT if used_hint else IndependenceLevel.INDEPENDENT,
+                    response_speed_ms=response_speed_ms,
+                    target_usage="correct" if v_res["success"] else "incorrect",
+                    grammar_score=float(v_res["assessment"]["grammar"]["score"] if v_res.get("assessment") and "grammar" in v_res["assessment"] else 70),
+                    naturalness_score=float(v_res["assessment"]["naturalness"]["score"] if v_res.get("assessment") and "naturalness" in v_res["assessment"] else 70),
+                    attempt_id=attempt.id,
+                )
+            except Exception as e:
+                logger.warning(f"[ExerciseEvaluator] Vocabulary branch failed, fallback to generic: {e}")
+
+        # Reflex Keigo Word Blitz deterministic branch
+        is_reflex_keigo_vocab = exercise.exercise_type == "reflex_keigo_vocab"
+        if is_reflex_keigo_vocab:
+            try:
+                from app.domains.reflex.reflex_evaluator import ReflexEvaluator
+                _rc = (exercise.extra_metadata.get("reflex_config", {}) or {}) if exercise.extra_metadata else {}
+                _src = _rc.get("prompt") or exercise.scenario or ""
+                _target_type = _rc.get("target_type") or "sonkeigo"
+                _target_label = _rc.get("target_label_vi") or "Kính ngữ"
+                _canonical = _rc.get("canonical") or (target_patterns[0] if target_patterns else "")
+                _acceptable = _rc.get("acceptable_variants") or exercise.acceptable_variants or []
+                _lat = _reflex.get("reaction_latency_ms", response_speed_ms)
+                _timer = _reflex.get("timer_limit_ms") or 3000
+                _conf = _reflex.get("speech_confidence")
+                _indep = _reflex.get("independence") or ("assisted_hint" if used_hint else "independent")
+
+                reflex_eval = ReflexEvaluator(self.db)
+                k_res = await reflex_eval.evaluate_keigo_vocabulary(
+                    source_word=_src,
+                    target_type=_target_type,
+                    target_label_vi=_target_label,
+                    canonical=_canonical,
+                    acceptable_variants=_acceptable,
+                    user_transcript=transcript_clean,
+                    timer_limit_ms=_timer,
+                    reaction_latency_ms=_lat,
+                    semantic_latency_ms=_reflex.get("semantic_latency_ms"),
+                    speech_confidence=_conf,
+                    timed_out=_timed_out,
+                    late_response=_late,
+                    independence=_indep,
+                )
+
+                _keigo_vocab_metrics = {
+                    "pattern_found": k_res["success"],
+                    "used_hint": used_hint,
+                    "response_speed_ms": response_speed_ms,
+                    "reaction_latency_ms": _lat,
+                    "timer_limit_ms": _timer,
+                    "timed_out": _timed_out,
+                    "late_response": _late,
+                    "reflex": _reflex,
+                    "keigo_vocab_assessment": k_res.get("assessment"),
+                }
+                return ExerciseResult(
+                    exercise_id=exercise.id,
+                    user_id=exercise.user_id,
+                    score=float(k_res["score"]),
+                    success=bool(k_res["success"]),
+                    confidence=float(k_res["assessment"]["overall"]["confidence"] if k_res.get("assessment") and "overall" in k_res["assessment"] else 0.95),
+                    target_mastery_delta={},
+                    feedback=k_res["feedback"],
+                    evidence=k_res["evidence"],
+                    metrics=_keigo_vocab_metrics,
+                    independence=IndependenceLevel.ASSISTED_HINT if used_hint else IndependenceLevel.INDEPENDENT,
+                    response_speed_ms=response_speed_ms,
+                    target_usage="correct" if k_res["success"] else "incorrect",
+                    grammar_score=float(k_res["assessment"]["grammar"]["score"] if k_res.get("assessment") and "grammar" in k_res["assessment"] else 70),
+                    naturalness_score=float(k_res["assessment"]["naturalness"]["score"] if k_res.get("assessment") and "naturalness" in k_res["assessment"] else 70),
+                    attempt_id=attempt.id,
+                )
+            except Exception as e:
+                logger.warning(f"[ExerciseEvaluator] Keigo vocab branch failed, fallback to generic: {e}")
+
         # Reflex deterministic branch: if exercise is reflex_conjugation, try conjugation engine first
         is_reflex_conj = exercise.exercise_type == "reflex_conjugation"
         conj_result = None

@@ -141,7 +141,7 @@ export const PRESSURE_LEVELS = [
   { id: "extreme", label: "Cực hạn", icon: "🔥", ms: 2000, desc: "2.0s" },
 ] as const;
 
-export const DURATIONS = [3, 5, 10, 20] as const;
+export const DURATIONS = [0, 3, 5, 10, 20] as const;
 
 interface Props {
   subMode: string;
@@ -150,8 +150,8 @@ interface Props {
   setPressure: (p: PressureLevel) => void;
   subtitleMode: "hidden" | "japanese" | "japanese_reading" | "vietnamese";
   setSubtitleMode: (m: "hidden" | "japanese" | "japanese_reading" | "vietnamese") => void;
-  duration: 3 | 5 | 10 | 20;
-  setDuration: (d: 3 | 5 | 10 | 20) => void;
+  duration: 0 | 3 | 5 | 10 | 20;
+  setDuration: (d: 0 | 3 | 5 | 10 | 20) => void;
   autoNext: boolean;
   setAutoNext: (v: boolean | ((prev: boolean) => boolean)) => void;
   startTrigger: "manual" | "auto";
@@ -317,9 +317,9 @@ export function KeigoLobby({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs font-bold">
                 <span className="text-muted-foreground">Thời Lượng Phiên:</span>
-                <span className="text-primary font-mono">{duration} phút</span>
+                <span className="text-primary font-mono">{duration === 0 ? "∞ Vô hạn" : `${duration} phút`}</span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-5 gap-1.5">
                 {DURATIONS.map((d) => (
                   <button
                     key={d}
@@ -331,7 +331,7 @@ export function KeigoLobby({
                         : "bg-muted/40 border-border/80 hover:bg-muted text-foreground"
                     )}
                   >
-                    {d} min
+                    {d === 0 ? "∞ Vô hạn" : `${d} min`}
                   </button>
                 ))}
               </div>
