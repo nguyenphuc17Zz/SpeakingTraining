@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GlobalToast } from "@/components/ui/global-toast";
+import { VocabularyLookupProvider } from "@/features/vocabulary-lookup";
 
 // Fonts loaded via system fallback to avoid build-time Google fetch in offline env.
 // CSS variables --font-jp / --font-display fallback to Noto Sans JP stack defined in globals.css
@@ -28,8 +29,10 @@ export default function RootLayout({
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
-          <GlobalToast />
+          <VocabularyLookupProvider>
+            <AppShell>{children}</AppShell>
+            <GlobalToast />
+          </VocabularyLookupProvider>
         </ThemeProvider>
       </body>
     </html>

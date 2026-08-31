@@ -22,6 +22,7 @@ from app.api.v1.providers import router as providers_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.shadowing import router as shadowing_router
 from app.api.v1.speech import router as speech_router
+from app.api.v1.vocabulary import router as vocabulary_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -47,3 +48,4 @@ api_v1_router.include_router(shadowing_router)
 api_v1_router.include_router(game_router)
 api_v1_router.include_router(analytics_router)
 api_v1_router.include_router(coach_router)
+api_v1_router.include_router(vocabulary_router)

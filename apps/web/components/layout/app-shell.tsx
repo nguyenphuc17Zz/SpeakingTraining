@@ -8,6 +8,7 @@ import { AtmosphericWeatherEngine } from "@/components/ui/atmospheric-weather-en
 import { useRewardNotifications, RewardToast } from "@/features/gamification";
 import { CoachFloatingButton, CoachPanel } from "@/features/coach";
 import { useCoachProactive } from "@/features/coach/hooks/useCoachProactive";
+import { SelectionLookupBubble, AIVocabularyLookupBox } from "@/features/vocabulary-lookup";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -275,6 +276,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <BottomNav />
       <RewardToast notification={currentToast} onDismiss={dismissToast} />
       <AtmosphericWeatherEngine />
+      <SelectionLookupBubble />
+      <AIVocabularyLookupBox />
     </div>
   );
 }

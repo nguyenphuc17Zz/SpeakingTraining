@@ -53,6 +53,7 @@ class AITask(str, Enum):
     COACH_NATIVE_UPGRADE = "coach_native_upgrade"
     WEEKLY_REVIEW = "weekly_review"
     INSIGHT_EXPLANATION = "insight_explanation"
+    VOCABULARY_LOOKUP = "vocabulary_lookup"
     PLAYGROUND = "playground"
     GENERAL = "general"
 
