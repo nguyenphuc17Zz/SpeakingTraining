@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Mic, Clock, Play, Square, Trophy, Settings2, Zap, BookOpen, BarChart3, Lightbulb, AlertCircle, Sparkles, HelpCircle } from "lucide-react";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { Mic, Clock, Play, Square, Trophy, Settings2, Zap, BookOpen, BarChart3, Lightbulb, AlertCircle, Sparkles, HelpCircle, Keyboard, Send, FileText } from "lucide-react";
 import { useMonologue } from "@/hooks/use-monologue";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { toast } from "@/lib/toast";
@@ -212,6 +213,42 @@ export default function SpeechPage() {
     }
   };
 
+  const handleDirectTextSubmit = async () => {
+    const text = transcriptInput.trim();
+    if (!text) {
+      toast.error("Vui lòng nhập nội dung bài nói tiếng Nhật của bạn.");
+      return;
+    }
+    if (text.length < 15) {
+      toast.error("Bài nói cần tối thiểu 15 ký tự tiếng Nhật để AI phân tích cấu trúc và lập luận.");
+      return;
+    }
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (recRafRef.current) cancelAnimationFrame(recRafRef.current);
+    recorder.releaseMicrophone();
+
+    const targetSec = speechConfig?.target_duration_sec ?? durationSec;
+    const estimatedDurationMs = Math.max(8000, Math.min(targetSec * 1000, Math.round((text.length / 5.0) * 1000)));
+
+    const basePayload = {
+      user_transcript: text,
+      speech_metrics: {
+        started_at: new Date(Date.now() - estimatedDurationMs).toISOString(),
+        ended_at: new Date().toISOString(),
+        target_duration_ms: targetSec * 1000,
+        speech_duration_ms: estimatedDurationMs,
+      },
+      used_hint: usedHint,
+    };
+
+    try {
+      toast.info("Đang nộp bài nói văn bản để AI phân tích...");
+      await mono.submit(basePayload);
+    } catch (e: any) {
+      toast.error(e.message || "Chấm điểm bài nói thất bại.");
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
@@ -330,7 +367,19 @@ export default function SpeechPage() {
               </div>
             </div>
             <div className="text-[11px] text-muted-foreground">Prep levels: 0 Blind → 1 Keywords → 2 Guided Qs → 3 Structure → 4 Minimal. Adaptive reduces scaffolding as mastery ↑.</div>
-            <Button variant="akane" size="lg" className="w-full" onClick={handleGenerate} disabled={mono.loading}><Zap className="h-4 w-4"/>{mono.loading?"Generating...":"Generate Monologue Task"}</Button>
+            {mono.loading ? (
+              <ZenLoadingState
+                variant="ai"
+                title="AI Đang Thiết Lập Đề Bài & Dàn Ý Phát Biểu..."
+                ja="スピーチ課題生成中..."
+                description="Đang sinh chủ đề độc quyền, thể loại lập luận và các ràng buộc phản xạ..."
+              />
+            ) : (
+              <Button variant="akane" size="lg" className="w-full font-bold gap-2" onClick={handleGenerate}>
+                <Zap className="h-4 w-4" />
+                <span>Sinh Đề Bài Phát Biểu Mới (AI Dynamic)</span>
+              </Button>
+            )}
             {mono.error && <div className="text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg p-3 flex items-center gap-2"><AlertCircle className="h-4 w-4 shrink-0"/>{mono.error}</div>}
           </Card>
           <div className="space-y-4">
@@ -410,24 +459,98 @@ export default function SpeechPage() {
             </Card>
           )}
           {phase==="ready" && (
-            <Card className="p-6 text-center space-y-3">
-              <div className="text-sm font-bold">Ready to speak — {speechConfig?.target_duration_sec ?? durationSec}s</div>
-              <div className="text-xs text-muted-foreground">Audio is <b>required</b> — transcript-only not allowed. Timer uses throttled rAF + performance.now.</div>
-              <div className="flex gap-2 justify-center">
-                <Button variant="akane" onClick={startRecording}><Mic className="h-4 w-4"/> Start Recording</Button>
-                <Button variant="outline" onClick={()=>{
-                  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-                  recorder.releaseMicrophone();
-                  mono.reset();
-                }}>Cancel</Button>
+            <Card className="p-6 space-y-4">
+              <div className="text-center space-y-1">
+                <div className="text-base font-bold text-foreground">Sẵn sàng phát biểu — Mục tiêu: {speechConfig?.target_duration_sec ?? durationSec} giây</div>
+                <div className="text-xs text-muted-foreground">Chọn thu âm qua micro hoặc soạn bài nói trực tiếp nếu đang ở văn phòng / hỏng mic.</div>
+              </div>
+
+              {/* Action Choices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {/* Option 1: Mic Recording */}
+                <div className="p-4 rounded-2xl border border-primary/30 bg-primary/5 washi-texture flex flex-col justify-between space-y-3 text-center">
+                  <div className="space-y-1">
+                    <div className="font-extrabold text-sm flex items-center justify-center gap-1.5 text-primary">
+                      <Mic className="h-4 w-4" />
+                      <span>Thu Âm Bằng Micro</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Bật micro và nói tự do liên tục theo dàn ý gợi ý</p>
+                  </div>
+                  <Button variant="akane" onClick={startRecording} className="w-full font-bold gap-1.5 shadow-xs">
+                    <Mic className="h-4 w-4" />
+                    <span>Bắt đầu thu âm ({speechConfig?.target_duration_sec ?? durationSec}s)</span>
+                  </Button>
+                </div>
+
+                {/* Option 2: Direct Text / Office Mode */}
+                <div className="p-4 rounded-2xl border border-border bg-card washi-texture flex flex-col justify-between space-y-3">
+                  <div className="space-y-1">
+                    <div className="font-extrabold text-sm flex items-center gap-1.5 text-foreground">
+                      <Keyboard className="h-4 w-4 text-emerald-500" />
+                      <span>Soạn Bài Nói (Chế Độ Văn Phòng)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Gõ bài phát biểu tiếng Nhật của bạn vào ô bên dưới</p>
+                  </div>
+                  <div className="text-[11px] font-mono text-muted-foreground">
+                    {transcriptInput.trim().length} chữ ~ {Math.round(transcriptInput.trim().length / 5.0)}s
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Text Input Editor Box */}
+              <div className="p-4 rounded-2xl border border-border bg-muted/20 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center gap-1 text-foreground">
+                    <FileText className="h-3.5 w-3.5 text-primary" />
+                    <span>Nội dung bài nói tiếng Nhật:</span>
+                  </span>
+                  <span className="text-[11px] font-normal text-muted-foreground">
+                    Tối thiểu 15 chữ
+                  </span>
+                </div>
+                <textarea
+                  value={transcriptInput}
+                  onChange={(e) => setTranscriptInput(e.target.value)}
+                  placeholder="Gõ bài phát biểu tiếng Nhật của bạn tại đây... (Ví dụ: 私の意見としては、テレワークには多くのメリットがあると思います。なぜなら通勤時間がなくなり、効率的に仕事ができるからです。)"
+                  rows={4}
+                  className="w-full rounded-xl border bg-background p-3 text-sm font-jp leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    🏢 Không cần mic — AI chấm đầy đủ cấu trúc & từ vựng
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="akane"
+                      size="sm"
+                      onClick={handleDirectTextSubmit}
+                      disabled={transcriptInput.trim().length < 15}
+                      className="font-bold gap-1.5 shadow-xs"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      <span>Nộp bài viết</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+                        recorder.releaseMicrophone();
+                        mono.reset();
+                      }}
+                    >
+                      Hủy
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           )}
           {phase==="recording" && (
             <Card className="p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"/> Recording — continuous monologue</span>
-                <span className="text-sm font-mono font-bold tabular-nums">{Math.floor(recElapsed)}s / {durationSec}s (left {recLeft.toFixed(1)}s)</span>
+                <span className="text-sm font-bold flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"/> Đang thu âm bài nói liên tục</span>
+                <span className="text-sm font-mono font-bold tabular-nums">{Math.floor(recElapsed)}s / {durationSec}s (còn {recLeft.toFixed(1)}s)</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-red-500 transition-all" style={{width:`${Math.min(100, recElapsed/durationSec*100)}%`}}/></div>
               <div className="flex items-center gap-2">
@@ -436,25 +559,43 @@ export default function SpeechPage() {
                 </div>
                 <span className="text-xs text-muted-foreground">{Math.round(recorder.volumeLevel*100)}%</span>
               </div>
-              <div className="text-xs text-muted-foreground">Do NOT show grammar corrections during window.</div>
               <div className="flex gap-2">
-                <Button variant="akane" onClick={handleStopRecording}><Square className="h-4 w-4"/> Stop & Submit</Button>
+                <Button variant="akane" onClick={handleStopRecording}><Square className="h-4 w-4"/> Dừng & Nộp bài ghi âm</Button>
                 <Button variant="ghost" size="sm" onClick={async()=>{
                   if (recRafRef.current) { cancelAnimationFrame(recRafRef.current); recRafRef.current=null; }
                   await recorder.stopRecording();
                   recorder.releaseMicrophone();
                   mono.setPhase("ready");
-                }}>Cancel</Button>
+                }}>Hủy thu âm</Button>
               </div>
               <div className="pt-3 border-t space-y-2">
-                <div className="text-xs font-bold">Supplementary transcript (optional, audio still required):</div>
-                <textarea value={transcriptInput} onChange={e=>setTranscriptInput(e.target.value)} placeholder="補足としてテキストを編集できますが、audioが必須です" className="w-full rounded-xl border bg-background p-2.5 text-sm min-h-[72px]"/>
-                <div className="text-[11px] text-muted-foreground">Audio required — text-only submit is blocked (hard error).</div>
+                <div className="text-xs font-bold">Hoặc gõ văn bản bài nói (Chế độ Văn phòng):</div>
+                <textarea
+                  value={transcriptInput}
+                  onChange={(e) => setTranscriptInput(e.target.value)}
+                  placeholder="Gõ bài nói của bạn tại đây nếu không thể nói to..."
+                  className="w-full rounded-xl border bg-background p-2.5 text-sm font-jp min-h-[72px]"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDirectTextSubmit}
+                  disabled={!transcriptInput.trim()}
+                  className="font-bold text-xs gap-1.5"
+                >
+                  <Send className="h-3 w-3" />
+                  <span>Nộp bài gõ</span>
+                </Button>
               </div>
             </Card>
           )}
           {phase==="processing" && (
-            <Card className="p-6 text-center"><div className="animate-pulse text-sm">Processing — STT → deterministic metrics → AI semantic…</div></Card>
+            <ZenLoadingState
+              variant="ai"
+              title="AI Đang Phân Tích Bài Nói & Nâng Cấp Tự Nhiên..."
+              ja="スピーチ評価・AI添削中..."
+              description="Đang xử lý nhận diện giọng nói (STT), phân tích tính lưu loát, cấu trúc luận điểm và đề xuất nâng cấp câu văn chuẩn bản xứ..."
+            />
           )}
           {phase==="retry" && (
             <Card className="p-6 text-center space-y-2 border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/25">

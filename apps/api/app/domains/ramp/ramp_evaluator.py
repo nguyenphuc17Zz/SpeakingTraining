@@ -28,7 +28,9 @@ from app.domains.learning.contracts import IndependenceLevel
 from app.domains.ramp.contracts import (
     ElaborationSignal,
     RampAttemptFeedback,
+    RampCoachingAdvice,
     RampExerciseType,
+    RampSampleAnswer,
     RampScore,
     RampSupportLevel,
     RampTaskSpec,
@@ -197,7 +199,40 @@ class RampEvaluator:
         )
 
         # ---------------------------------------------------------------------------
-        # 4. Build feedback (§37)
+        # 4. Build sample answers & coaching advice
+        # ---------------------------------------------------------------------------
+        sample_answers: list[RampSampleAnswer] = []
+        raw_samples = ai_data.get("sample_answers", [])
+        if isinstance(raw_samples, list):
+            for s in raw_samples:
+                if isinstance(s, dict) and s.get("japanese") and s.get("vietnamese"):
+                    sample_answers.append(
+                        RampSampleAnswer(
+                            style=s.get("style", "casual"),
+                            style_label=s.get("style_label", "Thường ngày"),
+                            japanese=s.get("japanese", ""),
+                            vietnamese=s.get("vietnamese", ""),
+                            nuance=s.get("nuance"),
+                        )
+                    )
+
+        if not sample_answers:
+            sample_answers = self._generate_fallback_sample_answers(task_spec, transcript)
+
+        coaching_advice: RampCoachingAdvice | None = None
+        raw_advice = ai_data.get("coaching_advice")
+        if isinstance(raw_advice, dict):
+            coaching_advice = RampCoachingAdvice(
+                overall_comment=raw_advice.get("overall_comment"),
+                strengths=raw_advice.get("strengths", []),
+                improvements=raw_advice.get("improvements", []),
+                grammar_notes=raw_advice.get("grammar_notes", []),
+            )
+        if not coaching_advice:
+            coaching_advice = self._generate_fallback_coaching_advice(score, sentence_complete, has_reason)
+
+        # ---------------------------------------------------------------------------
+        # 5. Build feedback (§37)
         # ---------------------------------------------------------------------------
         feedback = self._build_feedback(
             score=score,
@@ -208,9 +243,67 @@ class RampEvaluator:
             correction_jp=correction_jp,
             feedback_jp=feedback_jp,
             stage=stage,
+            sample_answers=sample_answers,
+            coaching_advice=coaching_advice,
         )
 
         return score, feedback
+
+    def _generate_fallback_sample_answers(self, task_spec: RampTaskSpec, transcript: str) -> list[RampSampleAnswer]:
+        """Generate deterministic fallback sample answer variations."""
+        base_jp = task_spec.echo_sentence or task_spec.template_sentence or task_spec.seed_sentence or transcript or "はい、そうです。"
+        return [
+            RampSampleAnswer(
+                style="casual",
+                style_label="Thường ngày (Casual)",
+                japanese=base_jp,
+                vietnamese="Cách nói tự nhiên, phù hợp trong giao tiếp bạn bè hàng ngày.",
+                nuance="Thân mật, phản xạ nhanh và gọn gàng.",
+            ),
+            RampSampleAnswer(
+                style="polite",
+                style_label="Lịch sự (Polite/Business)",
+                japanese=f"{base_jp.rstrip('。')}と思います。" if not base_jp.endswith("です。") and not base_jp.endswith("ます。") else base_jp,
+                vietnamese="Cách nói lịch sự chuẩn mực, phù hợp trong môi trường công sở.",
+                nuance="Dùng thể です/ます và cách đệm ý trang nhã.",
+            ),
+            RampSampleAnswer(
+                style="advanced",
+                style_label="Mở rộng ý (Advanced)",
+                japanese=f"{base_jp.rstrip('。')}。なぜなら、とても大切だからです。",
+                vietnamese="Cách diễn đạt nâng cao: bổ sung thêm lý do hoặc giải thích để bài nói có chiều sâu.",
+                nuance="Mở rộng cấu trúc câu giúp bài phát ngôn lưu loát và tự nhiên.",
+            ),
+        ]
+
+    def _generate_fallback_coaching_advice(self, score: RampScore, sentence_complete: bool, has_reason: bool) -> RampCoachingAdvice:
+        """Generate structured default coaching advice."""
+        strengths: list[str] = []
+        improvements: list[str] = []
+        grammar_notes: list[str] = []
+
+        if score.production_accuracy >= 70:
+            strengths.append("Ý tứ rõ ràng, người bản xứ có thể nắm bắt thông tin ngay lập tức.")
+        if score.fluency >= 70:
+            strengths.append("Tốc độ phản xạ và độ trôi chảy tốt, hạn chế được quãng ngắt dài.")
+        if not strengths:
+            strengths.append("Dũng cảm phản xạ phát ngôn và hoàn thành thử thách nấc thang.")
+
+        if not sentence_complete:
+            improvements.append("Hãy chú ý kết thúc câu trọn vẹn bằng trợ từ và vị ngữ rõ ràng (〜です / 〜ます).")
+        if not has_reason:
+            improvements.append("Hãy thử thách bản thân nối thêm 1 câu lý do với 「〜から」 hoặc 「〜ので」 để tăng chiều sâu.")
+        if not improvements:
+            improvements.append("Tiếp tục duy trì nhịp độ và thử sức với các nấc thang cao hơn.")
+
+        grammar_notes.append("Luyện tập ngắt nhịp phách Mora đều đặn để câu tiếng Nhật nghe tự nhiên hơn.")
+
+        return RampCoachingAdvice(
+            overall_comment="Bạn đang xây dựng phản xạ nói rất tốt! Hãy tham khảo các gợi ý trả lời phía trên để mở rộng vốn câu.",
+            strengths=strengths,
+            improvements=improvements,
+            grammar_notes=grammar_notes,
+        )
 
     def _compute_stage_score(self, stage: int, **kwargs: Any) -> RampScore:
         """§35 Stage-specific scoring weights."""
@@ -252,6 +345,8 @@ class RampEvaluator:
         correction_jp: str | None,
         feedback_jp: str,
         stage: int,
+        sample_answers: list[RampSampleAnswer] | None = None,
+        coaching_advice: RampCoachingAdvice | None = None,
     ) -> RampAttemptFeedback:
         """Build RampAttemptFeedback with badges and next action. §37"""
         badges: list[str] = []
@@ -309,6 +404,8 @@ class RampEvaluator:
             badges=badges,
             next_action=next_action,
             ramp_score=score,
+            sample_answers=sample_answers or [],
+            coaching_advice=coaching_advice,
         )
 
     async def _evaluate_with_ai(

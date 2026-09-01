@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { useLiveSpeechRecognition } from "@/hooks/use-live-speech-recognition";
 import { shadowingApi } from "@/services/shadowing-api";
+import { speechApi } from "@/features/speaking/services/speech-api";
 import {
   PracticeAttemptFeedback,
   ShadowingMode,
@@ -470,6 +471,62 @@ export function useShadowing(videoId: string) {
     }
   };
 
+  // Submit Shadowing via Text Input (Office / Dictation Mode)
+  const submitTextShadowing = async (text: string) => {
+    if (!selectedSegment || !text.trim()) return;
+    setIsEvaluating(true);
+    setPracticeStep("evaluating");
+    setEvaluationError(null);
+
+    try {
+      // Synthesize audio from user's typed sentence
+      const res = await speechApi.synthesize(text.trim(), "1", 1.0, 0.0);
+      let exId = exerciseIdRef.current || currentExerciseId;
+      let attId = attemptIdRef.current || currentAttemptId;
+      if (!exId || !attId) {
+        const startRes = await shadowingApi.startPractice(selectedSegment.id, shadowingMode);
+        exId = startRes.exercise_id;
+        attId = startRes.attempt_id;
+        exerciseIdRef.current = exId;
+        attemptIdRef.current = attId;
+        setCurrentExerciseId(exId);
+        setCurrentAttemptId(attId);
+      }
+
+      const feedbackRes = await shadowingApi.completePractice(
+        selectedSegment.id,
+        exId,
+        attId,
+        res.audio_base64,
+        shadowingMode,
+        playbackSpeed,
+        text.trim()
+      );
+
+      feedbackRes.user_transcript = text.trim();
+      setLastFeedback(feedbackRes);
+      setEvaluationError(null);
+
+      if (feedbackRes.score !== undefined) {
+        setSegmentScores((prev) => ({
+          ...prev,
+          [selectedSegment.id]: Math.max(prev[selectedSegment.id] || 0, Math.round(feedbackRes.score)),
+        }));
+      }
+
+      exerciseIdRef.current = null;
+      attemptIdRef.current = null;
+      setCurrentExerciseId(null);
+      setCurrentAttemptId(null);
+    } catch (e: any) {
+      console.error("Text shadowing submit error:", e);
+      setEvaluationError(e.message || "Lỗi khi nộp câu shadowing qua văn bản.");
+    } finally {
+      setIsEvaluating(false);
+      setPracticeStep("idle");
+    }
+  };
+
   return {
     video,
     isLoading,
@@ -501,6 +558,7 @@ export function useShadowing(videoId: string) {
     selectPrevSegment,
     startRecording,
     stopRecording,
+    submitTextShadowing,
     isRecording: audioRecorder.isRecording,
     isEvaluating,
     lastFeedback,

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -57,6 +58,7 @@ import { useSystemKeybindings, formatKeyDisplay } from "@/hooks/use-system-keybi
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 const DEDICATED_MODES = [
   {
@@ -1488,6 +1490,15 @@ export default function ReflexPage() {
               onToPlan={() => (window.location.href = "/learning")}
             />
           </div>
+        ) : session.phase === "loading" || (!activeExercise && !isResult) ? (
+          <div className="py-6 animate-in fade-in duration-150">
+            <ZenLoadingState
+              variant="studio"
+              title="AI Đang Chuẩn Bị Câu Hỏi Phản Xạ..."
+              ja="瞬発設問生成中..."
+              description="AI đang tinh chỉnh câu hỏi ngữ pháp, từ vựng và bối cảnh phù hợp với tốc độ phản xạ của bạn..."
+            />
+          </div>
         ) : isResult && session.result ? (
           /* Result Card Stage */
           <div className="animate-in fade-in zoom-in-95 duration-200">
@@ -1571,10 +1582,11 @@ export default function ReflexPage() {
                     <span>Đang ghi nhận giọng nói tiếng Nhật của bạn...</span>
                   </div>
                 ) : isEvaluating ? (
-                  <div className="flex items-center justify-center gap-2 text-xs md:text-sm font-bold text-primary animate-pulse">
-                    <Sparkles className="h-4 w-4 animate-spin" />
-                    <span>Đang phân tích phản xạ 7 chiều & chấm điểm...</span>
-                  </div>
+                  <ZenLoadingState
+                    variant="inline"
+                    title="Đang phân tích phản xạ 7 chiều & chấm điểm..."
+                    ja="反射速度・文法分析中..."
+                  />
                 ) : null}
               </div>
 
@@ -1671,70 +1683,24 @@ export default function ReflexPage() {
               )}
 
               {/* UNIFIED VOICE & KEYBOARD REFLEX INPUT BAR */}
-              <div className="w-full max-w-xl mx-auto rounded-2xl border border-border bg-card/95 p-1.5 pl-3 shadow-sm flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all washi-texture">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={cn(
-                      "h-8 w-8 rounded-xl flex items-center justify-center transition-all",
-                      isRecording
-                        ? "bg-rose-500 text-white animate-pulse shadow-xs"
-                        : session.isPaused
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        : "bg-primary/10 text-primary"
-                    )}
-                    title={isRecording ? "Đang thu âm giọng nói..." : "Sẵn sàng nhận giọng nói & phím"}
-                  >
-                    <Mic className="h-4 w-4" />
-                  </span>
-                </div>
-
-                {/* Direct Text / Speech Live Input Field */}
-                <input
-                  type="text"
+              <div className="w-full max-w-xl mx-auto space-y-1">
+                <ZenUnifiedInputBar
                   value={transcriptInput || session.speech.transcript || session.speech.interimTranscript}
-                  onChange={(e) => setTranscriptInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleDirectSubmit();
-                    }
-                  }}
+                  onChange={setTranscriptInput}
+                  onSubmit={() => handleDirectSubmit()}
                   placeholder={
                     session.isPaused
                       ? "Đang tạm dừng — Bấm [P] để tiếp tục..."
                       : isWaiting
-                      ? "Nói vào mic hoặc gõ câu trả lời tiếng Nhật..."
+                      ? "Nói vào mic hoặc gõ câu trả lời tiếng Nhật (Enter)..."
                       : activeExercise?.exercise_type === "reflex_conjugation"
                       ? "Gõ câu chia thể (ví dụ: 書かせられた)..."
                       : "Gõ câu phản xạ tiếng Nhật..."
                   }
-                  className="flex-1 bg-transparent text-sm md:text-base font-bold font-jp text-foreground placeholder:text-muted-foreground/60 placeholder:text-xs placeholder:font-normal focus:outline-none min-w-0"
-                  disabled={isEvaluating}
+                  submitButtonText="Nộp"
+                  isEvaluating={isEvaluating}
+                  hintText={isRecording ? "Đang thu âm mic hoặc gõ phím" : "Chế độ văn phòng: Gõ phím & Enter để nộp bài"}
                 />
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="akane"
-                    className="font-bold text-xs h-8 px-3.5 rounded-xl shadow-xs gap-1"
-                    onClick={handleDirectSubmit}
-                    disabled={isEvaluating}
-                  >
-                    <span>Gửi</span>
-                    <span className="text-[10px] opacity-80 font-mono hidden sm:inline">(Enter)</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground"
-                    onClick={() => session.skip()}
-                    title="Bỏ qua câu này (N)"
-                  >
-                    <span>Bỏ qua</span>
-                  </Button>
-                </div>
               </div>
             </div>
           </div>

@@ -30,6 +30,8 @@ import { useSystemKeybindings, formatKeyDisplay } from "@/hooks/use-system-keybi
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 export default function PitchPage() {
   const [subMode, setSubMode] = useState("mixed");
@@ -428,6 +430,14 @@ export default function PitchPage() {
       </div>
 
       {/* Main Workout Grid */}
+      {session.phase === "loading" || (!activeExercise && !showSummary) ? (
+        <ZenLoadingState
+          variant="studio"
+          title="AI Đang Tạo Bài Luyện Ngữ Điệu & Cao Độ..."
+          ja="アクセント課題生成中..."
+          description="AI đang chuẩn bị mẫu câu, phân tích cao độ F₀ và phân bổ nhịp Mora chuẩn Tokyo..."
+        />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* Left 2 Columns: Prompt & Result Arena */}
         <div className="lg:col-span-2 space-y-4">
@@ -443,15 +453,12 @@ export default function PitchPage() {
           />
 
           {isEvaluating && (
-            <div className="p-5 rounded-3xl border border-primary/20 bg-primary/5 text-center space-y-2 animate-pulse washi-texture">
-              <div className="flex items-center justify-center gap-2 font-bold text-sm text-primary">
-                <Sparkles className="h-4 w-4 animate-spin" />
-                <span>✨ Đang phân tích đường cao độ F0, Mora & Vô thanh hóa...</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                So sánh contour semitone tương đối và độ đồng đều nhịp phách
-              </p>
-            </div>
+            <ZenLoadingState
+              variant="ai"
+              title="AI Đang Phân Tích Đường Cao Độ F₀, Mora & Vô Thanh Hóa..."
+              ja="ピッチ・モーラ音響分析中..."
+              description="So sánh contour semitone tương đối, vị trí hạ âm và độ đồng đều nhịp phách..."
+            />
           )}
 
           {session.phase === "result" && session.result && (
@@ -539,58 +546,29 @@ export default function PitchPage() {
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 min-h-[58px] flex flex-col justify-center space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Nhận diện âm thanh (ja-JP):
-              </span>
-              <div className="text-xs font-bold font-jp text-foreground">
-                {session.speech.transcript ? (
-                  <span>“{session.speech.transcript}”</span>
-                ) : isRecordingOrWaiting ? (
-                  <span className="text-muted-foreground italic font-sans font-normal animate-pulse">
-                    Đang lắng nghe âm thanh tiếng Nhật...
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground italic font-sans font-normal">Chờ kích hoạt mic</span>
-                )}
-              </div>
-            </div>
-
-            {showTextInput && (
-              <div className="space-y-2 pt-1">
-                <textarea
-                  value={transcriptInput}
-                  onChange={(e) => setTranscriptInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleDirectSubmit();
-                    }
-                  }}
-                  placeholder="Nhập từ vựng phát âm của bạn (VD: 雨 / 飴 / おじいさん)..."
-                  className="w-full rounded-xl border bg-background p-2.5 text-xs font-jp min-h-[64px] focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-            )}
+            {/* Unified Voice & Keyboard Input Bar */}
+            <ZenUnifiedInputBar
+              value={transcriptInput}
+              onChange={setTranscriptInput}
+              onSubmit={handleDirectSubmit}
+              speechTranscript={session.speech.transcript}
+              isRecording={isRecordingOrWaiting}
+              isEvaluating={isEvaluating}
+              placeholder="Nói vào mic hoặc gõ từ/câu cao độ... (VD: 雨 / 飴 / 橋 / 箸)"
+              submitButtonText={`Gửi (${formatKeyDisplay(keybindings.pitchSubmitOrNext)})`}
+              autoFocus={true}
+              hintText="Gõ phím thay mic khi ở văn phòng"
+            />
 
             <div className="pt-1 flex gap-2">
               <Button
                 size="sm"
-                variant="akane"
-                className="flex-1 font-bold text-xs"
-                onClick={handleDirectSubmit}
-                disabled={isEvaluating}
-              >
-                Gửi ({formatKeyDisplay(keybindings.pitchSubmitOrNext)})
-              </Button>
-              <Button
-                size="sm"
                 variant="outline"
-                className="font-bold text-xs"
+                className="w-full font-bold text-xs"
                 onClick={() => session.skip()}
                 disabled={isEvaluating}
               >
-                Bỏ qua ({formatKeyDisplay(keybindings.pitchSkip)})
+                Bỏ qua câu này ({formatKeyDisplay(keybindings.pitchSkip)})
               </Button>
             </div>
           </div>
@@ -604,6 +582,7 @@ export default function PitchPage() {
           )}
         </div>
       </div>
+      )}
 
       <PitchCheatsheetModal isOpen={showCheatsheet} onClose={() => setShowCheatsheet(false)} />
       <GlobalKeybindingsModal isOpen={showKeybindingsModal} onClose={() => setShowKeybindingsModal(false)} />

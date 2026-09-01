@@ -20,6 +20,7 @@ import { ShadowingMode, TranscriptSegment } from "@/types/shadowing";
 import { ShadowingKeybindings } from "@/hooks/use-shadowing-keybindings";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 export interface ShadowingControlsProps {
   segment: TranscriptSegment | null;
@@ -34,6 +35,7 @@ export interface ShadowingControlsProps {
   onStartRecording?: () => void;
   onStopRecording?: () => void;
   onCancelPractice?: () => void;
+  onSubmitTextPractice?: (text: string) => void;
   isRecording: boolean;
   isEvaluating: boolean;
   practiceStep?: "idle" | "listening" | "prompting" | "recording" | "evaluating";
@@ -59,6 +61,7 @@ export function ShadowingControls({
   onStartRecording,
   onStopRecording,
   onCancelPractice,
+  onSubmitTextPractice,
   isRecording,
   isEvaluating,
   practiceStep = "idle",
@@ -68,6 +71,7 @@ export function ShadowingControls({
   onToggleAutoPilot,
   onApplyPedagogicalLevel,
 }: ShadowingControlsProps) {
+  const [shadowingTextInput, setShadowingTextInput] = React.useState("");
   const isListeningStep = practiceStep === "listening";
   const isPromptingStep = practiceStep === "prompting";
 
@@ -257,6 +261,24 @@ export function ShadowingControls({
             </>
           )}
         </Button>
+      </div>
+
+      {/* Direct Dictation / Text Shadowing Bar (Office / Broken Mic) */}
+      <div className="pt-2 border-t border-border/50">
+        <ZenUnifiedInputBar
+          value={shadowingTextInput}
+          onChange={setShadowingTextInput}
+          onSubmit={() => {
+            if (onSubmitTextPractice && shadowingTextInput.trim()) {
+              onSubmitTextPractice(shadowingTextInput.trim());
+              setShadowingTextInput("");
+            }
+          }}
+          placeholder="Hoặc gõ câu tiếng Nhật nghe được (Dictation / Office mode)..."
+          submitButtonText="Nộp câu gõ"
+          isEvaluating={isEvaluating}
+          hintText="Nghe và gõ lại câu (Shadowing chính tả)"
+        />
       </div>
     </div>
   );

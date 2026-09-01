@@ -76,6 +76,7 @@ export default function ShadowingVideoStudioPage() {
     selectPrevSegment,
     startRecording,
     stopRecording,
+    submitTextShadowing,
     isRecording,
     isEvaluating,
     lastFeedback,
@@ -354,6 +355,7 @@ export default function ShadowingVideoStudioPage() {
             autoPilot={autoPilot}
             onToggleAutoPilot={() => setAutoPilot((v) => !v)}
             onApplyPedagogicalLevel={applyPedagogicalLevel}
+            onSubmitTextPractice={submitTextShadowing}
           />
 
           {/* Evaluation Result Card (Displays after speaking) */}

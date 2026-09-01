@@ -38,6 +38,7 @@ class MonologuePipeline:
         genre: str | SpeechGenre = SpeechGenre.OPINION,
         has_clipping: bool = False,
         snr_db: float | None = None,
+        is_text_only: bool = False,
     ) -> dict[str, Any]:
         # 1. Quality gate
         quality = SpeechQualityGate.evaluate(
@@ -48,6 +49,7 @@ class MonologuePipeline:
             word_count=len(words or []),
             has_clipping=has_clipping,
             snr_db=snr_db,
+            is_text_only=is_text_only,
         )
 
         # 2. Filler

@@ -330,6 +330,23 @@ class RampScore(BaseModel):
         )
 
 
+class RampSampleAnswer(BaseModel):
+    """Suggested sample answer variations for rehabilitation. §37"""
+    style: str = "casual"  # "casual" | "polite" | "advanced"
+    style_label: str = "Thường ngày"  # "Thường ngày" | "Lịch sự công sở" | "Mở rộng nâng cao"
+    japanese: str
+    vietnamese: str
+    nuance: str | None = None
+
+
+class RampCoachingAdvice(BaseModel):
+    """In-depth AI coaching advice and feedback commentary. §37"""
+    overall_comment: str | None = None
+    strengths: list[str] = Field(default_factory=list)
+    improvements: list[str] = Field(default_factory=list)
+    grammar_notes: list[str] = Field(default_factory=list)
+
+
 class RampAttemptFeedback(BaseModel):
     """Immediate feedback shown after each attempt. §37"""
     meaning_clear: bool = False
@@ -345,6 +362,8 @@ class RampAttemptFeedback(BaseModel):
     next_action: str = "retry"             # retry | next | elaborate
     ramp_score: RampScore | None = None
     followup: FollowUpSpec | None = None
+    sample_answers: list[RampSampleAnswer] = Field(default_factory=list)
+    coaching_advice: RampCoachingAdvice | None = None
 
 
 class RampProgressSnapshot(BaseModel):

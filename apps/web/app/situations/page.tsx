@@ -38,6 +38,7 @@ import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/w
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 export default function SituationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("infinite");
@@ -438,62 +439,33 @@ export default function SituationsPage() {
                           session.isUserSpeaking ? "bg-emerald-500" : "bg-rose-500"
                         )} />
                         <span className="text-xs font-bold text-foreground">
-                          {session.isUserSpeaking ? "🗣️ Đang nhận diện..." : "🎤 Hãy nói câu đối đáp..."}
+                          {session.isUserSpeaking ? "🗣️ Đang nhận diện giọng nói..." : "🎤 Nói vào mic hoặc gõ phím bên dưới..."}
                         </span>
                       </div>
 
-                      {/* Speech Transcript Preview */}
-                      <div className="p-3 rounded-xl bg-muted/40 border border-border/80 min-h-[48px] flex items-center justify-center">
-                        <span className="text-sm font-bold font-jp text-primary">
-                          {session.speech.transcript || "Đang lắng nghe..."}
-                        </span>
-                      </div>
-
-                      {/* Manual Text Fallback */}
-                      {inputMode === "text" && (
-                        <div className="flex gap-1.5">
-                          <input
-                            value={transcriptInput}
-                            onChange={(e) => setTranscriptInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleDirectSubmit();
-                              }
-                            }}
-                            placeholder="Gõ câu đối đáp tiếng Nhật..."
-                            className="flex-1 bg-background border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary font-jp"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={handleDirectSubmit}
-                            className="text-xs font-bold gap-1 rounded-xl h-8 px-3"
-                          >
-                            <Send className="h-3 w-3" />
-                            <span>Gửi</span>
-                          </Button>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground pt-0.5">
-                        <button
-                          onClick={() => setInputMode((m) => (m === "voice" ? "text" : "voice"))}
-                          className="hover:underline flex items-center gap-1 font-semibold text-primary"
-                        >
-                          <Edit3 className="h-3 w-3" />
-                          <span>{inputMode === "voice" ? "Chuyển sang gõ Text (T)" : "Chuyển sang Mic (T)"}</span>
-                        </button>
-                      </div>
+                      {/* Unified Voice & Keyboard Input Bar */}
+                      <ZenUnifiedInputBar
+                        value={transcriptInput}
+                        onChange={setTranscriptInput}
+                        onSubmit={handleDirectSubmit}
+                        speechTranscript={session.speech.transcript}
+                        isRecording={session.phase === "recording" || session.isUserSpeaking}
+                        isEvaluating={false}
+                        placeholder="Nói vào mic hoặc gõ câu đối đáp tiếng Nhật... (Enter để gửi)"
+                        submitButtonText="Gửi"
+                        autoFocus={true}
+                        hintText="Gõ phím thoải mái khi ở văn phòng"
+                      />
                     </div>
                   )}
 
                   {session.phase === "evaluating" && (
-                    <div className="py-5 flex flex-col items-center justify-center gap-1.5">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <span className="text-xs font-bold text-muted-foreground">
-                        AI Đang Đánh Giá Ngữ Dụng & Mục Tiêu...
-                      </span>
-                    </div>
+                    <ZenLoadingState
+                      variant="ai"
+                      title="AI Đang Đánh Giá Ngữ Dụng & Mục Tiêu Giao Tiếp..."
+                      ja="語用論・会話目標分析中..."
+                      description="Kiểm tra mức độ hoàn thành mục tiêu tình huống, phong cách giao tiếp và tính tự nhiên..."
+                    />
                   )}
                 </div>
 

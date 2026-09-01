@@ -105,3 +105,81 @@ async def test_ramp_evaluator_penalizes_incomplete_sentence(db_session):
         assert score.overall < 60.0
         assert feedback.incomplete_sentence is True
         assert feedback.next_action in ("retry", "elaborate")
+        assert len(feedback.sample_answers) >= 1
+        assert feedback.coaching_advice is not None
+
+
+@pytest.mark.asyncio
+async def test_ramp_evaluator_sample_answers_and_advice_parsing(db_session):
+    evaluator = RampEvaluator(db_session)
+
+    task_spec = RampTaskSpec(
+        exercise_type=RampExerciseType.SPEAK_EXPAND,
+        stage=4,
+        topic="カフェ",
+        topic_domain=RampTopicDomain.DAILY_LIFE,
+        prompt_jp="カフェで何を注文しますか？",
+        target_duration_sec=10,
+        support_level=0,
+        scaffold=RampScaffold(),
+    )
+
+    transcript = "アイスコーヒーを頼みます。暑いからです。"
+
+    with patch.object(evaluator, "_evaluate_with_ai", new_callable=AsyncMock) as mock_ai:
+        mock_ai.return_value = {
+            "semantic_relevance": 95.0,
+            "naturalness": 90.0,
+            "grammar_score": 95.0,
+            "completeness": 90.0,
+            "idea_quality": 85.0,
+            "has_reason": True,
+            "has_example": False,
+            "sentence_complete": True,
+            "errors": [],
+            "sample_answers": [
+                {
+                    "style": "casual",
+                    "style_label": "Thường ngày",
+                    "japanese": "アイスコーヒーにする。暑いしね。",
+                    "vietnamese": "Mình chọn cà phê đá. Vì trời nóng mà.",
+                    "nuance": "Tự nhiên, dùng khi nói với bạn bè.",
+                },
+                {
+                    "style": "polite",
+                    "style_label": "Lịch sự công sở",
+                    "japanese": "アイスコーヒーをお願いします。外がとても暑いので。",
+                    "vietnamese": "Làm ơn cho tôi một cà phê đá, vì bên ngoài rất nóng.",
+                    "nuance": "Lịch sự, trang nhã.",
+                },
+                {
+                    "style": "advanced",
+                    "style_label": "Mở rộng nâng cao",
+                    "japanese": "アイスコーヒーを注文します。なぜなら、最近暑くてリフレッシュしたいからです。",
+                    "vietnamese": "Tôi sẽ gọi cà phê đá vì dạo này trời nóng và tôi muốn làm mới tinh thần.",
+                    "nuance": "Bổ sung liên từ và lý do rõ ràng.",
+                }
+            ],
+            "coaching_advice": {
+                "overall_comment": "Phát ngôn rất tự nhiên và trọn vẹn!",
+                "strengths": ["Phản xạ lý do nhanh", "Chia đúng thể động từ"],
+                "improvements": ["Có thể thêm cảm nghĩ sau khi uống"],
+                "grammar_notes": ["Dùng から là hoàn toàn chính xác."]
+            }
+        }
+
+        score, feedback = await evaluator.evaluate(
+            task_spec=task_spec,
+            user_transcript=transcript,
+            support_level_used=0,
+            used_hint=False,
+        )
+
+        assert len(feedback.sample_answers) == 3
+        assert feedback.sample_answers[0].style == "casual"
+        assert feedback.sample_answers[1].style == "polite"
+        assert feedback.sample_answers[2].style == "advanced"
+        assert feedback.coaching_advice is not None
+        assert feedback.coaching_advice.overall_comment == "Phát ngôn rất tự nhiên và trọn vẹn!"
+        assert len(feedback.coaching_advice.strengths) == 2
+

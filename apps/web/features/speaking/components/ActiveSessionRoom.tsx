@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { analysisApi } from "../services/analysis-api";
 import { useSystemKeybindings } from "@/hooks/use-system-keybindings";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 interface ActiveSessionRoomProps {
   session: VoiceSession;
@@ -678,32 +679,23 @@ export function ActiveSessionRoom({
             />
           </div>
 
-          {/* Text Input Fallback Bar */}
-          <form
-            onSubmit={handleSendText}
-            className="p-3 border-t border-border bg-card/40 flex items-center gap-2"
-          >
-            <input
-              type="text"
+          {/* Universal Text Input Bar (Office Mode / Broken Mic) */}
+          <div className="p-2.5 border-t border-border bg-card/60">
+            <ZenUnifiedInputBar
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Or type Japanese here... (例: 今日は天気がいいですね)"
-              disabled={state === "ai_thinking" || state === "processing_stt"}
-              className="flex-1 px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              onChange={setInputText}
+              onSubmit={() => {
+                if (inputText.trim() && state !== "ai_thinking" && state !== "processing_stt") {
+                  onSendTextTurn(inputText);
+                  setInputText("");
+                }
+              }}
+              placeholder="Gõ tiếng Nhật đối thoại trực tiếp... (例: 今日は天気がいいですね / Enter để gửi)"
+              submitButtonText="Gửi tin"
+              isEvaluating={state === "ai_thinking" || state === "processing_stt"}
+              hintText="Chế độ văn phòng: Trò chuyện không cần nói to"
             />
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              disabled={
-                !inputText.trim() ||
-                state === "ai_thinking" ||
-                state === "processing_stt"
-              }
-            >
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          </form>
+          </div>
         </div>
       </div>
 

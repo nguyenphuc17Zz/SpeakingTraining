@@ -73,18 +73,17 @@ async def test_monologue_evaluate_transcript_only(test_db):
     try:
         svc = MonologueService(test_db)
         ex = await svc.generate_exercise(user_id="u_mono_2", duration_sec=30)
-        # transcript-only should raise ValueError (audio required)
-        try:
-            await svc.evaluate_exercise(
-                exercise_id=ex.id,
-                user_id="u_mono_2",
-                user_transcript="私はテレワークに賛成です。",
-                audio_base64=None,
-                speech_metrics={"speech_duration_ms": 28000, "target_duration_ms": 30000},
-            )
-            assert False, "Should have raised for missing audio"
-        except ValueError as e:
-            assert "Audio is required" in str(e)
+        # transcript-only should now succeed (Office mode / Broken mic support)
+        res_text = await svc.evaluate_exercise(
+            exercise_id=ex.id,
+            user_id="u_mono_2",
+            user_transcript="私はテレワークに賛成です。なぜなら、通勤時間がなくなり、仕事の効率が上がるからです。",
+            audio_base64=None,
+            speech_metrics={"speech_duration_ms": 28000, "target_duration_ms": 30000},
+        )
+        assert res_text is not None
+        assert res_text.get("score") is not None
+        assert res_text.get("status") != "RETRY_AUDIO"
         # Now with dummy audio (mock STT)
         from unittest.mock import patch
         import base64

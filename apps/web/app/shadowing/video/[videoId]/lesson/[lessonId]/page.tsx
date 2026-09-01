@@ -47,6 +47,7 @@ export default function ShadowingLessonPage() {
     toggleLoop,
     startRecording,
     stopRecording,
+    submitTextShadowing,
     isRecording,
     isEvaluating,
     lastFeedback,
@@ -241,6 +242,7 @@ export default function ShadowingLessonPage() {
               onStopRecording={stopRecording}
               isRecording={isRecording}
               isEvaluating={isEvaluating}
+              onSubmitTextPractice={submitTextShadowing}
             />
 
             {lastFeedback && (

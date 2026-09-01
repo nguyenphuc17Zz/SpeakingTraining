@@ -46,7 +46,7 @@ async def test_pipeline_empty():
 
 @pytest.mark.asyncio
 async def test_evaluator_with_transcript_only(monkeypatch):
-    # Audio-only enforced — transcript-only should raise ValueError
+    # Transcript-only supported for office mode / broken mic
     from app.domains.monologue.evaluator import MonologueEvaluator
     import base64
     from unittest.mock import AsyncMock, patch
@@ -62,19 +62,18 @@ async def test_evaluator_with_transcript_only(monkeypatch):
     evaluator.ai.evaluate = fake_evaluate  # type: ignore
     evaluator.ai.native_upgrade = fake_upgrade  # type: ignore
     dummy_ex = type("Ex", (), {"extra_metadata": {"speech_config": {"genre":"opinion","topic":"test","instruction":"話してください","constraints":[],"target_duration_sec":60}},"title":"test","instructions":"test"})()
-    # transcript-only should hard fail
-    try:
-        await evaluator.evaluate(
-            exercise=dummy_ex,
-            user_transcript="私はテレワークに賛成です。",
-            audio_base64=None,
-            speech_metrics={"speech_duration_ms": 58000},
-            target_duration_ms=60000,
-            user_id="test",
-        )
-        assert False, "Should raise ValueError for missing audio"
-    except ValueError as e:
-        assert "Audio is required" in str(e)
+    
+    # transcript-only should evaluate successfully without audio
+    res = await evaluator.evaluate(
+        exercise=dummy_ex,
+        user_transcript="私はテレワークに賛成です。",
+        audio_base64=None,
+        speech_metrics={"speech_duration_ms": 58000},
+        target_duration_ms=60000,
+        user_id="test",
+    )
+    assert res is not None
+    assert res.get("status") == "ok" or res.get("score") is not None
 
     # Now with audio + mocked STT (audio required path)
     dummy_audio = base64.b64encode(b"\x00"*12000).decode()

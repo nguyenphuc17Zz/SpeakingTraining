@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   ChevronRight,
   History,
+  Keyboard,
 } from "lucide-react";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 export default function PronunciationPracticePage() {
   // Target Selection State
@@ -33,6 +35,7 @@ export default function PronunciationPracticePage() {
   const [selectedTarget, setSelectedTarget] = useState<PronunciationPracticeTargetDTO | null>(null);
   const [customText, setCustomText] = useState("");
   const [isCustomMode, setIsCustomMode] = useState(false);
+  const [typedAnswer, setTypedAnswer] = useState("");
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -205,6 +208,42 @@ export default function PronunciationPracticePage() {
       console.error("Analysis failed", err);
       setErrorMessage(err.message || "Phân tích phát âm thất bại. Vui lòng thử lại.");
     } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Direct Text Pronunciation Analysis (Office Mode / Broken Mic)
+  const handleDirectTextAnalyze = async () => {
+    const textToSpeak = (typedAnswer.trim() || (isCustomMode ? customText.trim() : selectedTarget?.target_text) || "").trim();
+    if (!textToSpeak) {
+      setErrorMessage("Vui lòng nhập câu hoặc từ tiếng Nhật để phân tích phát âm.");
+      return;
+    }
+    setIsAnalyzing(true);
+    setErrorMessage(null);
+    try {
+      // 1. Synthesize audio for the typed sentence
+      const res = await speechApi.synthesize(textToSpeak, "1", 1.0, 0.0);
+      if (!res.audio_base64) {
+        throw new Error("Không thể tạo dữ liệu âm thanh từ văn bản nhập.");
+      }
+      // 2. Decode base64 to blob
+      const byteCharacters = atob(res.audio_base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const synthBlob = new Blob([byteArray], { type: "audio/wav" });
+      setRecordedBlob(synthBlob);
+      const url = URL.createObjectURL(synthBlob);
+      setRecordedAudioUrl(url);
+
+      // 3. Analyze pronunciation
+      await handleAnalyze(synthBlob);
+    } catch (err: any) {
+      console.error("Text pronunciation analysis error:", err);
+      setErrorMessage(err.message || "Phân tích phát âm từ văn bản thất bại.");
       setIsAnalyzing(false);
     }
   };
@@ -386,6 +425,26 @@ export default function PronunciationPracticePage() {
                   <span>Thử lại</span>
                 </button>
               )}
+            </div>
+
+            {/* Direct Keyboard Input Alternative (Office Mode / Broken Mic) */}
+            <div className="w-full max-w-xl mx-auto p-4 rounded-3xl border border-border bg-card/60 washi-texture space-y-2 text-left">
+              <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Keyboard className="h-4 w-4 text-primary" />
+                  <span>Chế độ gõ phím (Văn phòng / Hỏng mic)</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">Phân tích phát âm không cần mic</span>
+              </div>
+              <ZenUnifiedInputBar
+                value={typedAnswer}
+                onChange={setTypedAnswer}
+                onSubmit={handleDirectTextAnalyze}
+                placeholder={`Gõ câu phát âm tiếng Nhật... (Mặc định: ${isCustomMode ? customText || "câu tự do" : selectedTarget?.target_text || "câu mẫu"})`}
+                submitButtonText="Phân tích"
+                isEvaluating={isAnalyzing}
+                hintText="Nhập câu tiếng Nhật để kiểm tra ngữ âm"
+              />
             </div>
 
             {/* Error Banner */}

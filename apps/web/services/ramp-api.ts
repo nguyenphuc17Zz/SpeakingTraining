@@ -85,6 +85,21 @@ export interface FollowUpSpec {
   relates_to?: string;
 }
 
+export interface RampSampleAnswer {
+  style: "casual" | "polite" | "advanced" | string;
+  style_label: string;
+  japanese: string;
+  vietnamese: string;
+  nuance?: string;
+}
+
+export interface RampCoachingAdvice {
+  overall_comment?: string;
+  strengths: string[];
+  improvements: string[];
+  grammar_notes: string[];
+}
+
 export interface RampAttemptFeedback {
   meaning_clear: boolean;
   grammar_ok: boolean;
@@ -98,6 +113,8 @@ export interface RampAttemptFeedback {
   next_action: string;
   ramp_score?: RampScore;
   followup?: FollowUpSpec;
+  sample_answers?: RampSampleAnswer[];
+  coaching_advice?: RampCoachingAdvice;
 }
 
 export interface SubmitAttemptResult {

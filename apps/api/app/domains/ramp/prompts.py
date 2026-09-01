@@ -204,14 +204,17 @@ class RampPrompts:
         user_transcript: str,
         support_level: int,
     ) -> tuple[str, str]:
-        """§46 AI evaluates: semantic adequacy, naturalness, topic relevance, idea quality."""
+        """§46 AI evaluates: semantic adequacy, naturalness, sample answers (3 styles), and coaching advice."""
         system = (
-            "You are evaluating a Japanese speaking ramp exercise attempt.\n"
+            "You are an expert Japanese speaking coach evaluating an oral output attempt.\n"
             "RULES:\n"
             "1. Accept ANY grammatically valid, semantically relevant Japanese response.\n"
-            "2. Do NOT require a specific answer — multiple valid answers must pass.\n"
-            "3. Do NOT invent grammar rules.\n"
-            "4. Evaluate naturalness of actual native Japanese speech, not textbook Japanese.\n"
+            "2. Evaluate naturalness of actual spoken Japanese.\n"
+            "3. Generate 3 DISTINCT suggested sample answers suitable for this exercise:\n"
+            "   - 'casual': Natural, everyday spoken Japanese (Thường ngày).\n"
+            "   - 'polite': Standard polite/business form (Lịch sự / Công sở - です/ます).\n"
+            "   - 'advanced': Richer, extended answer with reasons or examples (Mở rộng nâng cao).\n"
+            "4. Provide constructive coaching advice in Vietnamese to help the learner build speaking confidence and reflex.\n"
             "5. Return ONLY valid JSON:\n"
             "{\n"
             '  "semantic_relevance": 0-100,\n'
@@ -223,9 +226,38 @@ class RampPrompts:
             '  "has_example": true|false,\n'
             '  "sentence_complete": true|false,\n'
             '  "errors": [{"fragment": "...", "correction": "...", "note": "..."}],\n'
-            '  "strengths": ["..."],\n'
+            '  "strengths": ["Điểm nói tốt 1 (tiếng Việt)", "Điểm nói tốt 2"],\n'
             '  "correction_jp": "Minimal correction in Japanese if needed (or null)",\n'
             '  "feedback_jp": "One line of feedback in Japanese",\n'
+            '  "sample_answers": [\n'
+            '    {\n'
+            '      "style": "casual",\n'
+            '      "style_label": "Thường ngày",\n'
+            '      "japanese": "Natural Japanese sentence",\n'
+            '      "vietnamese": "Bản dịch tiếng Việt",\n'
+            '      "nuance": "Sắc thái thân mật, tự nhiên khi nói chuyện bạn bè"\n'
+            '    },\n'
+            '    {\n'
+            '      "style": "polite",\n'
+            '      "style_label": "Lịch sự công sở",\n'
+            '      "japanese": "Polite Japanese sentence with desu/masu",\n'
+            '      "vietnamese": "Bản dịch tiếng Việt",\n'
+            '      "nuance": "Lịch sự, trang nhã, phù hợp giao tiếp văn phòng"\n'
+            '    },\n'
+            '    {\n'
+            '      "style": "advanced",\n'
+            '      "style_label": "Mở rộng nâng cao",\n'
+            '      "japanese": "Extended Japanese sentence with reason/example",\n'
+            '      "vietnamese": "Bản dịch tiếng Việt",\n'
+            '      "nuance": "Bổ sung liên từ và lý do để phát triển ý sâu sắc"\n'
+            '    }\n'
+            '  ],\n'
+            '  "coaching_advice": {\n'
+            '    "overall_comment": "Nhận xét tổng thể bằng tiếng Việt...",\n'
+            '    "strengths": ["Điểm phát huy tốt 1", "Điểm phát huy tốt 2"],\n'
+            '    "improvements": ["Lời khuyên bứt phá 1", "Lời khuyên bứt phá 2"],\n'
+            '    "grammar_notes": ["Ghi chú cấu trúc ngữ pháp/trợ từ..."]\n'
+            '  },\n'
             '  "confidence": 0.0-1.0\n'
             "}"
         )
@@ -236,7 +268,7 @@ class RampPrompts:
             f"Prompt given: 「{prompt_jp}」\n"
             f"Support level used: {support_level}/7\n"
             f"Learner's response: 「{user_transcript}」\n"
-            "Be fair: accept multiple valid answers. Penalize only genuine errors, not style choices."
+            "Provide accurate scores, 3 diverse sample answers, and insightful coaching advice."
         )
         return system, user
 

@@ -32,6 +32,7 @@ import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/w
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
 
 export default function KeigoPage() {
   const [subMode, setSubMode] = useState("mixed");
@@ -426,6 +427,14 @@ export default function KeigoPage() {
       </div>
 
       {/* Main Workout Grid */}
+      {session.phase === "loading" || (!activeExercise && !showSummary) ? (
+        <ZenLoadingState
+          variant="studio"
+          title="AI Đang Thiết Lập Thử Thách Kính Ngữ..."
+          ja="敬語課題生成中..."
+          description="AI đang thiết lập tình huống kinh doanh, đối tượng giao tiếp và ngữ cảnh tôn kính..."
+        />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* Left 2 Columns: Prompt & Result Arena */}
         <div className="lg:col-span-2 space-y-4">
@@ -532,58 +541,29 @@ export default function KeigoPage() {
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-muted/40 border border-border/60 min-h-[58px] flex flex-col justify-center space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Nhận diện trực tiếp (ja-JP):
-              </span>
-              <div className="text-xs font-bold font-jp text-foreground">
-                {session.speech.transcript ? (
-                  <span>“{session.speech.transcript}”</span>
-                ) : isRecordingOrWaiting ? (
-                  <span className="text-muted-foreground italic font-sans font-normal animate-pulse">
-                    Đang lắng nghe giọng nói tiếng Nhật của bạn...
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground italic font-sans font-normal">Chờ kích hoạt mic</span>
-                )}
-              </div>
-            </div>
-
-            {showTextInput && (
-              <div className="space-y-2 pt-1">
-                <textarea
-                  value={transcriptInput}
-                  onChange={(e) => setTranscriptInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleDirectSubmit();
-                    }
-                  }}
-                  placeholder="Nhập câu kính ngữ của bạn (VD: ご覧になります / 拝見いたします)..."
-                  className="w-full rounded-xl border bg-background p-2.5 text-xs font-jp min-h-[64px] focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-            )}
+            {/* Unified Voice & Keyboard Input Bar */}
+            <ZenUnifiedInputBar
+              value={transcriptInput}
+              onChange={setTranscriptInput}
+              onSubmit={handleDirectSubmit}
+              speechTranscript={session.speech.transcript}
+              isRecording={isRecordingOrWaiting}
+              isEvaluating={isEvaluating}
+              placeholder="Nói vào mic hoặc gõ câu kính ngữ... (VD: ご覧になります / 参ります)"
+              submitButtonText={`Gửi (${formatKeyDisplay(keybindings.keigoSubmitOrNext)})`}
+              autoFocus={true}
+              hintText="Gõ phím thay mic khi ở văn phòng"
+            />
 
             <div className="pt-1 flex gap-2">
               <Button
                 size="sm"
-                variant="akane"
-                className="flex-1 font-bold text-xs"
-                onClick={handleDirectSubmit}
-                disabled={isEvaluating}
-              >
-                Gửi ({formatKeyDisplay(keybindings.keigoSubmitOrNext)})
-              </Button>
-              <Button
-                size="sm"
                 variant="outline"
-                className="font-bold text-xs"
+                className="w-full font-bold text-xs"
                 onClick={() => session.skip()}
                 disabled={isEvaluating}
               >
-                Bỏ qua ({formatKeyDisplay(keybindings.keigoSkip)})
+                Bỏ qua câu này ({formatKeyDisplay(keybindings.keigoSkip)})
               </Button>
             </div>
           </div>
@@ -597,6 +577,7 @@ export default function KeigoPage() {
           )}
         </div>
       </div>
+      )}
 
       <KeigoCheatsheetModal isOpen={showCheatsheet} onClose={() => setShowCheatsheet(false)} />
       <GlobalKeybindingsModal isOpen={showKeybindingsModal} onClose={() => setShowKeybindingsModal(false)} />

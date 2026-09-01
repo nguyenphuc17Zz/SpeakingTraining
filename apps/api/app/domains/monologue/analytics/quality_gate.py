@@ -15,7 +15,10 @@ class SpeechQualityGate:
         word_count: int | None,
         has_clipping: bool = False,
         snr_db: float | None = None,
+        is_text_only: bool = False,
     ) -> SpeechQualityGateResult:
+        if is_text_only:
+            return SpeechQualityGateResult(status="ok", stt_confidence=1.0, has_voice=True, clipping=False)
         if not audio_bytes or len(audio_bytes) == 0:
             return SpeechQualityGateResult(status="RETRY_AUDIO", reason="Audio too short/empty", has_voice=False)
         # Primary 0.5s check via duration_ms (per user choice); byte length only as fallback when duration unknown

@@ -56,6 +56,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UniversalFurigana } from "@/components/japanese/UniversalFurigana";
 import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
+import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -106,8 +108,9 @@ export default function RampPage() {
   const [sessionElapsedSec, setSessionElapsedSec] = useState(0);
 
   // Input & Timers
+  const [inputMode, setInputMode] = useState<"voice" | "office">("voice");
   const [transcriptInput, setTranscriptInput] = useState("");
-  const [showTranscriptInput, setShowTranscriptInput] = useState(false);
+  const [showEmbeddedScaffold, setShowEmbeddedScaffold] = useState(false);
   const [prepLeft, setPrepLeft] = useState(0);
   const [recElapsed, setRecElapsed] = useState(0);
   const rafRef = useRef<number | null>(null);
@@ -248,6 +251,26 @@ export default function RampPage() {
       setTranscriptInput("");
     }
   }, [recorder, ramp, transcriptInput]);
+
+  const handleDirectTextSubmit = useCallback(async (customText?: string) => {
+    const text = (customText !== undefined ? customText : transcriptInput).trim();
+    if (!text) {
+      toast.error("Vui lòng nhập câu trả lời tiếng Nhật của bạn.");
+      return;
+    }
+    soundFX.playTaiko();
+    ramp.setPhase("submitting");
+    setRecElapsed(0);
+    const result = await ramp.submitAttempt({
+      user_transcript: text,
+      audio_base64: undefined,
+      support_level_used: ramp.supportLevel,
+      used_hint: ramp.usedHint,
+    });
+    if (result) {
+      setTranscriptInput("");
+    }
+  }, [ramp, transcriptInput]);
 
   const handleRetry = useCallback(async () => {
     soundFX.playSuikinkutsu();
@@ -472,261 +495,12 @@ export default function RampPage() {
           </div>
         )}
 
-        {/* Phase: WORKOUT (2-Column Studio Grid) */}
+        {/* Phase: WORKOUT (Redesigned Clean Studio Layout) */}
         {isSessionActive && task && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
-            {/* ── Left Arena: 7 cols on desktop ── */}
-            <div className="lg:col-span-7 space-y-3">
-              {/* 1. Hero Challenge Card */}
-              {(ramp.phase === "prompting" || ramp.phase === "preparing" || ramp.phase === "recording") && (
-                <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-card washi-texture shadow-xs space-y-3.5 relative overflow-hidden">
-                  <SakuraPetals count={1} />
-
-                  {/* Header: Stage Badge + Topic + Tokyo Native Audio */}
-                  <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="matcha" className="text-[11px] font-bold py-0.5 px-2.5 shadow-2xs">
-                        Stage {task.stage || ramp.stage} • {EXERCISE_TYPE_LABEL[task.exercise_type] || task.exercise_type}
-                      </Badge>
-                      {task.topic && (
-                        <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 font-jp">
-                          <Compass className="h-3.5 w-3.5 text-primary" /> {task.topic}
-                        </span>
-                      )}
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePlayAudio(task.echo_sentence || task.template_sentence || task.prompt_jp)}
-                      className="h-8 px-2.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 text-xs font-semibold gap-1.5 shrink-0 shadow-2xs"
-                      title="Nghe phát âm chuẩn Tokyo (P)"
-                    >
-                      <Volume2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Nghe mẫu (P)</span>
-                    </Button>
-                  </div>
-
-                  {/* Instruction Zone */}
-                  <div className="space-y-1">
-                    {subtitleMode === "hidden" ? (
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-center text-xs text-muted-foreground">
-                        🔒 Chế độ Ẩn đề bài — Hãy lắng nghe phát âm và tự tin phát ngôn
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
-                          <UniversalFurigana text={task.prompt_jp} fontSize="lg" />
-                        </div>
-                        {subtitleMode === "vietnamese" && task.prompt_vi && (
-                          <p className="text-xs text-muted-foreground leading-normal">
-                            {task.prompt_vi}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Target Speech Board (Tách biệt rõ ràng từng kiểu bài tập) */}
-                  <div className="space-y-2 pt-1">
-                    {/* A. Từ khóa cần thay thế (Substitute Slot) */}
-                    {task.substitution_variable && (
-                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-2xs">
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
-                            🎯 Từ khóa cần thay thế vào câu:
-                          </span>
-                          <div className="text-base sm:text-lg font-bold font-jp text-foreground">
-                            「<UniversalFurigana text={task.substitution_variable} />」
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePlayAudio(task.substitution_variable!)}
-                          className="h-8 px-2 rounded-xl text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold gap-1 shrink-0"
-                          title="Nghe phát âm từ này"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                          <span className="hidden sm:inline">Nghe từ</span>
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* B. Mẫu câu tham chiếu (Template Sentence) */}
-                    {task.template_sentence && (
-                      <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs washi-texture space-y-1">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                          Mẫu câu tham chiếu:
-                        </span>
-                        <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
-                          「<UniversalFurigana text={task.template_sentence} fontSize="lg" />」
-                        </div>
-                      </div>
-                    )}
-
-                    {/* C. Câu nhại lại (Echo Sentence) */}
-                    {task.echo_sentence && (
-                      <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-center space-y-2.5">
-                        <span className="text-[11px] font-bold text-primary block">
-                          Câu mẫu chuẩn Tokyo — Hãy lắng nghe và nhại lại:
-                        </span>
-                        <div className="text-lg sm:text-xl font-bold text-foreground font-jp leading-relaxed">
-                          「<UniversalFurigana text={task.echo_sentence} fontSize="lg" />」
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePlayAudio(task.echo_sentence!)}
-                          className="h-8 px-3 rounded-xl border-primary/30 text-primary hover:bg-primary/15 gap-1.5 mx-auto font-bold shadow-2xs"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                          <span>Nghe phát âm chuẩn (P)</span>
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* D. Câu hạt giống cần mở rộng (Seed Sentence) */}
-                    {task.seed_sentence && (
-                      <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs washi-texture space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                            Câu gốc cần mở rộng:
-                          </span>
-                          {task.expansion_dimension && (
-                            <Badge variant="matcha" size="sm" className="font-bold text-[10px]">
-                              + Thêm thông tin: {task.expansion_dimension}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
-                          「<UniversalFurigana text={task.seed_sentence} fontSize="lg" />」
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Zen Voice Capsule Arena */}
-              {ramp.phase === "prompting" && (
-                <div
-                  id="ramp-begin-speaking-card"
-                  onClick={handleBeginExercise}
-                  className="p-5 sm:p-6 rounded-3xl border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-b from-card via-card to-primary/5 washi-texture shadow-xs hover:shadow-md transition-all cursor-pointer text-center space-y-3 group"
-                >
-                  <div className="relative h-16 w-16 mx-auto flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-primary/10 group-hover:scale-125 transition-transform animate-ping opacity-30" />
-                    <div className="relative h-14 w-14 rounded-full bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shadow-xs">
-                      <Mic className="h-6 w-6" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-extrabold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors flex items-center justify-center gap-2">
-                      <span>Bắt Đầu Phát Ngôn</span>
-                      <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold">Space</span>
-                    </h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      Bấm vào thẻ này hoặc nhấn phím <strong className="text-foreground font-mono">Space</strong> để mở micro và nói
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {ramp.phase === "preparing" && prepLeft > 0 && (
-                <div className="p-5 rounded-3xl bg-card border-2 border-primary/30 washi-texture text-center space-y-2 shadow-xs animate-in zoom-in-95 duration-150">
-                  <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary font-mono text-2xl font-extrabold animate-pulse">
-                    {Math.ceil(prepLeft)}
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="font-bold text-sm text-foreground">Chuẩn bị ý tưởng...</h4>
-                    <p className="text-xs text-muted-foreground">Micro sẽ tự động kích hoạt sau vài giây</p>
-                  </div>
-                </div>
-              )}
-
-              {ramp.phase === "recording" && (
-                <div className="p-5 sm:p-6 rounded-3xl border-2 border-rose-500/40 bg-card washi-texture shadow-sm space-y-4 text-center animate-in fade-in duration-150">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="relative h-16 w-16 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-2 border-rose-500/20 animate-ping opacity-30" />
-                      {targetSec > 0 && (
-                        <svg className="absolute inset-0 h-full w-full -rotate-90">
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="28"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            strokeDasharray="175"
-                            strokeDashoffset={175 - Math.min(1, recElapsed / targetSec) * 175}
-                            className="text-rose-500 transition-all duration-100"
-                          />
-                        </svg>
-                      )}
-                      <span className="text-base font-extrabold text-foreground font-mono">
-                        {Math.floor(recElapsed)}s
-                      </span>
-                    </div>
-
-                    <div className="text-left space-y-0.5">
-                      <span className="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-rose-500 animate-pulse">
-                        <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                        Đang ghi âm microphone
-                      </span>
-                      <span className="text-xs text-muted-foreground block">
-                        {targetSec > 0 ? `Mục tiêu phát ngôn: ~${targetSec} giây` : "Hãy phát âm câu hoàn chỉnh"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 pt-1">
-                    <Button
-                      id="ramp-stop-submit-btn"
-                      size="lg"
-                      variant="danger"
-                      onClick={handleStopAndSubmit}
-                      className="w-full py-4.5 rounded-2xl font-extrabold text-sm shadow-sm flex items-center justify-center gap-2"
-                    >
-                      <Square className="h-4 w-4 fill-current" />
-                      <span>Hoàn tất & Nộp bài (Phím Space)</span>
-                    </Button>
-
-                    {/* Optional text input fallback */}
-                    <button
-                      type="button"
-                      onClick={() => setShowTranscriptInput((v) => !v)}
-                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors mx-auto pt-1"
-                    >
-                      {showTranscriptInput ? "▲ Ẩn ô nhập văn bản" : "▼ Hoặc gõ văn bản nếu ở nơi ồn ào"}
-                    </button>
-                    {showTranscriptInput && (
-                      <textarea
-                        id="ramp-transcript-input"
-                        rows={2}
-                        value={transcriptInput}
-                        onChange={(e) => setTranscriptInput(e.target.value)}
-                        placeholder="Nhập câu tiếng Nhật của bạn tại đây..."
-                        className="w-full p-2.5 rounded-xl border border-border bg-background text-xs font-jp text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 animate-in fade-in duration-150"
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {ramp.phase === "submitting" && (
-                <ZenLoadingState
-                  variant="ai"
-                  title="AI Đang Phân Tích Phản Xạ & Nấc Thang..."
-                  ja="発話・リハビリ分析中..."
-                  description="Kiểm tra mức độ hoàn chỉnh câu, mở rộng ý và tính tự lập phát ngôn..."
-                />
-              )}
-
-              {/* 3. Feedback Card (When finished) */}
-              {ramp.phase === "feedback" && ramp.submitResult && (
+          <>
+            {/* 1. Full-Width Feedback View when submitted */}
+            {ramp.phase === "feedback" && ramp.submitResult ? (
+              <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in zoom-in-95 duration-200">
                 <RampFeedbackCard
                   result={ramp.submitResult}
                   onRetry={handleRetry}
@@ -734,59 +508,361 @@ export default function RampPage() {
                   onElaborate={handleNext}
                   stageChanged={ramp.submitResult.delta?.stage_changed}
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              /* 2. Active Workout 2-Column Golden Ratio Studio */
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start max-w-6xl mx-auto">
+                {/* ── Left Arena: 7 cols on desktop ── */}
+                <div className="lg:col-span-7 space-y-3.5">
+                  {/* 1. Hero Challenge Card */}
+                  <div className="p-4 sm:p-5 rounded-3xl border border-border/80 bg-card washi-texture shadow-xs space-y-3.5 relative overflow-hidden">
+                    <SakuraPetals count={1} />
 
-            {/* ── Right Column: Scaffold & Sidekick (5 cols on desktop) ── */}
-            <div className="lg:col-span-5 space-y-3">
-              {/* Dynamic Scaffolding Panel (Ghim song song bên phải) */}
-              <RampScaffoldPanel
-                task={task}
-                supportLevel={ramp.supportLevel}
-                onRevealHint={ramp.revealHint}
-                hintRevealed={ramp.usedHint}
-              />
+                    {/* Header: Stage Badge + Topic + Tokyo Native Audio */}
+                    <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="matcha" className="text-[11px] font-bold py-0.5 px-2.5 shadow-2xs">
+                          Stage {task.stage || ramp.stage} • {EXERCISE_TYPE_LABEL[task.exercise_type] || task.exercise_type}
+                        </Badge>
+                        {task.topic && (
+                          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1 font-jp">
+                            <Compass className="h-3.5 w-3.5 text-primary" /> {task.topic}
+                          </span>
+                        )}
+                      </div>
 
-              {/* Studio Sidekick Card (AI Coach & Shortcuts) */}
-              <div className="p-4 rounded-2xl bg-card border border-border/80 washi-texture space-y-3 shadow-xs">
-                <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    AI Coach Đồng Hành
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCoachOpen(true)}
-                    className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 font-bold"
-                  >
-                    Mở Chat ➔
-                  </Button>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePlayAudio(task.echo_sentence || task.template_sentence || task.prompt_jp)}
+                          className="h-8 px-2.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 text-xs font-semibold gap-1.5 shrink-0 shadow-2xs"
+                          title="Nghe phát âm chuẩn Tokyo (P)"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          <span className="hidden sm:inline">Nghe mẫu (P)</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Instruction Zone */}
+                    <div className="space-y-1">
+                      {subtitleMode === "hidden" ? (
+                        <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-center text-xs text-muted-foreground">
+                          🔒 Chế độ Ẩn đề bài — Hãy lắng nghe phát âm và tự tin phát ngôn
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
+                            <UniversalFurigana text={task.prompt_jp} fontSize="lg" />
+                          </div>
+                          {subtitleMode === "vietnamese" && task.prompt_vi && (
+                            <p className="text-xs text-muted-foreground leading-normal">
+                              {task.prompt_vi}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Target Speech Board */}
+                    <div className="space-y-2 pt-1">
+                      {/* A. Từ khóa cần thay thế (Substitute Slot) */}
+                      {task.substitution_variable && (
+                        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
+                              🎯 Từ khóa cần thay thế vào câu:
+                            </span>
+                            <div className="text-base sm:text-lg font-bold font-jp text-foreground">
+                              「<UniversalFurigana text={task.substitution_variable} />」
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePlayAudio(task.substitution_variable!)}
+                            className="h-8 px-2 rounded-xl text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold gap-1 shrink-0"
+                            title="Nghe phát âm từ này"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                            <span className="hidden sm:inline">Nghe từ</span>
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* B. Mẫu câu tham chiếu (Template Sentence) */}
+                      {task.template_sentence && (
+                        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs washi-texture space-y-1">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                            Mẫu câu tham chiếu:
+                          </span>
+                          <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
+                            「<UniversalFurigana text={task.template_sentence} fontSize="lg" />」
+                          </div>
+                        </div>
+                      )}
+
+                      {/* C. Câu nhại lại (Echo Sentence) */}
+                      {task.echo_sentence && (
+                        <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-center space-y-2.5">
+                          <span className="text-[11px] font-bold text-primary block">
+                            Câu mẫu chuẩn Tokyo — Hãy lắng nghe và nhại lại:
+                          </span>
+                          <div className="text-lg sm:text-xl font-bold text-foreground font-jp leading-relaxed">
+                            「<UniversalFurigana text={task.echo_sentence} fontSize="lg" />」
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePlayAudio(task.echo_sentence!)}
+                            className="h-8 px-3 rounded-xl border-primary/30 text-primary hover:bg-primary/15 gap-1.5 mx-auto font-bold shadow-2xs"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                            <span>Nghe phát âm chuẩn (P)</span>
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* D. Câu hạt giống cần mở rộng (Seed Sentence) */}
+                      {task.seed_sentence && (
+                        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-xs washi-texture space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                              Câu gốc cần mở rộng:
+                            </span>
+                            {task.expansion_dimension && (
+                              <Badge variant="matcha" size="sm" className="font-bold text-[10px]">
+                                + Thêm thông tin: {task.expansion_dimension}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-base sm:text-lg font-bold text-foreground font-jp leading-relaxed">
+                            「<UniversalFurigana text={task.seed_sentence} fontSize="lg" />」
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Smart Dual-Mode Speaking & Input Station */}
+                  <div className="p-4 sm:p-5 rounded-3xl border border-border/80 bg-card washi-texture shadow-xs space-y-3.5">
+                    {/* Mode Selector Tabs */}
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                      <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-2xl border border-border/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundFX.playFurin();
+                            setInputMode("voice");
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
+                            inputMode === "voice"
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Mic className="h-3.5 w-3.5" />
+                          <span>Thu Âm (Micro)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundFX.playFurin();
+                            setInputMode("office");
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
+                            inputMode === "office"
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Keyboard className="h-3.5 w-3.5" />
+                          <span>Gõ Phím (Văn phòng)</span>
+                        </button>
+                      </div>
+
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        {inputMode === "voice" ? "Phím tắt: Space để bật/tắt mic" : "Phím tắt: Enter để nộp bài"}
+                      </span>
+                    </div>
+
+                    {/* Mode Content */}
+                    {inputMode === "voice" ? (
+                      <div>
+                        {ramp.phase === "prompting" && (
+                          <div
+                            id="ramp-begin-speaking-card"
+                            onClick={handleBeginExercise}
+                            className="p-6 rounded-2xl border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-b from-card via-card to-primary/5 washi-texture shadow-xs hover:shadow-md transition-all cursor-pointer text-center space-y-3 group"
+                          >
+                            <div className="relative h-16 w-16 mx-auto flex items-center justify-center">
+                              <div className="absolute inset-0 rounded-full bg-primary/10 group-hover:scale-125 transition-transform animate-ping opacity-30" />
+                              <div className="relative h-14 w-14 rounded-full bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shadow-xs">
+                                <Mic className="h-6 w-6" />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <h3 className="font-extrabold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                <span>Bắt Đầu Phát Ngôn</span>
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold">Space</span>
+                              </h3>
+                              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                                Bấm thẻ này hoặc nhấn phím <strong className="text-foreground font-mono">Space</strong> để mở micro
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {ramp.phase === "preparing" && prepLeft > 0 && (
+                          <div className="p-5 rounded-2xl bg-card border-2 border-primary/30 washi-texture text-center space-y-2 shadow-xs animate-in zoom-in-95 duration-150">
+                            <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto text-primary font-mono text-2xl font-extrabold animate-pulse">
+                              {Math.ceil(prepLeft)}
+                            </div>
+                            <div className="space-y-0.5">
+                              <h4 className="font-bold text-sm text-foreground">Chuẩn bị ý tưởng...</h4>
+                              <p className="text-xs text-muted-foreground">Micro sẽ tự động kích hoạt sau vài giây</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {ramp.phase === "recording" && (
+                          <div className="p-5 sm:p-6 rounded-2xl border-2 border-rose-500/40 bg-card washi-texture shadow-sm space-y-4 text-center animate-in fade-in duration-150">
+                            <div className="flex items-center justify-center gap-4">
+                              <div className="relative h-16 w-16 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-full border-2 border-rose-500/20 animate-ping opacity-30" />
+                                {targetSec > 0 && (
+                                  <svg className="absolute inset-0 h-full w-full -rotate-90">
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="28"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                      strokeDasharray="175"
+                                      strokeDashoffset={175 - Math.min(1, recElapsed / targetSec) * 175}
+                                      className="text-rose-500 transition-all duration-100"
+                                    />
+                                  </svg>
+                                )}
+                                <span className="text-base font-extrabold text-foreground font-mono">
+                                  {Math.floor(recElapsed)}s
+                                </span>
+                              </div>
+
+                              <div className="text-left space-y-0.5">
+                                <span className="flex items-center gap-2 text-xs sm:text-sm font-extrabold text-rose-500 animate-pulse">
+                                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                                  Đang ghi âm microphone
+                                </span>
+                                <span className="text-xs text-muted-foreground block">
+                                  {targetSec > 0 ? `Mục tiêu phát ngôn: ~${targetSec} giây` : "Hãy phát âm câu hoàn chỉnh"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <Button
+                              id="ramp-stop-submit-btn"
+                              size="lg"
+                              variant="danger"
+                              onClick={handleStopAndSubmit}
+                              className="w-full py-4.5 rounded-2xl font-extrabold text-sm shadow-sm flex items-center justify-center gap-2"
+                            >
+                              <Square className="h-4 w-4 fill-current" />
+                              <span>Hoàn tất & Nộp bài ghi âm (Phím Space)</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Office / Keyboard Mode */
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <Keyboard className="h-4 w-4 text-primary" />
+                            <span>Gõ câu tiếng Nhật theo yêu cầu nấc thang:</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">Không cần mic</span>
+                        </div>
+                        <ZenUnifiedInputBar
+                          value={transcriptInput}
+                          onChange={setTranscriptInput}
+                          onSubmit={() => handleDirectTextSubmit()}
+                          placeholder="Nhập câu tiếng Nhật của bạn tại đây... (Nhấn Enter để nộp bài)"
+                          submitButtonText="Nộp bài ngay"
+                          isEvaluating={false}
+                          hintText="Nộp trực tiếp và nhận chấm điểm AI"
+                        />
+                      </div>
+                    )}
+
+                    {ramp.phase === "submitting" && (
+                      <ZenLoadingState
+                        variant="ai"
+                        title="AI Đang Phân Tích Phản Xạ & Nấc Thang..."
+                        ja="発話・リハビリ分析中..."
+                        description="Kiểm tra mức độ hoàn chỉnh câu, mở rộng ý và tính tự lập phát ngôn..."
+                      />
+                    )}
+                  </div>
                 </div>
 
-                <CoachQuickActions
-                  route={pathname || "/ramp"}
-                  onSelect={handleCoachSelect}
-                />
+                {/* ── Right Column: Scaffold & Sidekick (5 cols on desktop) ── */}
+                <div className="lg:col-span-5 space-y-3.5">
+                  {/* Dynamic Scaffolding Panel (Ghim song song bên phải) */}
+                  <RampScaffoldPanel
+                    task={task}
+                    supportLevel={ramp.supportLevel}
+                    onRevealHint={ramp.revealHint}
+                    hintRevealed={ramp.usedHint}
+                  />
 
-                {/* 1-Line Clean Keybindings Bar */}
-                <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-1">
-                  <span>
-                    <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">Space</kbd> Nói/Nộp
-                  </span>
-                  <span>
-                    <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">R</kbd> Làm lại
-                  </span>
-                  <span>
-                    <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">N</kbd> Tiếp
-                  </span>
-                  <span>
-                    <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">C</kbd> Cẩm nang
-                  </span>
+                  {/* Studio Sidekick Card (AI Coach & Shortcuts) */}
+                  <div className="p-4 rounded-2xl bg-card border border-border/80 washi-texture space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        AI Coach Đồng Hành
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCoachOpen(true)}
+                        className="h-6 px-2 text-[10px] text-primary hover:text-primary/80 font-bold"
+                      >
+                        Mở Chat ➔
+                      </Button>
+                    </div>
+
+                    <CoachQuickActions
+                      route={pathname || "/ramp"}
+                      onSelect={handleCoachSelect}
+                    />
+
+                    {/* 1-Line Clean Keybindings Bar */}
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-1">
+                      <span>
+                        <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">Space</kbd> Nói/Nộp
+                      </span>
+                      <span>
+                        <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">R</kbd> Làm lại
+                      </span>
+                      <span>
+                        <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">N</kbd> Tiếp
+                      </span>
+                      <span>
+                        <kbd className="font-mono font-bold text-foreground bg-muted px-1.5 py-0.5 rounded border">C</kbd> Cẩm nang
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
 
         {/* Phase: COMPLETE -> Summary */}

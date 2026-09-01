@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
 
 interface DynamicBossGeneratorModalProps {
   isOpen: boolean;
@@ -102,79 +103,90 @@ export function DynamicBossGeneratorModal({
         </div>
 
         {/* Form Body */}
-        <div className="space-y-4 relative z-10">
-          {/* Topic Input */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-foreground">Chủ đề hoặc tình huống đối đầu mong muốn:</label>
-            <input
-              type="text"
-              placeholder="VD: Thương lượng giảm giá hợp đồng, Đàm phán bồi thường..."
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-muted/40 border border-border text-xs text-foreground focus:outline-none focus:border-primary"
+        {isGenerating ? (
+          <div className="py-6 relative z-10 animate-in fade-in duration-200">
+            <ZenLoadingState
+              variant="ai"
+              title="Gemini AI Đang Thiết Kế Boss Đấu Trường..."
+              ja="強敵試練・AI設計中..."
+              description="Đang tạo kịch bản tranh luận kịch tính, cá tính nhân vật đối lập và hệ số phần thưởng kinh nghiệm RPG..."
             />
           </div>
-
-          {/* Quick Presets */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-muted-foreground">Gợi ý tình huống kịch tính:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {PRESET_TOPICS.map((preset, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setTopic(preset)}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all text-left",
-                    topic === preset
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted/40 text-muted-foreground border-border/80 hover:text-foreground"
-                  )}
-                >
-                  {preset}
-                </button>
-              ))}
+        ) : (
+          <div className="space-y-4 relative z-10">
+            {/* Topic Input */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-foreground">Chủ đề hoặc tình huống đối đầu mong muốn:</label>
+              <input
+                type="text"
+                placeholder="VD: Thương lượng giảm giá hợp đồng, Đàm phán bồi thường..."
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-muted/40 border border-border text-xs text-foreground focus:outline-none focus:border-primary"
+              />
             </div>
-          </div>
 
-          {/* Difficulty & Level */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+            {/* Quick Presets */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-foreground">Độ khó Boss:</label>
-              <div className="flex rounded-xl border border-border overflow-hidden p-0.5 bg-muted/30">
-                {(["normal", "hard", "extreme"] as const).map((d) => (
+              <span className="text-[11px] font-semibold text-muted-foreground">Gợi ý tình huống kịch tính:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_TOPICS.map((preset, idx) => (
                   <button
-                    key={d}
+                    key={idx}
                     type="button"
-                    onClick={() => setDifficulty(d)}
+                    onClick={() => setTopic(preset)}
                     className={cn(
-                      "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize",
-                      difficulty === d
-                        ? "bg-primary text-primary-foreground shadow-2xs"
-                        : "text-muted-foreground hover:text-foreground"
+                      "px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all text-left",
+                      topic === preset
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/40 text-muted-foreground border-border/80 hover:text-foreground"
                     )}
                   >
-                    {d === "normal" ? "Thường" : d === "hard" ? "Khó" : "Cực Hạn"}
+                    {preset}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-foreground">Cấp RPG yêu cầu:</label>
-              <select
-                value={requiredLevel}
-                onChange={(e) => setRequiredLevel(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs text-foreground focus:outline-none focus:border-primary"
-              >
-                <option value={1}>Level 1+ (Sơ cấp)</option>
-                <option value={3}>Level 3+ (Trung cấp)</option>
-                <option value={8}>Level 8+ (Cao cấp)</option>
-                <option value={15}>Level 15+ (Bậc thầy)</option>
-              </select>
+            {/* Difficulty & Level */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-foreground">Độ khó Boss:</label>
+                <div className="flex rounded-xl border border-border overflow-hidden p-0.5 bg-muted/30">
+                  {(["normal", "hard", "extreme"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDifficulty(d)}
+                      className={cn(
+                        "flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize",
+                        difficulty === d
+                          ? "bg-primary text-primary-foreground shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {d === "normal" ? "Thường" : d === "hard" ? "Khó" : "Cực Hạn"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-foreground">Cấp RPG yêu cầu:</label>
+                <select
+                  value={requiredLevel}
+                  onChange={(e) => setRequiredLevel(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-muted/40 border border-border text-xs text-foreground focus:outline-none focus:border-primary"
+                >
+                  <option value={1}>Level 1+ (Sơ cấp)</option>
+                  <option value={3}>Level 3+ (Trung cấp)</option>
+                  <option value={8}>Level 8+ (Cao cấp)</option>
+                  <option value={15}>Level 15+ (Bậc thầy)</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2 border-t border-border/80 relative z-10">

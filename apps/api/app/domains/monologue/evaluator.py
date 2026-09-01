@@ -32,17 +32,14 @@ class MonologueEvaluator:
         target_duration_ms: int,
         user_id: str,
     ) -> dict[str, Any]:
-        # 1. Resolve transcript via STT if audio provided (authoritative)
+        # 1. Resolve transcript via STT if audio provided (authoritative) or text-only (office/broken mic)
         transcript = (user_transcript or "").strip()
         words: list[dict] = []
         stt_conf = None
         duration_ms = None
         has_clipping = False
         snr_db = None
-
-        # Enforce audio-only: no transcript-only without audio (hard fail per user decision)
-        if not audio_base64:
-            raise ValueError("Audio is required for monologue evaluation — transcript-only is not allowed")
+        is_text_only = False
 
         audio_bytes: bytes | None = None
         if audio_base64:
@@ -85,8 +82,29 @@ class MonologueEvaluator:
             except Exception as e:
                 logger.warning(f"[MonologueEvaluator] STT failed: {e}", exc_info=True)
                 raise ValueError("Speech recognition failed — please retry with clearer audio") from e
+        else:
+            # Text-only submission (Office mode / Broken mic)
+            if not transcript:
+                return {
+                    "status": "RETRY_AUDIO",
+                    "score": 0.0,
+                    "success": False,
+                    "confidence": 0.3,
+                    "feedback": "Vui lòng nhập văn bản bài nói tiếng Nhật của bạn hoặc thu âm qua micro.",
+                    "evidence": ["No transcript and no audio provided"],
+                    "assessment": {"overall": 0, "fluency": 0, "coherence": 0, "grammar": None, "vocabulary": None, "naturalness": None, "relevance": None, "discourse": 0, "pronunciation": None},
+                    "metrics": {"speech_duration_ms": 0, "target_duration_ms": target_duration_ms, "transcript": "", "word_count": 0, "quality_gate": {"status": "RETRY_AUDIO", "reason": "empty"}},
+                    "is_low_confidence": True,
+                }
+            is_text_only = True
+            stt_conf = 1.0
+            if speech_metrics and speech_metrics.get("speech_duration_ms"):
+                duration_ms = int(speech_metrics["speech_duration_ms"])
+            else:
+                # Estimate duration based on Japanese reading pace ~5.0 mora/sec
+                duration_ms = max(5000, int((len(transcript) / 5.0) * 1000))
 
-        # 2. Duration fallback — strictly server-derived (no client trust per 2026-08-26 approval)
+        # 2. Duration fallback — strictly server-derived
         if duration_ms is None:
             if words:
                 try:
@@ -95,21 +113,22 @@ class MonologueEvaluator:
                     logger.debug(f"[MonologueEvaluator] duration from words failed: {e}")
                     duration_ms = None
             if duration_ms is None:
-                # No reliable duration — hard fail to avoid fake 1s scoring (user chose RETRY)
-                return {
-                    "status": "RETRY_AUDIO",
-                    "score": 0.0,
-                    "success": False,
-                    "confidence": 0.3,
-                    "feedback": "Không xác định được thời lượng nói — vui lòng thu lại.",
-                    "evidence": ["Missing duration and transcript timing"],
-                    "assessment": {"overall": 0, "fluency": 0, "coherence": 0, "grammar": None, "vocabulary": None, "naturalness": None, "relevance": None, "discourse": 0, "pronunciation": None},
-                    "metrics": {"speech_duration_ms": 0, "target_duration_ms": target_duration_ms, "transcript": transcript, "word_count": len(words), "quality_gate": {"status": "RETRY_AUDIO", "reason": "no duration"}},
-                    "is_low_confidence": True,
-                }
+                if is_text_only:
+                    duration_ms = max(5000, int((len(transcript) / 5.0) * 1000))
+                else:
+                    return {
+                        "status": "RETRY_AUDIO",
+                        "score": 0.0,
+                        "success": False,
+                        "confidence": 0.3,
+                        "feedback": "Không xác định được thời lượng nói — vui lòng thu lại.",
+                        "evidence": ["Missing duration and transcript timing"],
+                        "assessment": {"overall": 0, "fluency": 0, "coherence": 0, "grammar": None, "vocabulary": None, "naturalness": None, "relevance": None, "discourse": 0, "pronunciation": None},
+                        "metrics": {"speech_duration_ms": 0, "target_duration_ms": target_duration_ms, "transcript": transcript, "word_count": len(words), "quality_gate": {"status": "RETRY_AUDIO", "reason": "no duration"}},
+                        "is_low_confidence": True,
+                    }
 
         if not transcript:
-            # empty speech → hard RETRY_AUDIO (unifies gate contract, avoids polluting mastery with completed 0)
             return {
                 "status": "RETRY_AUDIO",
                 "score": 0.0,
@@ -154,6 +173,7 @@ class MonologueEvaluator:
                 genre=genre_val,
                 has_clipping=has_clipping,
                 snr_db=snr_db,
+                is_text_only=is_text_only,
             )
         except Exception as e:
             logger.warning(f"[MonologueEvaluator] pipeline failed: {e}", exc_info=True)
@@ -162,7 +182,7 @@ class MonologueEvaluator:
         # 4. Quality gate check — don't assign false low fluency, but surface error visibly
         qg = det.get("quality_gate", {})
         is_low = qg.get("status") in ("LOW_CONFIDENCE", "RETRY_AUDIO")
-        if qg.get("status") == "RETRY_AUDIO":
+        if not is_text_only and qg.get("status") == "RETRY_AUDIO":
             # Hard fail — surface to UI via toast (no silent downgrade)
             return {
                 "status": "RETRY_AUDIO",
