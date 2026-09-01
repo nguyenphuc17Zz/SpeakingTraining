@@ -31,6 +31,7 @@ import { useSystemKeybindings, formatKeyDisplay } from "@/hooks/use-system-keybi
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
 
 export default function KeigoPage() {
   const [subMode, setSubMode] = useState("mixed");
@@ -438,15 +439,12 @@ export default function KeigoPage() {
           />
 
           {isEvaluating && (
-            <div className="p-5 rounded-3xl border border-primary/20 bg-primary/5 text-center space-y-2 animate-pulse washi-texture">
-              <div className="flex items-center justify-center gap-2 font-bold text-sm text-primary">
-                <Sparkles className="h-4 w-4 animate-spin" />
-                <span>✨ Đang phân tích phản xạ & chuẩn mực Kính ngữ...</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Kiểm tra hướng Tôn kính / Khiêm nhường, Uchi-Soto & Nhị trùng kính ngữ
-              </p>
-            </div>
+            <ZenLoadingState
+              variant="ai"
+              title="AI Đang Phân Tích Phản Xạ & Chuẩn Mực Kính Ngữ..."
+              ja="敬語分析中..."
+              description="Kiểm tra hướng Tôn kính / Khiêm nhường, Uchi-Soto & Nhị trùng kính ngữ..."
+            />
           )}
 
           {session.phase === "result" && session.result && (

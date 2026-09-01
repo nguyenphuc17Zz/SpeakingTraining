@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { usePersonas } from "@/hooks/use-personas";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -341,6 +342,17 @@ export default function SpeakingPage() {
                 <p className="text-sm text-muted-foreground max-w-xl">
                   Chọn, tạo mới hoặc xóa đối tác hội thoại AI để luyện nói tự nhiên theo thời gian thực (Faster-Whisper, AI Router, VOICEVOX).
                 </p>
+                <div className="pt-1">
+                  <Link
+                    href="/ramp"
+                    prefetch={true}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary text-xs font-bold transition-all shadow-xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span>Mode 6: Phục hồi phát ngôn (Speaking Ramp) — Rèn từ 1 câu đến 60s độc lập</span>
+                    <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md font-extrabold">NEW</span>
+                  </Link>
+                </div>
               </div>
 
               {/* Partner Management Action Buttons */}

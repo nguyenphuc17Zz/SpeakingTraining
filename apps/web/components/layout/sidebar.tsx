@@ -38,6 +38,7 @@ interface NavItem {
 const MAIN_ITEMS: NavItem[] = [
   { label: "Trang chủ", jaLabel: "ホーム", href: "/dashboard", icon: LayoutDashboard },
   { label: "Luyện nói", jaLabel: "会話", href: "/speaking", icon: Mic },
+  { label: "Phục hồi nói", jaLabel: "リハビリ", href: "/ramp", icon: Sparkles },
   { label: "Phản xạ", jaLabel: "瞬発", href: "/reflex", icon: Zap },
   { label: "Kính ngữ", jaLabel: "敬語", href: "/keigo", icon: Crown },
   { label: "Cao độ", jaLabel: "高低", href: "/pitch", icon: Music },
@@ -61,6 +62,16 @@ const DOJO_SUB: NavItem[] = [
   { label: "Phần thưởng", jaLabel: "報酬", href: "/unlocks", icon: Gift },
 ];
 
+function isNavActive(itemHref: string, pathname: string): boolean {
+  if (itemHref === "/speaking") {
+    return pathname === "/speaking" || (pathname.startsWith("/speaking/") && !["/speaking/speech", "/speaking/reflex", "/speaking/pronunciation"].some((p) => pathname.startsWith(p)));
+  }
+  if (itemHref === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+  return pathname === itemHref || pathname.startsWith(itemHref + "/");
+}
+
 function NavLink({
   item,
   isActive,
@@ -75,6 +86,7 @@ function NavLink({
     return (
       <Link
         href={item.href}
+        prefetch={true}
         title={`${item.label} — ${item.jaLabel}`}
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-xl border text-sm transition-all",
@@ -90,6 +102,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
+      prefetch={true}
       className={cn(
         "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group",
         isActive
@@ -144,7 +157,7 @@ export function Sidebar({
     return (
       <aside className="hidden md:flex w-[72px] shrink-0 flex-col items-center gap-3 border-r border-border bg-card/80 backdrop-blur-sm px-2 py-4 overflow-y-auto">
         {/* Brand */}
-        <Link href="/dashboard" className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-emerald-600 to-teal-700 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
+        <Link href="/dashboard" prefetch={true} className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-emerald-600 to-teal-700 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
           話
         </Link>
         <button onClick={onToggle} className="h-8 w-8 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground" aria-label="Mở rộng menu">
@@ -153,7 +166,7 @@ export function Sidebar({
         <div className="h-px w-8 bg-border my-1" />
         <div className="flex flex-col gap-1.5">
           {MAIN_ITEMS.map((it) => (
-            <NavLink key={it.href} item={it} collapsed isActive={pathname === it.href || pathname.startsWith(it.href + "/")} />
+            <NavLink key={it.href} item={it} collapsed isActive={isNavActive(it.href, pathname)} />
           ))}
         </div>
         <div className="h-px w-8 bg-border my-1" />
@@ -166,6 +179,7 @@ export function Sidebar({
         {/* Dojo hub single icon */}
         <Link
           href="/game"
+          prefetch={true}
           className={cn(
             "h-10 w-10 rounded-xl flex items-center justify-center border",
             isDojoActive ? "bg-amber-500 text-white border-amber-600 shadow-sm" : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -174,7 +188,7 @@ export function Sidebar({
         >
           <Swords className="h-5 w-5" />
         </Link>
-        <Link href="/settings" className={cn("h-10 w-10 rounded-xl flex items-center justify-center border mt-auto", pathname.startsWith("/settings") ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground")}>
+        <Link href="/settings" prefetch={true} className={cn("h-10 w-10 rounded-xl flex items-center justify-center border mt-auto", pathname.startsWith("/settings") ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground")}>
           <Settings className="h-4 w-4" />
         </Link>
       </aside>
@@ -216,7 +230,7 @@ export function Sidebar({
           </div>
           <nav className="flex flex-col gap-1">
             {MAIN_ITEMS.map((it) => (
-              <NavLink key={it.href} item={it} collapsed={false} isActive={pathname === it.href || (it.href !== "/dashboard" && pathname.startsWith(it.href))} />
+              <NavLink key={it.href} item={it} collapsed={false} isActive={isNavActive(it.href, pathname)} />
             ))}
           </nav>
         </div>
@@ -261,6 +275,7 @@ export function Sidebar({
                   <Link
                     key={it.href}
                     href={it.href}
+                    prefetch={true}
                     className={cn(
                       "flex items-center justify-between px-2.5 py-2 rounded-lg text-sm transition-colors",
                       active ? "bg-amber-500/15 text-amber-600 border border-amber-500/25 font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
@@ -281,6 +296,7 @@ export function Sidebar({
         <div className="pt-1">
           <Link
             href="/settings"
+            prefetch={true}
             className={cn(
               "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors",
               pathname.startsWith("/settings") ? "bg-muted text-foreground border-border" : "text-muted-foreground hover:text-foreground hover:bg-muted border-transparent"
@@ -293,7 +309,7 @@ export function Sidebar({
       </div>
 
       {/* Footer — profile */}
-      <Link href="/game" className="m-3 mt-0 block group">
+      <Link href="/game" prefetch={true} className="m-3 mt-0 block group">
         <div className="rounded-2xl border border-border bg-card/90 p-3 flex flex-col gap-2.5 group-hover:border-primary/30 group-hover:shadow-sm transition-all washi-texture">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2.5">

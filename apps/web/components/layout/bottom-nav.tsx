@@ -26,11 +26,14 @@ export function BottomNav() {
         {TABS.map((t) => {
           const Icon = t.icon;
           const active =
-            pathname === t.href || (t.href !== "/dashboard" && pathname.startsWith(t.href)) || (t.href === "/game" && ["/quests", "/skills", "/bosses", "/achievements", "/unlocks"].some((p) => pathname.startsWith(p)));
+            t.href === "/speaking"
+              ? pathname === "/speaking" || (pathname.startsWith("/speaking/") && !["/speaking/speech", "/speaking/reflex", "/speaking/pronunciation"].some((p) => pathname.startsWith(p)))
+              : pathname === t.href || (t.href !== "/dashboard" && pathname.startsWith(t.href)) || (t.href === "/game" && ["/quests", "/skills", "/bosses", "/achievements", "/unlocks"].some((p) => pathname.startsWith(p)));
           return (
             <Link
               key={t.href}
               href={t.href}
+              prefetch={true}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[64px] transition-colors",
                 active ? "text-primary bg-primary/10" : "text-muted-foreground"
@@ -43,6 +46,7 @@ export function BottomNav() {
         })}
         <Link
           href="/settings"
+          prefetch={true}
           className={cn(
             "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[64px]",
             pathname.startsWith("/settings") ? "text-primary bg-primary/10" : "text-muted-foreground"

@@ -56,6 +56,13 @@ class AITask(str, Enum):
     VOCABULARY_LOOKUP = "vocabulary_lookup"
     PLAYGROUND = "playground"
     GENERAL = "general"
+    # Mode 6 — Speaking Ramp
+    RAMP_TOPIC_GENERATION = "ramp_topic_generation"
+    RAMP_PROMPT_GENERATION = "ramp_prompt_generation"
+    RAMP_FOLLOWUP_GENERATION = "ramp_followup_generation"
+    RAMP_HINT_GENERATION = "ramp_hint_generation"
+    RAMP_SEMANTIC_EVALUATION = "ramp_semantic_evaluation"
+    RAMP_FEEDBACK = "ramp_feedback"
 
 
 class AIMessageRole(str, Enum):

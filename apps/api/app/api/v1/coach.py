@@ -335,12 +335,19 @@ async def get_quick_actions(
             {"label": "Why Was I Not Natural?", "prompt": "Why did my last responses sound unnatural?", "intent": "analyze"},
             {"label": "Teach Me Natural Phrases", "prompt": "Teach me more natural alternatives for my last conversation", "intent": "teach"},
         ]
+    elif mode in ("ramp", "speaking_ramp") or "/ramp" in current_route:
+        actions = [
+            {"label": "💡 Gợi ý câu tự nhiên", "prompt": "Hãy gợi ý cho tôi 1 câu trả lời tiếng Nhật tự nhiên và đúng nấc thang cho bài tập này.", "intent": "teach"},
+            {"label": "⚡ Phản xạ nhanh < 2s", "prompt": "Làm thế nào để tôi bật câu phản xạ dưới 2 giây mà không bị đắn đo dịch nhẩm?", "intent": "analyze"},
+            {"label": "🔗 Cách nối câu dài hơn", "prompt": "Hướng dẫn tôi cách dùng liên từ như から, ので, 例えば để kéo dài câu nói.", "intent": "teach"},
+            {"label": "🔍 Mẫu câu tham khảo", "prompt": "Cho tôi xem 2-3 mẫu câu đa dạng tương đương với bài này.", "intent": "practice"},
+        ]
     else:
         actions = [
-            {"label": "What Should I Practice Today?", "prompt": "What should I practice today?", "intent": "recommend"},
-            {"label": "Explain My Weaknesses", "prompt": "Explain my weaknesses this week", "intent": "analyze"},
-            {"label": "Make Study Plan", "prompt": "Make me a 15-minute Japanese practice plan", "intent": "plan"},
-            {"label": "Review Last Sessions", "prompt": "Review my last five sessions", "intent": "review"},
+            {"label": "💡 Hôm nay nên luyện gì?", "prompt": "Dựa vào kết quả gần đây, tôi nên luyện phòng Studio nào hôm nay?", "intent": "recommend"},
+            {"label": "📊 Phân tích điểm yếu", "prompt": "Phân tích những điểm nghẽn phản xạ tiếng Nhật của tôi tuần này.", "intent": "analyze"},
+            {"label": "🎯 Lập kế hoạch 15 phút", "prompt": "Lập cho tôi kế hoạch luyện nói 15 phút hiệu quả hôm nay.", "intent": "plan"},
+            {"label": "🔄 Đánh giá các phiên gần đây", "prompt": "Nhận xét tổng quan 5 phiên luyện gần nhất của tôi.", "intent": "review"},
         ]
     # Attach available_actions gating
     return {"mode": mode, "route": current_route, "actions": actions, "available_actions": ctx.available_actions}

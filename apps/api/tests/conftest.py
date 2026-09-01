@@ -64,6 +64,7 @@ from app.domains.personas.models import Persona, UserPersonaPreference  # noqa: 
 from app.domains.personas.service import PersonaService
 from app.domains.pronunciation.models import PronunciationAttempt, PronunciationPracticeTarget  # noqa: F401
 from app.domains.providers.models import APICredential  # noqa: F401
+from app.domains.ramp.models import RampSessionModel  # noqa: F401
 from app.domains.settings.models import UserSettings  # noqa: F401
 from app.domains.settings.service import SettingsService
 from app.domains.shadowing.models import (  # noqa: F401

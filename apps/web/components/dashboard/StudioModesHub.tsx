@@ -65,6 +65,18 @@ const STUDIO_MODES = [
     submodes: ["Công sở & Phỏng vấn", "Đời sống Nhật", "Tùy biến AI"],
     accentBg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
   },
+  {
+    id: "ramp",
+    title: "6. アウトプット・リハビリ",
+    jaTitle: "日本語発話訓練",
+    tag: "Speaking Ramp — Output Rehab",
+    desc: "Từ phản xạ từ đơn → câu hoàn chỉnh → 60 giây độc lập. Rèn phát ngôn tự nhiên theo 11 cấp độ có giáo án.",
+    icon: <Sparkles className="h-5 w-5 text-teal-600 dark:text-teal-400" />,
+    url: "/ramp",
+    color: "teal",
+    submodes: ["Echo & Thay thế", "Mở rộng câu", "Phát ngôn tự do"],
+    accentBg: "from-teal-500/10 via-teal-500/5 to-transparent",
+  },
 ];
 
 export function StudioModesHub() {
@@ -78,7 +90,7 @@ export function StudioModesHub() {
           </span>
           <div>
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <span>4 Phòng Luyện Studio Thực Chiến</span>
+              <span>5 Phòng Luyện Studio Thực Chiến</span>
               <span className="text-xs font-semibold text-muted-foreground font-jp">実践スタジオ</span>
             </h2>
           </div>
@@ -136,7 +148,7 @@ export function StudioModesHub() {
 
             {/* Launch Button */}
             <div className="pt-4 mt-2 border-t border-border/60 relative z-10">
-              <Link href={mode.url} className="w-full block">
+              <Link href={mode.url} prefetch={true} className="w-full block">
                 <Button
                   variant="outline"
                   size="sm"

@@ -67,6 +67,22 @@ class MetricKey(str, Enum):
     SITUATIONAL_RECOVERY_RATE = "situational_recovery_rate"
     SITUATIONAL_REACTION_LATENCY = "situational_reaction_latency"
 
+    # Speaking Ramp (Mode 6) Metrics
+    RAMP_INDEPENDENT_SUCCESS_RATE = "ramp.independent_success_rate"
+    RAMP_FULL_SENTENCE_RATE = "ramp.full_sentence_rate"
+    RAMP_AVG_RESPONSE_DURATION = "ramp.average_response_duration"
+    RAMP_AVG_RESPONSE_LATENCY = "ramp.average_response_latency"
+    RAMP_ELABORATION_SUCCESS_RATE = "ramp.elaboration_success_rate"
+    RAMP_REASON_SUCCESS_RATE = "ramp.reason_success_rate"
+    RAMP_EXAMPLE_SUCCESS_RATE = "ramp.example_success_rate"
+    RAMP_FOLLOWUP_SUCCESS_RATE = "ramp.followup_success_rate"
+    RAMP_FILLER_RATE = "ramp.filler_rate"
+    RAMP_LONG_PAUSE_RATE = "ramp.long_pause_rate"
+    RAMP_SELF_REPAIR_RATE = "ramp.self_repair_rate"
+    RAMP_MAX_INDEPENDENT_DURATION = "ramp.max_independent_duration"
+    RAMP_SUPPORT_LEVEL = "ramp.support_level"
+    RAMP_AUTOMATICITY = "ramp.automaticity"
+
 
 class TrendLabel(str, Enum):
     STRONGLY_IMPROVING = "strongly_improving"

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
+import { RouteProgressBar } from "@/components/layout/RouteProgressBar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GlobalToast } from "@/components/ui/global-toast";
 import { VocabularyLookupProvider } from "@/features/vocabulary-lookup";
@@ -29,6 +31,9 @@ export default function RootLayout({
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
         <ThemeProvider>
+          <Suspense fallback={null}>
+            <RouteProgressBar />
+          </Suspense>
           <VocabularyLookupProvider>
             <AppShell>{children}</AppShell>
             <GlobalToast />

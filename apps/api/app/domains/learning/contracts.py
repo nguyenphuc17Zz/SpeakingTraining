@@ -106,6 +106,18 @@ class ExerciseType(str, Enum):
     SITUATIONAL_ROLEPLAY = "situational_roleplay"
     SITUATIONAL_SCENARIO = "situational_scenario"
     SPEECH_MONOLOGUE = "speech_monologue"
+    # Mode 6 — Speaking Ramp (Output Rehabilitation)
+    SPEAK_ECHO = "speak_echo"
+    SPEAK_SUBSTITUTE = "speak_substitute"
+    SPEAK_COMPLETE = "speak_complete"
+    SPEAK_ONE_SENTENCE = "speak_one_sentence"
+    SPEAK_EXPAND = "speak_expand"
+    SPEAK_REASON = "speak_reason"
+    SPEAK_EXAMPLE = "speak_example"
+    SPEAK_KEYWORD = "speak_keyword"
+    SPEAK_GUIDED = "speak_guided"
+    SPEAK_SPONTANEOUS = "speak_spontaneous"
+    SPEAK_FOLLOWUP = "speak_followup"
 
 
 class ExerciseStatus(str, Enum):

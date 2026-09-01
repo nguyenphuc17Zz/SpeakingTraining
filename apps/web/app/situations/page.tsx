@@ -37,6 +37,7 @@ import { useSystemKeybindings, formatKeyDisplay } from "@/hooks/use-system-keybi
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
+import { ZenLoadingState } from "@/components/ui/zen-loading-state";
 
 export default function SituationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("infinite");
@@ -347,11 +348,12 @@ export default function SituationsPage() {
 
           {/* Loading State */}
           {session.phase === "loading" && (
-            <div className="p-12 rounded-3xl border border-border bg-card washi-texture flex flex-col items-center justify-center gap-2 text-center">
-              <Loader2 className="h-7 w-7 animate-spin text-primary" />
-              <div className="text-sm font-bold text-foreground">AI Đang Tạo Tình Huống Sống Động...</div>
-              <p className="text-xs text-muted-foreground">Đang thiết lập địa điểm, nhân vật NPC và mục tiêu nhiệm vụ</p>
-            </div>
+            <ZenLoadingState
+              variant="ai"
+              title="AI Đang Khởi Tạo Tình Huống Sống Động..."
+              ja="ロールプレイ生成中..."
+              description="Đang thiết lập bối cảnh thực tế, nhân vật AI bản xứ và mục tiêu giao tiếp..."
+            />
           )}
 
           {/* Active Workout Cockpit (2-Column No-Scroll Layout) */}
