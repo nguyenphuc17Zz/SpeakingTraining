@@ -24,9 +24,11 @@ class MemoryScorer:
         return min(1.0, max(0.1, round(raw, 3)))
 
     @classmethod
-    def calculate_recency_factor(cls, last_seen: datetime) -> float:
-        """
-        Computes recency weight decaying smoothly with age.
+    def calculate_recency_factor(cls, last_seen: datetime, half_life_days: float = 24.0) -> float:
+        """Computes continuous recency weight using Half-Life exponential decay:
+
+        R(t) = floor + (1.0 - floor) * 2^(-t / h)
+        Smooth, continuous, avoiding discontinuous stepwise cliff jumps.
         """
         now = datetime.now(timezone.utc)
         if last_seen.tzinfo is None:
@@ -34,15 +36,11 @@ class MemoryScorer:
 
         days_ago = max(0.0, (now - last_seen).total_seconds() / 86400.0)
 
-        if days_ago <= 3:
-            return 1.0
-        elif days_ago <= 14:
-            return 0.90
-        elif days_ago <= 30:
-            return 0.75
-        elif days_ago <= 90:
-            return 0.55
-        return 0.35
+        # Baseline floor ensures historical memories retain non-zero recency signal
+        floor = 0.30
+        decay = math.pow(2.0, -days_ago / max(1.0, half_life_days))
+        recency = floor + (1.0 - floor) * decay
+        return round(min(1.0, max(floor, recency)), 3)
 
     @classmethod
     def calculate_weakness_priority(

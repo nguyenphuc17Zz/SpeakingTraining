@@ -18,6 +18,8 @@ class BottleneckAnalysis(BaseModel):
     description: str
     evidence_keys: list[str] = Field(default_factory=list)
     suggested_focus: str | None = None
+    ranking_score: float | None = None
+    secondary_bottlenecks: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GoalProgressOverview(BaseModel):

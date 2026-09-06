@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { MoraUnit, PitchAssessment, PitchCurve } from "../types/pronunciation";
 import { Activity, TrendingUp, Music2 } from "lucide-react";
+import { catmullRomToSvgPath, Point2D } from "@/lib/spline";
 
 interface Props {
   pitchAssessment?: PitchAssessment | null;
@@ -36,15 +37,15 @@ export const PitchContourChart: React.FC<Props> = ({ pitchAssessment, moras }) =
     const plotW = svgWidth - padX * 2;
     const plotH = svgHeight - padY * 2;
 
-    // Generate path segments (split across unvoiced gaps)
+    // Generate path segments using Catmull-Rom cubic bezier spline smoothing (split across unvoiced gaps)
     const paths: string[] = [];
-    let currentPath = "";
+    let currentSegment: Point2D[] = [];
 
-    points.forEach((p, idx) => {
+    points.forEach((p) => {
       if (!p.is_voiced) {
-        if (currentPath) {
-          paths.push(currentPath);
-          currentPath = "";
+        if (currentSegment.length > 0) {
+          paths.push(catmullRomToSvgPath(currentSegment));
+          currentSegment = [];
         }
         return;
       }
@@ -54,15 +55,11 @@ export const PitchContourChart: React.FC<Props> = ({ pitchAssessment, moras }) =
       // Invert Y: higher semitone -> lower Y coordinate
       const y = padY + (1.0 - (clampedSemi - minSemi) / semiSpan) * plotH;
 
-      if (!currentPath) {
-        currentPath = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-      } else {
-        currentPath += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-      }
+      currentSegment.push({ x, y });
     });
 
-    if (currentPath) {
-      paths.push(currentPath);
+    if (currentSegment.length > 0) {
+      paths.push(catmullRomToSvgPath(currentSegment));
     }
 
     // Zero-semitone baseline Y

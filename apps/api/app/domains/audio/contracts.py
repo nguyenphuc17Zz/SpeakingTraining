@@ -145,6 +145,10 @@ class AudioQualityReport(BaseModel):
     quality: AudioQualityStatus
     recommendation: str
     warnings: list[str] = Field(default_factory=list)
+    trimmed_duration_ms: int | None = None
+    head_silence_ms: int | None = None
+    tail_silence_ms: int | None = None
+    voice_activity_ratio: float | None = None
 
 
 class ProviderHealth(BaseModel):

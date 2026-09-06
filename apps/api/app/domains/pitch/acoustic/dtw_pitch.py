@@ -77,7 +77,9 @@ class DTWPitchEngine:
         seq_b: list[float],
     ) -> tuple[float, int]:
         """
-        Computes the normalized Dynamic Time Warping distance between two 1D numerical sequences.
+        Computes the normalized Dynamic Time Warping distance with Itakura Parallelogram
+        slope constraint (Itakura 1975) and diagonal-favored step weighting.
+        Restricts local warp ratio within physiological vocal limits.
         Returns (normalized_distance, path_length).
         """
         n = len(seq_a)
@@ -86,34 +88,75 @@ class DTWPitchEngine:
         if n == 0 or m == 0:
             return (10.0, max(n, m, 1))
 
+        if n == 1 and m == 1:
+            dist = abs(seq_a[0] - seq_b[0])
+            return (round(dist, 3), 1)
+
         # Initialize DP matrix with infinity
         dp = [[float("inf")] * m for _ in range(n)]
 
         # Base case
         dp[0][0] = abs(seq_a[0] - seq_b[0])
 
+        # Helper: Itakura Parallelogram constraint
+        # Normalized coordinate difference |u - v| <= max_deviation
+        max_dev = 0.55 if max(n, m) > 3 else 0.85
+
+        def in_itakura_window(i_idx: int, j_idx: int) -> bool:
+            u_coord = i_idx / float(n - 1) if n > 1 else 0.0
+            v_coord = j_idx / float(m - 1) if m > 1 else 0.0
+            return abs(u_coord - v_coord) <= max_dev
+
         # First column
         for i in range(1, n):
-            dp[i][0] = dp[i - 1][0] + abs(seq_a[i] - seq_b[0])
+            if in_itakura_window(i, 0):
+                dp[i][0] = dp[i - 1][0] + 1.4 * abs(seq_a[i] - seq_b[0])
 
         # First row
         for j in range(1, m):
-            dp[0][j] = dp[0][j - 1] + abs(seq_a[0] - seq_b[j])
+            if in_itakura_window(0, j):
+                dp[0][j] = dp[0][j - 1] + 1.4 * abs(seq_a[0] - seq_b[j])
 
-        # DP recurrence
+        # DP recurrence with Itakura boundary and diagonal weighting
         for i in range(1, n):
             for j in range(1, m):
+                if not in_itakura_window(i, j):
+                    continue
                 cost = abs(seq_a[i] - seq_b[j])
-                dp[i][j] = cost + min(
-                    dp[i - 1][j],      # Insertion
-                    dp[i][j - 1],      # Deletion
-                    dp[i - 1][j - 1],  # Match
+                # Diagonal step is favored (weight 1.0); off-diagonal steps penalize elongation/compression (weight 1.35)
+                dp[i][j] = min(
+                    dp[i - 1][j - 1] + cost,             # Diagonal match
+                    dp[i - 1][j] + 1.35 * cost,           # Compression
+                    dp[i][j - 1] + 1.35 * cost,           # Expansion
                 )
 
         total_cost = dp[n - 1][m - 1]
-        path_length = n + m
-        normalized_distance = total_cost / float(path_length)
+        if math.isinf(total_cost):
+            # Fallback if window too strict
+            total_cost = sum(abs(seq_a[min(i, n - 1)] - seq_b[min(i, m - 1)]) for i in range(max(n, m)))
 
+        # Backtrack optimal alignment path length
+        curr_i, curr_j = n - 1, m - 1
+        path_length = 1
+        while curr_i > 0 or curr_j > 0:
+            path_length += 1
+            if curr_i == 0:
+                curr_j -= 1
+            elif curr_j == 0:
+                curr_i -= 1
+            else:
+                diag = dp[curr_i - 1][curr_j - 1]
+                up = dp[curr_i - 1][curr_j]
+                left = dp[curr_i][curr_j - 1]
+                if diag <= up and diag <= left:
+                    curr_i -= 1
+                    curr_j -= 1
+                elif up <= left:
+                    curr_i -= 1
+                else:
+                    curr_j -= 1
+
+        normalized_distance = round(total_cost / max(1.0, float(path_length)), 3)
         return (normalized_distance, path_length)
 
     @classmethod

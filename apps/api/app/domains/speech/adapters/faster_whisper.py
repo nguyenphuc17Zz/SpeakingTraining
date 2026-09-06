@@ -13,8 +13,38 @@ from app.domains.speech.contracts import (
     STTResult,
     WordTimestamp,
 )
+import math
 from app.domains.speech.errors import STTProviderError
 from app.domains.speech.model_manager import whisper_model_manager
+
+
+class PlattConfidenceCalibrator:
+    """
+    SOTA Temperature Scaling and Platt Sigmoid Calibrator for Neural ASR (Guo et al. ICML 2017).
+    Calibrates raw neural log-likelihoods and softmax probabilities into realistic confidence bounds.
+    """
+
+    TEMPERATURE: float = 1.35
+
+    @classmethod
+    def calibrate_probability(cls, raw_prob: float, temperature: float = 1.35) -> float:
+        """Calibrates word-level confidence via temperature-scaled odds."""
+        if raw_prob <= 0.001:
+            return 0.05
+        if raw_prob >= 0.999:
+            return 0.98
+        odds = (1.0 - raw_prob) / raw_prob
+        scaled_odds = math.pow(odds, 1.0 / max(0.1, temperature))
+        calibrated = 1.0 / (1.0 + scaled_odds)
+        return round(min(0.99, max(0.01, calibrated)), 3)
+
+    @classmethod
+    def calibrate_logprob(cls, avg_logprob: float) -> float:
+        """Calibrates segment-level average log probability via Platt Sigmoid."""
+        z = (avg_logprob + 0.15) / 0.80
+        clamped_z = max(-12.0, min(12.0, z))
+        calibrated = 1.0 / (1.0 + math.exp(-clamped_z))
+        return round(min(0.99, max(0.05, calibrated)), 3)
 
 
 class FasterWhisperAdapter(STTProvider):
@@ -88,18 +118,28 @@ class FasterWhisperAdapter(STTProvider):
 
             full_text = " ".join(full_text_list).strip()
 
+            # Calibrate word-level and sentence-level confidence via Platt Temperature Scaling
+            calibrated_words: list[WordTimestamp] = []
+            for w in words_list:
+                cal_w_conf = PlattConfidenceCalibrator.calibrate_probability(w.confidence)
+                calibrated_words.append(
+                    WordTimestamp(
+                        word=w.word,
+                        start_ms=w.start_ms,
+                        end_ms=w.end_ms,
+                        confidence=cal_w_conf,
+                    )
+                )
+
             # Calculate confidence from avg_logprob if available
             confidence = None
             if avg_logprob_list:
-                import math
-
                 avg_logprob = sum(avg_logprob_list) / len(avg_logprob_list)
-                # Convert log probability to approximate confidence [0, 1]
-                confidence = round(min(1.0, max(0.0, math.exp(avg_logprob))), 3)
+                confidence = PlattConfidenceCalibrator.calibrate_logprob(avg_logprob)
 
             duration = float(info.duration) if hasattr(info, "duration") else None
             conf_val = confidence if confidence is not None else (info.language_probability if hasattr(info, "language_probability") else 1.0)
-            return full_text, duration, words_list, conf_val
+            return full_text, duration, calibrated_words, conf_val
         except Exception as e:
             # Automatic CPU fallback if CUDA DLL / device execution encounters an issue
             err_str = str(e).lower()

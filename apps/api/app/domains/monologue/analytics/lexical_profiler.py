@@ -97,6 +97,22 @@ class LexicalProfiler:
             if v >= bigram_thresh and k not in [c["lemma"] for c in clusters]:
                 clusters.append({"phrase": k, "count": v})
 
+        # MTLD (Measure of Textual Lexical Diversity - McCarthy & Jarvis 2010)
+        mtld = self.compute_mtld(lemmas)
+
+        # HD-D (Hypergeometric Distribution Diversity - McCarthy & Jarvis 2007)
+        hdd = self.compute_hdd(lemmas)
+
+        # Diversity classification based on SOTA benchmarks
+        if mtld >= 70.0:
+            diversity_level = "rich"
+        elif mtld >= 45.0:
+            diversity_level = "moderate"
+        elif mtld >= 25.0:
+            diversity_level = "basic"
+        else:
+            diversity_level = "repetitive"
+
         # Frequency profile via provider (graceful fallback)
         profile = {"basic": 0, "intermediate": 0, "advanced": 0, "specialized": 0}
         jlpt = {}
@@ -135,6 +151,9 @@ class LexicalProfiler:
             "unique_lemmas": uniq,
             "type_token_ratio": ttr,
             "mattr": mattr,
+            "mtld": mtld,
+            "hdd": hdd,
+            "lexical_diversity_rating": diversity_level,
             "content_word_variety": cw_variety,
             "repetition_clusters": clusters[:8],
             "frequency_profile": profile,
@@ -142,3 +161,74 @@ class LexicalProfiler:
             "total_tokens": total,
             "provider_available": lexical_available,
         }
+
+    @staticmethod
+    def _mtld_factor_count(tokens: list[str], threshold: float = 0.72) -> float:
+        """Computes sequential factor count for a single direction."""
+        if not tokens:
+            return 0.0
+        factors = 0.0
+        types: set[str] = set()
+        token_count = 0
+
+        for tok in tokens:
+            types.add(tok)
+            token_count += 1
+            current_ttr = len(types) / token_count
+            if current_ttr <= threshold:
+                factors += 1.0
+                types.clear()
+                token_count = 0
+
+        # Partial factor for trailing segment
+        if token_count > 0:
+            final_ttr = len(types) / token_count
+            if final_ttr < 1.0 and (1.0 - threshold) > 1e-6:
+                factors += (1.0 - final_ttr) / (1.0 - threshold)
+            else:
+                factors += 0.1
+
+        return max(factors, 0.1)
+
+    @classmethod
+    def compute_mtld(cls, tokens: list[str], threshold: float = 0.72) -> float:
+        """
+        Calculates bi-directional Measure of Textual Lexical Diversity (MTLD).
+        McCarthy & Jarvis (2010). Length-independent lexical diversity metric.
+        """
+        n = len(tokens)
+        if n < 2:
+            return 0.0
+        forward_factors = cls._mtld_factor_count(tokens, threshold)
+        reverse_factors = cls._mtld_factor_count(list(reversed(tokens)), threshold)
+        avg_factors = (forward_factors + reverse_factors) / 2.0
+        return round(float(n) / max(avg_factors, 0.01), 2)
+
+    @staticmethod
+    def compute_hdd(tokens: list[str], sample_size: int = 35) -> float:
+        """
+        Calculates Hypergeometric Distribution Diversity (HD-D) index (McCarthy & Jarvis 2007).
+        Evaluates the probability of observing each type in a random hypergeometric draw of size s.
+        """
+        n = len(tokens)
+        if n < 4:
+            return 0.0
+
+        s = min(sample_size, n)
+        counts = Counter(tokens)
+        hdd_sum = 0.0
+
+        for count in counts.values():
+            # If token frequency is large enough that (n - count) < s, prob of drawing at least one is 1.0
+            if n - count < s:
+                prob = 1.0
+            else:
+                # Compute prod_{i=0}^{s-1} (n - count - i) / (n - i)
+                prob_zero = 1.0
+                for i in range(s):
+                    prob_zero *= (n - count - i) / (n - i)
+                prob = 1.0 - prob_zero
+            hdd_sum += prob
+
+        # Normalized HD-D: expected types drawn divided by sample size s
+        return round(hdd_sum / max(1.0, float(s)), 3)

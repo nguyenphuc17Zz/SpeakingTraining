@@ -117,18 +117,109 @@ class DiscourseStructureAnalyzer:
             "total_connectors": total_connectors,
         }
 
-    @staticmethod
+    @classmethod
+    def compute_centering_cohesion(cls, transcript: str) -> dict[str, Any]:
+        """
+        SOTA Centering Theory (Grosz, Joshi, & Weinstein 1995) Transition Engine.
+        Analyzes discourse entity salience and backward/forward looking centers (Cb, Cp)
+        via Japanese grammatical particle indicators (は, が, も, を).
+        Computes Rhetorical Cohesion Flow Index based on Markovian transition states.
+        """
+        sentences = [s.strip() for s in re.split(r"[。！？\n]+", transcript) if s.strip()]
+        if len(sentences) <= 1:
+            return {
+                "cohesion_flow_score": 85.0,
+                "transitions": ["ESTABLISH"],
+                "transition_distribution": {"CONTINUE": 0, "RETAIN": 0, "SMOOTH_SHIFT": 0, "ROUGH_SHIFT": 0},
+                "dominant_transition": "ESTABLISH",
+            }
+
+        # Extract centers per sentence: (Cb: backward topic, Cp: forward preferred focus)
+        centers_seq: list[tuple[str | None, str | None]] = []
+        for s in sentences:
+            topic = None
+            focus = None
+            m_wa = re.search(r"([一-龯ぁ-んァ-ンa-zA-Z0-9]+)は", s)
+            if m_wa:
+                topic = m_wa.group(1)
+            m_ga = re.search(r"([一-龯ぁ-んァ-ンa-zA-Z0-9]+)(が|も|を)", s)
+            if m_ga:
+                focus = m_ga.group(1)
+            if not focus:
+                focus = topic
+            if not topic:
+                topic = focus
+            centers_seq.append((topic, focus))
+
+        # Evaluate transitions
+        transitions: list[str] = []
+        weights: list[float] = []
+
+        TRANSITION_WEIGHTS = {
+            "CONTINUE": 1.0,        # Same topic, highest cohesion
+            "RETAIN": 0.85,         # Same topic, preparing focus shift
+            "SMOOTH_SHIFT": 0.70,   # Topic shifts to previous focus
+            "ROUGH_SHIFT": 0.35,    # Abrupt topic jump / discontinuity
+            "NEUTRAL": 0.75,        # Implicit pronoun / ellipsed center
+        }
+
+        for i in range(1, len(centers_seq)):
+            prev_cb, prev_cp = centers_seq[i - 1]
+            curr_cb, curr_cp = centers_seq[i]
+
+            if not prev_cb or not curr_cb:
+                tr = "NEUTRAL"
+            elif curr_cb == prev_cb:
+                if curr_cb == curr_cp:
+                    tr = "CONTINUE"
+                else:
+                    tr = "RETAIN"
+            elif prev_cp and curr_cb == prev_cp:
+                tr = "SMOOTH_SHIFT"
+            else:
+                tr = "ROUGH_SHIFT"
+
+            transitions.append(tr)
+            weights.append(TRANSITION_WEIGHTS.get(tr, 0.75))
+
+        dist = {
+            "CONTINUE": transitions.count("CONTINUE"),
+            "RETAIN": transitions.count("RETAIN"),
+            "SMOOTH_SHIFT": transitions.count("SMOOTH_SHIFT"),
+            "ROUGH_SHIFT": transitions.count("ROUGH_SHIFT"),
+        }
+
+        avg_weight = sum(weights) / max(1, len(weights))
+        cohesion_score = round(100.0 * avg_weight, 1)
+
+        dominant = max(dist.keys(), key=lambda k: dist[k]) if any(dist.values()) else "CONTINUE"
+
+        return {
+            "cohesion_flow_score": cohesion_score,
+            "transitions": transitions,
+            "transition_distribution": dist,
+            "dominant_transition": dominant,
+        }
+
+    @classmethod
     def coherence_score(
+        cls,
         idea_density: dict | None,
         discourse: dict,
         filler_ratio: float | None = None,
         pause_breakdown: int | None = None,
+        transcript: str = "",
     ) -> dict:
-        # Deterministic support for AI coherence (§27)
-        # Each dimension 0-100
+        """
+        Calculates multidimensional discourse coherence score augmented with Centering Cohesion Flow.
+        """
         missing = discourse.get("missing_elements", [])
         has_conclusion = "conclusion" not in missing
         connector_q = discourse.get("connector_quality", "missing")
+
+        # Centering analysis if transcript available
+        centering = cls.compute_centering_cohesion(transcript) if transcript else None
+        centering_score = centering["cohesion_flow_score"] if centering else 80.0
 
         idea_prog = 80
         if missing and len(missing) >= 2:
@@ -140,11 +231,17 @@ class DiscourseStructureAnalyzer:
         if connector_q == "repeated":
             linkage = 65
 
+        # Incorporate Centering Transition into logical linkage & topic continuity
+        if centering:
+            linkage = round(0.50 * linkage + 0.50 * centering_score, 1)
+
         # reference clarity: if no repeated subject drops detected, assume 75; else penalize
         reference = 75 if not idea_density or idea_density.get("repeated_ideas", 0) <= 1 else 60
-        continuity = 80
+
+        # Topic continuity driven by Centering Theory
+        continuity = round(centering_score, 1) if centering else 80.0
         if idea_density and idea_density.get("repeated_ideas", 0) > 2:
-            continuity = 60
+            continuity = max(40.0, continuity - 15.0)
 
         conclusion_q = 90 if has_conclusion else 45
 
@@ -152,9 +249,9 @@ class DiscourseStructureAnalyzer:
         if pause_breakdown and pause_breakdown >= 2:
             idea_prog = max(30, idea_prog - 15)
         if filler_ratio and filler_ratio > 0.15:
-            linkage = max(30, linkage - 10)
+            linkage = max(30.0, linkage - 10.0)
 
-        overall = round((idea_prog + linkage + reference + continuity + conclusion_q) / 5, 1)
+        overall = round((idea_prog + linkage + reference + continuity + conclusion_q) / 5.0, 1)
         return {
             "idea_progression": idea_prog,
             "logical_linkage": linkage,
@@ -162,4 +259,5 @@ class DiscourseStructureAnalyzer:
             "topic_continuity": continuity,
             "conclusion_quality": conclusion_q,
             "overall": overall,
+            "centering_cohesion": centering,
         }

@@ -80,6 +80,74 @@ class ScaffoldController:
         """Restore one support layer. Ceiling = 7."""
         return min(7, current + 1)
 
+    @classmethod
+    def calculate_pid_support(
+        cls,
+        current_level: int,
+        performance_history: list[float],
+        target_score: float = 75.0,
+        kp: float = 0.04,
+        ki: float = 0.015,
+        kd: float = 0.02,
+    ) -> PIDScaffoldDecision:
+        """
+        SOTA Closed-Loop PID (Proportional-Integral-Derivative) Scaffold Fading Engine.
+        Dynamically modulates support levels according to Vygotskian Zone of Proximal Development (ZPD).
+        Prevents cognitive whiplash (overshoot/chattering) via derivative dampening and integral anti-windup.
+        """
+        if not performance_history:
+            return PIDScaffoldDecision(
+                recommended_level=current_level,
+                control_signal=0.0,
+                p_term=0.0,
+                i_term=0.0,
+                d_term=0.0,
+                reason="No history available; maintaining current scaffold level.",
+            )
+
+        # Recent history window (up to last 5 attempts)
+        recent = performance_history[-5:]
+        errors = [target_score - score for score in recent]
+        current_error = errors[-1]
+
+        # 1. Proportional Term: immediate reaction to latest attempt
+        p_term = kp * current_error
+
+        # 2. Integral Term: accumulated error with anti-windup clamp [-2.5, +2.5]
+        raw_integral = sum(errors)
+        i_term = max(-2.5, min(2.5, ki * raw_integral))
+
+        # 3. Derivative Term: velocity of change (dampens sudden jumps)
+        prev_error = errors[-2] if len(errors) >= 2 else current_error
+        d_term = kd * (current_error - prev_error)
+
+        control_signal = p_term + i_term + d_term
+
+        # Continuous control mapped to discrete level shift with hysteresis deadband [-0.35, +0.35]
+        level_shift = 0
+        if control_signal > 0.35:
+            level_shift = max(1, int(round(control_signal)))
+        elif control_signal < -0.35:
+            level_shift = min(-1, int(round(control_signal)))
+
+        recommended_level = max(0, min(7, current_level + level_shift))
+
+        if recommended_level < current_level:
+            reason = f"Effortless mastery (Score: {recent[-1]:.0f}%). Fading scaffold to promote speaking automaticity."
+        elif recommended_level > current_level:
+            reason = f"Cognitive strain detected (Score: {recent[-1]:.0f}%). Providing targeted scaffolding structure."
+        else:
+            reason = f"Optimal ZPD flow state (Score: {recent[-1]:.0f}%). Sustaining current scaffolding."
+
+        return PIDScaffoldDecision(
+            recommended_level=recommended_level,
+            control_signal=round(control_signal, 3),
+            p_term=round(p_term, 3),
+            i_term=round(i_term, 3),
+            d_term=round(d_term, 3),
+            reason=reason,
+        )
+
     def get_level_label(self, support_level: int) -> str:
         labels = {
             0: "No support",
@@ -106,3 +174,33 @@ class ScaffoldController:
             7: "Translation reference available",
         }
         return descs.get(support_level, "")
+
+
+class PIDScaffoldDecision:
+    """Telemetry and decision record produced by PID Scaffold Controller."""
+
+    def __init__(
+        self,
+        recommended_level: int,
+        control_signal: float,
+        p_term: float,
+        i_term: float,
+        d_term: float,
+        reason: str,
+    ):
+        self.recommended_level = recommended_level
+        self.control_signal = control_signal
+        self.p_term = p_term
+        self.i_term = i_term
+        self.d_term = d_term
+        self.reason = reason
+
+    def to_dict(self) -> dict:
+        return {
+            "recommended_level": self.recommended_level,
+            "control_signal": self.control_signal,
+            "p_term": self.p_term,
+            "i_term": self.i_term,
+            "d_term": self.d_term,
+            "reason": self.reason,
+        }

@@ -205,3 +205,38 @@ class MasteryEngine:
             return LearningItemLifecycle.ACTIVE.value
 
         return curr
+
+    @classmethod
+    def update_bkt_probability(
+        cls,
+        prior_p_known: float,
+        success: bool,
+        independence: IndependenceLevel | str = IndependenceLevel.INDEPENDENT,
+        p_transit: float = 0.15,
+        p_guess: float = 0.20,
+        p_slip: float = 0.10,
+    ) -> float:
+        """Updates learner skill mastery using Bayesian Knowledge Tracing (BKT; Corbett & Anderson 1995).
+
+        Accounts for scaffolding levels by adjusting guess probability.
+        """
+        p_l = max(0.01, min(0.99, float(prior_p_known)))
+
+        # Higher scaffolding (hints/options) increases guess chance
+        effective_guess = p_guess
+        if str(independence).lower() in ("scaffolded", "assisted_hint"):
+            effective_guess = min(0.50, p_guess * 2.0)
+
+        # 1. Posterior calculation based on evidence
+        if success:
+            numerator = p_l * (1.0 - p_slip)
+            denominator = (p_l * (1.0 - p_slip)) + ((1.0 - p_l) * effective_guess)
+        else:
+            numerator = p_l * p_slip
+            denominator = (p_l * p_slip) + ((1.0 - p_l) * (1.0 - effective_guess))
+
+        posterior_p_known = numerator / max(1e-8, denominator)
+
+        # 2. Learning transition to next state
+        next_p_known = posterior_p_known + (1.0 - posterior_p_known) * p_transit
+        return round(min(0.99, max(0.01, next_p_known)), 3)

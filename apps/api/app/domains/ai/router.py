@@ -182,17 +182,25 @@ class AIRouter:
                 candidates = [primary]
             return candidates, routing_mode, fallback_enabled
 
-        # AUTO Mode
+        # AUTO Mode: Contextual Multi-Armed Bandit (LinUCB) dynamic ranking
         primary = settings.default_ai_provider.lower().strip()
         priority_list = [p.strip() for p in settings.fallback_priority.split(",") if p.strip()]
-        candidates = []
-        if primary in priority_list:
-            candidates.append(primary)
-            for p in priority_list:
-                if p not in candidates:
-                    candidates.append(p)
-        else:
-            candidates = [primary] + priority_list
+        all_candidates: list[str] = []
+        if primary:
+            all_candidates.append(primary)
+        for p in priority_list:
+            if p not in all_candidates:
+                all_candidates.append(p)
+
+        try:
+            from app.domains.ai.bandit import ContextualFeatureExtractor, linucb_bandit
+
+            ctx_x = ContextualFeatureExtractor.extract_features(task, request, is_streaming=False)
+            ranked = linucb_bandit.rank_arms(all_candidates, ctx_x)
+            candidates = [arm for arm, _score in ranked]
+        except Exception as bandit_err:
+            logger.warning(f"[AI Router] LinUCB ranking fallback to static list: {bandit_err}")
+            candidates = all_candidates
 
         return candidates, routing_mode, fallback_enabled
 
@@ -315,11 +323,35 @@ class AIRouter:
                     attempts_count=attempt_idx,
                 )
 
+                # Update LinUCB Contextual Bandit on success
+                try:
+                    from app.domains.ai.bandit import ContextualFeatureExtractor, LinUCBBandit, linucb_bandit
+
+                    ctx_x = ContextualFeatureExtractor.extract_features(task, req_copy, is_streaming=False)
+                    reward = LinUCBBandit.calculate_reward(
+                        latency_ms=resp.latency_ms,
+                        success=True,
+                        fallback_occurred=resp.fallback_occurred,
+                    )
+                    linucb_bandit.update(provider_id, ctx_x, reward)
+                except Exception as bandit_err:
+                    logger.debug(f"[AI Router] Bandit update skipped: {bandit_err}")
+
                 return resp
 
             except AIProviderError as pe:
                 last_error = pe
                 circuit_breaker_manager.record_failure(provider_id, pe)
+
+                # Update LinUCB Bandit on failure
+                try:
+                    from app.domains.ai.bandit import ContextualFeatureExtractor, LinUCBBandit, linucb_bandit
+
+                    ctx_x = ContextualFeatureExtractor.extract_features(task, req_copy, is_streaming=False)
+                    linucb_bandit.update(provider_id, ctx_x, LinUCBBandit.calculate_reward(0, success=False))
+                except Exception:
+                    pass
+
                 attempts_log.append({
                     "attempt": attempt_idx,
                     "provider": provider_id,

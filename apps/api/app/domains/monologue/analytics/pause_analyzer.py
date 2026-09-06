@@ -106,6 +106,9 @@ class PauseAnalyzer:
                 context=ctx,
             ))
 
+        # Psycholinguistic Cognitive Strain & Weibull Hazard Analysis
+        strain_data = cls.compute_cognitive_strain(pauses, speech_duration_ms)
+
         summary = {
             "micro": sum(1 for p in pauses if p.pause_class == PauseClass.MICRO_PAUSE),
             "normal": sum(1 for p in pauses if p.pause_class == PauseClass.NORMAL_PAUSE),
@@ -113,5 +116,87 @@ class PauseAnalyzer:
             "stall": sum(1 for p in pauses if p.pause_class == PauseClass.STALL),
             "breakdown": sum(1 for p in pauses if p.pause_class == PauseClass.BREAKDOWN),
             "total": len(pauses),
+            "cognitive_pause_strain_index": strain_data["cpsi"],
+            "grammatical_pause_ratio": strain_data["grammatical_pause_ratio"],
+            "hesitation_pause_count": strain_data["hesitation_pause_count"],
+            "hazard_risk_level": strain_data["hazard_risk_level"],
         }
         return pauses, summary
+
+    # SLA Psycholinguistic context strain weights (Goldman-Eisler 1968, De Jong 2016)
+    CONTEXT_STRAIN_WEIGHTS: dict[PauseContext, float] = {
+        PauseContext.SENTENCE_BOUNDARY: 0.25,
+        PauseContext.CLAUSE_BOUNDARY: 0.35,
+        PauseContext.BEFORE_NEW_IDEA: 0.50,
+        PauseContext.BEFORE_PREDICATE: 0.85,
+        PauseContext.AFTER_FILLER: 1.10,
+        PauseContext.INSIDE_PHRASE: 1.35,
+        PauseContext.AFTER_SELF_REPAIR: 1.50,
+        PauseContext.UNKNOWN: 0.70,
+    }
+
+    WEIBULL_LAMBDA_MS: float = 750.0  # Scale parameter
+    WEIBULL_K_SHAPE: float = 1.25     # Shape parameter
+
+    @classmethod
+    def weibull_survival(cls, duration_ms: float) -> float:
+        """
+        Parametric Weibull Survival Function: S(t) = exp(-(t / lambda)^k).
+        Returns probability of a natural fluent pause surviving beyond duration_ms.
+        """
+        if duration_ms <= 0:
+            return 1.0
+        import math
+        ratio = duration_ms / cls.WEIBULL_LAMBDA_MS
+        return math.exp(-math.pow(ratio, cls.WEIBULL_K_SHAPE))
+
+    @classmethod
+    def compute_cognitive_strain(cls, pauses: list[PauseEvent], speech_duration_ms: int) -> dict[str, Any]:
+        """
+        Computes Cognitive Pause Strain Index (CPSI) by weighting pause duration survival hazard
+        with syntactic constituent context. Distinguishes natural physiological pauses from lexical search breakdowns.
+        """
+        if not pauses or speech_duration_ms <= 0:
+            return {
+                "cpsi": 0.0,
+                "grammatical_pause_ratio": 1.0,
+                "hesitation_pause_count": 0,
+                "hazard_risk_level": "low",
+            }
+
+        speech_sec = max(1.0, speech_duration_ms / 1000.0)
+        total_strain = 0.0
+        grammatical_count = 0
+        hesitation_count = 0
+
+        for p in pauses:
+            w_ctx = cls.CONTEXT_STRAIN_WEIGHTS.get(p.context, 0.70)
+            surv = cls.weibull_survival(p.duration_ms)
+            hazard_strain_prob = 1.0 - surv
+            dur_sec = p.duration_ms / 1000.0
+
+            # Strain contribution
+            total_strain += w_ctx * hazard_strain_prob * dur_sec
+
+            if p.context in (PauseContext.SENTENCE_BOUNDARY, PauseContext.CLAUSE_BOUNDARY):
+                grammatical_count += 1
+
+            if w_ctx >= 0.85 and p.duration_ms >= 800:
+                hesitation_count += 1
+
+        cpsi = round((100.0 / speech_sec) * total_strain, 2)
+        gramm_ratio = round(grammatical_count / max(1, len(pauses)), 3)
+
+        if cpsi < 12.0:
+            risk = "low"
+        elif cpsi < 30.0:
+            risk = "moderate"
+        else:
+            risk = "high"
+
+        return {
+            "cpsi": cpsi,
+            "grammatical_pause_ratio": gramm_ratio,
+            "hesitation_pause_count": hesitation_count,
+            "hazard_risk_level": risk,
+        }

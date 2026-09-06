@@ -116,6 +116,8 @@ class MoraTimingAssessment(BaseModel):
     speech_rate_mora_per_sec: float = 0.0
     rhythm_regularity_score: float = 100.0
     top_timing_issues: list[str] = Field(default_factory=list)
+    npvi_score: float | None = None
+    isochrony_score: float | None = None
 
 
 class PitchAssessment(BaseModel):

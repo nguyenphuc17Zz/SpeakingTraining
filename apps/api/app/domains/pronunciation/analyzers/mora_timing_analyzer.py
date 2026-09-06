@@ -117,9 +117,13 @@ class MoraTimingAnalyzer:
                 )
             )
 
-        # Standard deviation of duration ratios as regularity metric
-        regularity_penalty = min(25.0, float(np.std(durations) / max(1.0, avg_mora_dur)) * 20.0)
-        overall_mora_score = round(max(30.0, float(np.mean(mora_scores)) - regularity_penalty * 0.3), 1)
+        # Compute SOTA Normalized Pairwise Variability Index (nPVI) Mora Isochrony
+        npvi_val, isochrony_score = cls.calculate_npvi_isochrony(durations, compensate_pfl=True)
+        if npvi_val > 65.0:
+            timing_issues.append("Nhịp điệu mora thiếu đều đặn (nPVI cao: các mora chênh lệch thời lượng quá mức)")
+
+        regularity_penalty = max(0.0, (100.0 - isochrony_score) * 0.25)
+        overall_mora_score = round(max(30.0, float(np.mean(mora_scores)) - regularity_penalty), 1)
 
         conf_val = 0.9 if alignment_confidence == AnalysisConfidenceLevel.HIGH else (0.65 if alignment_confidence == AnalysisConfidenceLevel.MEDIUM else 0.4)
 
@@ -128,8 +132,10 @@ class MoraTimingAnalyzer:
             confidence=conf_val,
             mora_units=assessed_moras,
             speech_rate_mora_per_sec=speech_rate,
-            rhythm_regularity_score=round(100.0 - regularity_penalty, 1),
+            rhythm_regularity_score=isochrony_score,
             top_timing_issues=timing_issues[:3],
+            npvi_score=npvi_val,
+            isochrony_score=isochrony_score,
         )
 
         return (
@@ -142,6 +148,54 @@ class MoraTimingAnalyzer:
             ),
             assessment,
         )
+
+    @classmethod
+    def calculate_npvi_isochrony(
+        cls,
+        durations: list[float],
+        compensate_pfl: bool = True,
+    ) -> tuple[float, float]:
+        """Calculates Normalized Pairwise Variability Index (nPVI) and Isochrony Score.
+
+        Formula:
+            nPVI = (100 / (m - 1)) * sum(|(d_k - d_{k+1}) / ((d_k + d_{k+1}) / 2)|)
+
+        Phonetic Grounding:
+            - Grabe & Low (2002); Ling et al. (2000).
+            - Native Japanese mora-timed speech exhibits low nPVI (35 - 48).
+            - Non-native stress-timed interference produces elevated nPVI (> 65).
+            - Optional Phrase-Final Lengthening (PFL) compensation prevents unfair penalty on utterance ends.
+        """
+        import math
+
+        m = len(durations)
+        if m < 2:
+            return 0.0, 100.0
+
+        diffs = []
+        for k in range(m - 1):
+            d1 = durations[k]
+            d2 = durations[k + 1]
+            avg = (d1 + d2) / 2.0
+            if avg > 0:
+                diffs.append(abs(d1 - d2) / avg)
+
+        raw_npvi = float((100.0 / len(diffs)) * sum(diffs))
+
+        if compensate_pfl and m >= 3:
+            # Core nPVI excluding the phrase-final elongation
+            core_diffs = diffs[:-1]
+            core_npvi = float((100.0 / len(core_diffs)) * sum(core_diffs))
+            effective_npvi = 0.85 * core_npvi + 0.15 * raw_npvi
+        else:
+            effective_npvi = raw_npvi
+
+        # Isochrony Score: Gaussian curve centered at optimal ~38.0
+        dev = max(0.0, effective_npvi - 38.0)
+        isochrony = 100.0 * math.exp(-(dev**2) / (2.0 * (20.0**2)))
+        isochrony_score = round(float(np.clip(isochrony, 20.0, 100.0)), 1)
+
+        return round(effective_npvi, 1), isochrony_score
 
     @staticmethod
     def _interpret(score: float) -> str:

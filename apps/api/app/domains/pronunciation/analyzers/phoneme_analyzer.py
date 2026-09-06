@@ -8,6 +8,7 @@ from app.domains.pronunciation.contracts import (
 from app.domains.pronunciation.japanese.issue_taxonomy import TAXONOMY_EXPLANATIONS, JapaneseIssueType
 from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
+from app.domains.pronunciation.japanese.sequence_alignment import JapaneseSequenceAligner
 
 
 class PhonemeAnalyzer:
@@ -61,22 +62,24 @@ class PhonemeAnalyzer:
         user_moras = JapaneseMoraAnalyzer.segment_moras(user_hiragana)
         user_kana_list = [m.kana for m in user_moras]
 
+        # SOTA Sequence Alignment: Needleman-Wunsch with Japanese phonological similarity
+        aligned_pairs = JapaneseSequenceAligner.align(target_moras, user_kana_list)
+        target_to_pair = {
+            p.target_mora.mora_index: p
+            for p in aligned_pairs
+            if p.target_mora is not None
+        }
+
         assessments: list[PhonemeAssessment] = []
         total_mora_score = 0.0
 
-        for i, tm in enumerate(target_moras):
+        for tm in target_moras:
             kana = tm.kana
             target_phonemes = tm.phonemes
 
-            # Check if user produced the exact kana at or near this position
-            is_exact = False
-            detected_kana = None
-            if i < len(user_kana_list):
-                detected_kana = user_kana_list[i]
-                is_exact = (detected_kana == kana)
-            elif kana in user_kana_list:
-                is_exact = True
-                detected_kana = kana
+            pair = target_to_pair.get(tm.mora_index)
+            detected_kana = pair.user_kana if pair else None
+            is_exact = bool(detected_kana and detected_kana == kana)
 
             # Check specific Japanese sound substitutions
             issue_type = None

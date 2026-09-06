@@ -96,6 +96,16 @@ class SkillTreeOverviewDTO(BaseModel):
     total_nodes: int
 
 
+class SkillLearningPathDTO(BaseModel):
+    target_node_key: str
+    target_node_name: str
+    total_effort_cost: float
+    path_nodes: list[SkillNodeDTO]
+    recommended_order: list[str]
+    estimated_hours: float
+    rationale: str
+
+
 class UnlockableDTO(BaseModel):
     id: str
     key: str

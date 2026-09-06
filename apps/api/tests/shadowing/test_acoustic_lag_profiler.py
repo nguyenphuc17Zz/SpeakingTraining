@@ -129,3 +129,30 @@ def test_backward_compatibility_when_lag_is_none():
     assert result.score >= 90.0
     assert result.metrics.acoustic_lag_ms is None
     assert result.metrics.lag_rating is None
+
+
+def test_gcc_phat_acoustic_lag_estimation():
+    """Verifies that GCC-PHAT and Envelope Correlation accurately detect time delays."""
+    import numpy as np
+
+    sr = 16000
+    duration_sec = 2.0
+    # Reference signal: synthetic bursts of energy
+    t = np.linspace(0, duration_sec, int(sr * duration_sec))
+    ref = np.sin(2 * np.pi * 300 * t) * (np.sin(2 * np.pi * 3 * t) > 0).astype(float)
+
+    # User signal: shifted by 250ms (optimal shadowing delay)
+    shift_samples = int(0.250 * sr)
+    user = np.zeros_like(ref)
+    user[shift_samples:] = ref[:-shift_samples]
+
+    lag_ms, conf, classification = ShadowingLagProfiler.estimate_acoustic_lag(
+        user_samples=user,
+        reference_samples=ref,
+        sample_rate=sr,
+    )
+
+    # Detected delay should be near 250ms (within ±50ms)
+    assert abs(lag_ms - 250.0) < 50.0
+    assert classification == "optimal"
+    assert conf > 0.4

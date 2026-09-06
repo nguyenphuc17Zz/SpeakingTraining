@@ -252,26 +252,36 @@ class PragmaticsEngine:
 
         When speaking to Soto (external customer/client):
         - In-group referents (even superiors like CEO/Manager) must NEVER receive Sonkeigo or honorific titles (様, 社長).
+        - If SocialHierarchyTree is attached, uses LCA depth comparison to resolve relative in-group boundaries.
         """
         if not text:
-            return {"is_violation": False, "reason": None, "pedagogical_advice": None}
+            return {"is_violation": False, "reason": None, "pedagogical_advice": None, "lca_analysis": None}
 
-        listener_is_soto = ctx.listener_group == Group.SOTO or ctx.listener_role in (
-            PersonRole.CUSTOMER,
-            PersonRole.CLIENT,
-            PersonRole.SALES_CONTACT,
-            PersonRole.STRANGER,
-        )
+        lca_result = None
+        if ctx.social_tree and ctx.speaker_node_id and ctx.listener_node_id and ctx.referent_node_id:
+            lca_result = ctx.social_tree.determine_relative_relation(
+                ctx.speaker_node_id, ctx.listener_node_id, ctx.referent_node_id
+            )
+            is_uchi_to_listener = lca_result["is_referent_uchi_to_listener"]
+        else:
+            listener_is_soto = ctx.listener_group == Group.SOTO or ctx.listener_role in (
+                PersonRole.CUSTOMER,
+                PersonRole.CLIENT,
+                PersonRole.SALES_CONTACT,
+                PersonRole.STRANGER,
+            )
 
-        referent_is_uchi = ctx.referent_group == Group.UCHI or ctx.referent_role in (
-            PersonRole.SELF,
-            PersonRole.MANAGER,
-            PersonRole.EXECUTIVE,
-            PersonRole.COWORKER,
-            PersonRole.EMPLOYEE,
-        )
+            referent_is_uchi = ctx.referent_group == Group.UCHI or ctx.referent_role in (
+                PersonRole.SELF,
+                PersonRole.MANAGER,
+                PersonRole.EXECUTIVE,
+                PersonRole.COWORKER,
+                PersonRole.EMPLOYEE,
+            )
 
-        if listener_is_soto and referent_is_uchi and ctx.referent_role != PersonRole.SELF:
+            is_uchi_to_listener = listener_is_soto and referent_is_uchi and ctx.referent_role != PersonRole.SELF
+
+        if is_uchi_to_listener:
             # Check 1: In-group title violation (e.g. 社長様, 山田社長様, 社長の田中様, 部長様)
             title_match = re.search(r"(社長様|部長様|課長様|役員様|[^\s。、！？]{1,4}社長様?)", text)
             if title_match:
@@ -284,6 +294,7 @@ class PragmaticsEngine:
                         "người trong công ty mình (kể cả Giám đốc) đều thuộc nhóm Uchi, phải bỏ chức danh '社長/様' "
                         "(ví dụ: dùng '社長の田中は外出しております', không dùng '田中社長様')."
                     ),
+                    "lca_analysis": lca_result,
                 }
 
             # Check 2: Using Sonkeigo for in-group action (e.g. 弊社社長がおっしゃいました, 田中はいらっしゃいません)
@@ -297,9 +308,10 @@ class PragmaticsEngine:
                         "Lỗi Kính ngữ tương đối (相対敬語): Không dùng Tôn kính ngữ (Sonkeigo) cho hành động của người thuộc công ty mình trước mặt khách hàng. "
                         "Hãy dùng Khiêm nhường ngữ (Kenjougo) (ví dụ: dùng '申しました' thay vì 'おっしゃいました')."
                     ),
+                    "lca_analysis": lca_result,
                 }
 
-        return {"is_violation": False, "reason": None, "pedagogical_advice": None}
+        return {"is_violation": False, "reason": None, "pedagogical_advice": None, "lca_analysis": lca_result}
 
     def _detect_baito_keigo(self, text: str) -> dict[str, Any]:
         """Detects commercial manual keigo (バイト敬語)."""

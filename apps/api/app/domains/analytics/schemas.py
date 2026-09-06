@@ -142,3 +142,23 @@ class CoachQuickCardDTO(BaseModel):
     metrics_snippet: list[dict[str, Any]] = Field(default_factory=list)
     action_cta: str | None = None
     action_url: str | None = None
+
+
+class ForecastConfidenceIntervalDTO(BaseModel):
+    step: int
+    point: float
+    lower_80: float
+    upper_80: float
+    lower_95: float
+    upper_95: float
+
+
+class HoltWintersForecastDTO(BaseModel):
+    forecast_points: list[float]
+    current_level: float
+    current_velocity: float
+    acceleration: float
+    intervals: list[ForecastConfidenceIntervalDTO]
+    residual_standard_error: float
+    model_type: str = "additive_holt_winters"
+
