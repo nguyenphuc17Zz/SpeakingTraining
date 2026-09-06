@@ -1,4 +1,3 @@
-from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.analytics.contracts import BottleneckAnalysis

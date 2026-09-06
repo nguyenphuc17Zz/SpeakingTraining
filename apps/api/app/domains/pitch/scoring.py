@@ -55,11 +55,16 @@ def _reaction_score(latency, timer, conf):
     if not timer:
         return Dim(75, 0.6, [f"Latency {latency:.0f}ms"])
     r = latency / timer
-    if r < 0.4: s = 95
-    elif r < 0.6: s = 85
-    elif r < 0.8: s = 72
-    elif r < 1.0: s = 58
-    else: s = 32
+    if r < 0.4:
+        s = 95
+    elif r < 0.6:
+        s = 85
+    elif r < 0.8:
+        s = 72
+    elif r < 1.0:
+        s = 58
+    else:
+        s = 32
     return Dim(float(s), 0.85, [f"Reaction {latency:.0f}ms / {timer}ms"])
 
 

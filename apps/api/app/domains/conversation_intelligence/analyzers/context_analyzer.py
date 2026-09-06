@@ -1,8 +1,6 @@
 from app.domains.conversation_intelligence.contracts import (
     ContextNote,
-    CorrectionCategory,
     CorrectionItem,
-    CorrectionSeverity,
 )
 
 

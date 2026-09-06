@@ -1,18 +1,16 @@
 """Monologue — Mode 5 API (1-Minute Speech)."""
 
-from typing import Any
-
 import base64
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.learning.models import Exercise
-from app.domains.learning.schemas import ExerciseDTO, ExerciseResultDTO
+from app.domains.learning.schemas import ExerciseDTO
 from app.domains.monologue.service import MonologueService
 from app.domains.users.service import UserService
 from app.infrastructure.database.session import get_db
-from app.shared.errors.exceptions import ValidationException
 
 router = APIRouter(prefix="/monologue", tags=["Monologue — Mode 5"])
 
@@ -227,6 +225,7 @@ async def get_monologue_progress(
     db: AsyncSession = Depends(get_db),
 ):
     from datetime import datetime, timedelta, timezone
+
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 

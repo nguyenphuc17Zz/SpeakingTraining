@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -8,7 +8,6 @@ from app.infrastructure.database.base import Base, TimestampMixin, UUIDPrimaryKe
 
 if TYPE_CHECKING:
     from app.domains.conversation.models import ConversationSession, ConversationTurn
-    from app.domains.users.models import User
 
 
 class TurnAnalysis(Base, UUIDPrimaryKeyMixin, TimestampMixin):

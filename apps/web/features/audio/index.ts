@@ -1,5 +1,6 @@
 export * from "@/types/audio";
 export * from "./services/audio-api";
+export * from "./services/wav-converter";
 export * from "./hooks/useAudioPlayer";
 export * from "./hooks/useAudioRecorder";
 export * from "./hooks/useTTS";

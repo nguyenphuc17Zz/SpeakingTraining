@@ -1,6 +1,7 @@
 import time
+
 from app.core.logging import logger
-from app.domains.ai.contracts import AITask, ModelCapability, ModelMetadata
+from app.domains.ai.contracts import AITask, ModelMetadata
 from app.domains.ai.registry import TASK_TIER_MAPPING, TaskTier, provider_registry
 
 

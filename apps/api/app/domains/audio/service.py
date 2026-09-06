@@ -1,12 +1,10 @@
-import uuid
 from typing import Any
-from datetime import datetime, timezone
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.audio.cache import tts_cache
-from app.domains.audio.contracts import PlaybackPreset, ProviderHealth
+from app.domains.audio.contracts import PlaybackPreset
 from app.domains.audio.models import AudioPresetModel, VoiceProfileModel
 from app.domains.audio.schemas import (
     AudioPresetCreateRequest,
@@ -16,10 +14,8 @@ from app.domains.audio.schemas import (
     VoiceProfileUpdateRequest,
 )
 from app.domains.audio.tts_service import tts_service
-from app.domains.settings.models import UserSettings
 from app.domains.settings.service import SettingsService
 from app.domains.speech.stt_router import stt_router
-
 
 SYSTEM_PRESETS = [
     PlaybackPreset(

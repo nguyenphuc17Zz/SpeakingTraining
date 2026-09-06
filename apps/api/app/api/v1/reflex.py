@@ -5,10 +5,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.learning.contracts import ExerciseType, LearningItemType, PriorityScore
-from app.domains.learning.exercise_generator import ExerciseGenerator
+from app.domains.learning.contracts import ExerciseType
 from app.domains.learning.exercise_session_service import ExerciseSessionService
-from app.domains.learning.learner_state_service import LearnerStateService
 from app.domains.learning.learning_item_service import LearningItemService
 from app.domains.learning.models import Exercise
 from app.domains.learning.schemas import ExerciseDTO, ExerciseResultDTO
@@ -49,6 +47,7 @@ async def generate_reflex_exercise_get(
     difficulty: str | None = Query(default=None),
     verb: str | None = Query(default=None),
     conjugation_target: str | None = Query(default=None),
+    topic: str | None = Query(default=None),
     transformation_category: str | None = Query(default=None),
     context_category: str | None = Query(default=None),
     vocab_category: str | None = Query(default=None),
@@ -107,7 +106,6 @@ async def generate_reflex_exercise(
     )
 
     # Persist as Exercise row (reuse learning tables)
-    from sqlalchemy import select
 
     # Resolve learning item key
     item_key = learning_item_key
@@ -131,8 +129,8 @@ async def generate_reflex_exercise(
             item_key = match.key
         else:
             # Create a generic reflex learning item on the fly
+
             from app.domains.learning.models import LearningItem
-            import uuid
 
             key = f"reflex.{sub_mode}.{eff_diff}"
             existing = await item_service.get_item_by_key(key, user_id)
@@ -154,10 +152,9 @@ async def generate_reflex_exercise(
                 item_key = key
 
     # Determine prompt_version
-    from app.domains.learning.prompts import LearningPrompts
-
     # Build signature
     from app.domains.learning.exercise_variety_policy import ExerciseVarietyPolicy
+    from app.domains.learning.prompts import LearningPrompts
 
     sig = ExerciseVarietyPolicy.compute_exercise_signature(
         exercise_type=sub_mode,
@@ -353,6 +350,9 @@ async def get_reflex_progress(
             "automaticity_avg": None,
             "pressure_threshold_ms": None,
             "comfort_window": None,
+            "reflex_elo_rating": None,
+            "cognitive_flow_state": None,
+            "target_timer_ms": None,
             "by_sub_mode": {},
         }
 
@@ -382,8 +382,8 @@ async def get_reflex_progress(
     auto_vals = [float(getattr(i, "automaticity_mastery", 0) or 0) for i in reflex_items]
     auto_avg = sum(auto_vals) / len(auto_vals) if auto_vals else None
 
-    # Pressure threshold estimation
-    from app.domains.reflex.adaptive_pressure import estimate_pressure_threshold
+    # Pressure threshold & Flow State estimation
+    from app.domains.reflex.adaptive_pressure import estimate_pressure_threshold, evaluate_flow_state
 
     raw_attempts = []
     for a in reflex_attempts:
@@ -397,6 +397,7 @@ async def get_reflex_progress(
             }
         )
     thresh_info = estimate_pressure_threshold(raw_attempts) if len(raw_attempts) >= 8 else None
+    flow_info = evaluate_flow_state("normal", raw_attempts) if len(raw_attempts) >= 5 else None
 
     # By sub_mode
     by_mode: dict[str, Any] = {}
@@ -421,5 +422,8 @@ async def get_reflex_progress(
         "automaticity_avg": round(auto_avg, 3) if auto_avg is not None else None,
         "pressure_threshold_ms": thresh_info["threshold_ms"] if thresh_info else None,
         "comfort_window": thresh_info["comfort_window"] if thresh_info else None,
+        "reflex_elo_rating": round(flow_info.current_rating, 1) if flow_info else (thresh_info.get("elo_rating") if thresh_info else None),
+        "cognitive_flow_state": flow_info.cognitive_state.value if flow_info else None,
+        "target_timer_ms": int(round(flow_info.exact_target_timer_ms)) if flow_info else None,
         "by_sub_mode": by_mode,
     }

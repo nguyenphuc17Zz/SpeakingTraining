@@ -79,4 +79,7 @@ export const analyticsApi = {
 
   getCoachQuickCards: (): Promise<CoachQuickCardDTO[]> =>
     fetchJson<CoachQuickCardDTO[]>("/coach/quick-cards"),
+
+  getDiagnostic: (period = "30d"): Promise<any> =>
+    fetchJson<any>(`/analytics/diagnostic?period=${period}`),
 };

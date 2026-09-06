@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShadowingMode, TranscriptSegment } from "@/types/shadowing";
-import { ShadowingKeybindings } from "@/hooks/use-shadowing-keybindings";
+import { ShadowingKeybindings } from "@/hooks/use-system-keybindings";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
 import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
@@ -216,6 +216,7 @@ export function ShadowingControls({
             soundFX.playFurin();
             onPlaySegment();
           }}
+          disabled={isRecording || isEvaluating}
           className="col-span-1 h-11 rounded-xl border-border text-xs font-bold gap-1 shadow-2xs"
           title="Phát câu mẫu (C)"
         >
@@ -230,29 +231,30 @@ export function ShadowingControls({
           onClick={handleActionClick}
           disabled={isEvaluating}
           className={cn(
-            "col-span-3 h-11 rounded-xl font-bold text-xs shadow-md transition-all gap-2",
+            practiceStep !== "idle" && onCancelPractice ? "col-span-2" : "col-span-3",
+            "h-11 rounded-xl font-bold text-xs shadow-md transition-all gap-2",
             isRecording && "animate-pulse ring-2 ring-rose-500/40"
           )}
         >
           {isEvaluating ? (
             <>
               <Sparkles className="h-4 w-4 animate-spin" />
-              <span>Đang chấm điểm phản xạ...</span>
+              <span>Đang chấm điểm...</span>
             </>
           ) : isRecording ? (
             <>
               <Square className="h-4 w-4 fill-current" />
-              <span>Dừng & Chấm Điểm (Space/Q)</span>
+              <span>Dừng & Chấm (Space/Q)</span>
             </>
           ) : isListeningStep ? (
             <>
               <Volume2 className="h-4 w-4 animate-pulse" />
-              <span>Đang phát câu mẫu...</span>
+              <span>Đang phát mẫu...</span>
             </>
           ) : isPromptingStep ? (
             <>
               <Mic className="h-4 w-4" />
-              <span>Bắt Đầu Nói Câu Này (Space/Q)</span>
+              <span>Bắt Đầu Nói (Space/Q)</span>
             </>
           ) : (
             <>
@@ -261,6 +263,24 @@ export function ShadowingControls({
             </>
           )}
         </Button>
+
+        {/* Cancel Action if practice is active */}
+        {practiceStep !== "idle" && onCancelPractice && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              soundFX.playSuikinkutsu();
+              onCancelPractice();
+            }}
+            disabled={isEvaluating}
+            className="col-span-1 h-11 rounded-xl border-border hover:bg-muted text-xs font-bold text-muted-foreground hover:text-foreground shadow-2xs"
+            title="Hủy lượt luyện tập này (Esc)"
+          >
+            <span>Hủy</span>
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">(Esc)</span>
+          </Button>
+        )}
       </div>
 
       {/* Direct Dictation / Text Shadowing Bar (Office / Broken Mic) */}

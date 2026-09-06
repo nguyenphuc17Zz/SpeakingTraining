@@ -1,6 +1,7 @@
 import io
 import math
 import wave
+
 import numpy as np
 
 from app.core.logging import logger

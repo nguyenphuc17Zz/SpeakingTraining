@@ -224,3 +224,27 @@ export async function getExercise(exerciseId: string): Promise<ReflexExercise> {
   const data = await apiClient.get(`/reflex/exercises/${exerciseId}`);
   return data as ReflexExercise;
 }
+
+export interface ReflexStats {
+  user_id: string;
+  period: string;
+  total_attempts: number;
+  accuracy_rate: number;
+  avg_reaction_ms: number | null;
+  p50_reaction_ms: number | null;
+  p90_reaction_ms: number | null;
+  timeout_rate: number;
+  automaticity_avg: number | null;
+  pressure_threshold_ms: number | null;
+  comfort_window: string | null;
+  reflex_elo_rating: number | null;
+  cognitive_flow_state: "flow" | "comfort_plateau" | "cognitive_overload" | "speed_inaccuracy_trap" | "reaction_hesitation" | "insufficient_data" | null;
+  target_timer_ms: number | null;
+  by_sub_mode: Record<string, any>;
+}
+
+export async function getReflexStats(period: string = "30d"): Promise<ReflexStats> {
+  const data = await apiClient.get(`/reflex/stats?period=${period}`);
+  return data as ReflexStats;
+}
+

@@ -9,10 +9,8 @@ No giant hardcoded keigo dictionary. This provider queries:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from app.domains.japanese.provider import LexicalEntry, Provenance, get_language_provider
-
 
 # Small explicit overrides only for truly irregular keigo where deterministic rules cannot infer
 # This is PROJECT_RULE, not a language database. Keep < 60 entries, each with provenance.
@@ -54,13 +52,11 @@ class JapaneseLexicalProvider:
         self._wordfreq_available = False
         self._jamdict_available = False
         try:
-            import wordfreq  # type: ignore
 
             self._wordfreq_available = True
         except Exception:
             pass
         try:
-            import jamdict  # type: ignore
 
             self._jamdict_available = True
         except Exception:

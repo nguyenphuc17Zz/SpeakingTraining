@@ -1,8 +1,6 @@
-from typing import Any
 from app.domains.pronunciation.contracts import PitchAccentPattern
 from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
-
 
 # Standard Tokyo Pitch Accent Reference Lexicon for core Japanese vocabulary & patterns
 # (Pattern: (mora_pattern, accent_kernel_index))

@@ -110,7 +110,9 @@ class STTModelActionRequest(BaseModel):
 async def download_stt_model(request: STTModelActionRequest):
     """Downloads Faster-Whisper model in background."""
     import asyncio
+
     from fastapi import HTTPException
+
     from app.domains.speech.model_manager import whisper_model_manager
 
     model_id = request.model_id.lower().strip()
@@ -131,6 +133,7 @@ async def download_stt_model(request: STTModelActionRequest):
 async def select_stt_model(request: STTModelActionRequest):
     """Sets active default STT model and pre-warms it."""
     import asyncio
+
     from app.domains.speech.model_manager import whisper_model_manager
 
     model_id = request.model_id.lower().strip()

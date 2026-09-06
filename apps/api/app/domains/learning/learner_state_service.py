@@ -1,18 +1,14 @@
 from datetime import datetime, timezone
-from typing import Any
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
-from app.domains.conversation_intelligence.models import SessionAnalysis
-from app.domains.learner_memory.models import LearnerMemory, LearnerProfile
 from app.domains.learner_memory.profile_service import LearnerProfileService
 from app.domains.learning.contracts import LearnerLearningState
 from app.domains.learning.goal_service import GoalService
-from app.domains.learning.models import LearningGoal, LearningItem
+from app.domains.learning.models import LearningItem
 from app.domains.learning.review_scheduler import ReviewScheduler
-from app.domains.pronunciation.models import PronunciationAttempt, PronunciationPracticeTarget
+from app.domains.pronunciation.models import PronunciationPracticeTarget
 
 
 class LearnerStateService:

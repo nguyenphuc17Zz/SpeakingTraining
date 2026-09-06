@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AIResponse, AITask
 from app.domains.ai.router import AIRouter
+from app.domains.audio import TTSRequest, VoiceService, tts_service
 from app.domains.conversation.context import ConversationContextManager
 from app.domains.conversation.models import ConversationSession, ConversationTurn
 from app.domains.conversation.schemas import (
@@ -24,8 +25,7 @@ from app.domains.conversation_intelligence.service import ConversationIntelligen
 from app.domains.learner_memory.retriever import MemoryRetriever
 from app.domains.personas.models import Persona
 from app.domains.settings.service import SettingsService
-from app.domains.audio import TTSRequest, VoiceService, tts_service
-from app.domains.speech.contracts import STTOptions, TTSOptions
+from app.domains.speech.contracts import STTOptions
 from app.domains.speech.errors import SpeechError
 from app.domains.speech.stt_router import stt_router
 from app.domains.users.service import UserService
@@ -151,9 +151,9 @@ class ConversationService:
             if "ramen" in role_lower or "chef" in role_lower or "quán" in role_lower:
                 opening_text = "いらっしゃい！何にする？今日のおすすめは特製ラーメンだよ！"
             elif "senpai" in name_lower or "senpai" in role_lower:
-                opening_text = f"あ、お疲れ様！今日も日本語の練習頑張ろうね。最近どう？"
+                opening_text = "あ、お疲れ様！今日も日本語の練習頑張ろうね。最近どう？"
             elif "sensei" in name_lower or "sensei" in role_lower or "teacher" in role_lower or "giáo viên" in role_lower:
-                opening_text = f"こんにちは。今日の日本語レッスンを始めましょう。調子はいかがですか？"
+                opening_text = "こんにちは。今日の日本語レッスンを始めましょう。調子はいかがですか？"
             elif "doctor" in role_lower or "bác sĩ" in role_lower:
                 opening_text = "こんにちは。今日はどうされましたか？どこか具合が悪いですか？"
             else:
@@ -461,7 +461,6 @@ class ConversationService:
                 self.session.add(p_attempt)
                 await self.session.commit()
 
-                import os
                 import tempfile
 
                 # Persist audio to temporary file for background worker to prevent queue memory ballooning

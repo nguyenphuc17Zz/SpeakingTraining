@@ -168,7 +168,7 @@ class RampStageEngine:
             structure = ["speak_guided", "speak_spontaneous", "speak_spontaneous", "speak_followup", "speak_followup"]
 
         # Scale to desired minutes
-        rounds_per_15min = len(structure)
+        len(structure)
         extra_rounds = max(0, (desired_minutes - 15) // 5)
         structure += structure[-1:] * extra_rounds
 

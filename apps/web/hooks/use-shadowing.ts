@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { useLiveSpeechRecognition } from "@/hooks/use-live-speech-recognition";
 import { shadowingApi } from "@/services/shadowing-api";
@@ -12,6 +12,29 @@ import {
   TranscriptSegment,
 } from "@/types/shadowing";
 
+/**
+ * Binary search for active segment at time t. O(log N) instead of O(N) linear scan.
+ */
+function findSegmentByTime(segments: TranscriptSegment[], time: number): TranscriptSegment | null {
+  let low = 0;
+  let high = segments.length - 1;
+
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    const seg = segments[mid];
+
+    if (time >= seg.start_time && time <= seg.end_time) {
+      return seg;
+    }
+    if (time < seg.start_time) {
+      high = mid - 1;
+    } else {
+      low = mid + 1;
+    }
+  }
+  return null;
+}
+
 export function useShadowing(videoId: string) {
   const [video, setVideo] = useState<ShadowingVideoDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +43,12 @@ export function useShadowing(videoId: string) {
   // Playback & Segment State
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const [selectedSegment, setSelectedSegment] = useState<TranscriptSegment | null>(null);
+
+  // Active playing segment tracking in real-time (O(log N) binary search)
+  const activePlayingSegment = useMemo(() => {
+    if (!video?.segments || video.segments.length === 0) return null;
+    return findSegmentByTime(video.segments, currentPlaybackTime);
+  }, [video?.segments, currentPlaybackTime]);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
     if (typeof window === "undefined") return 1.0;
     try {
@@ -162,6 +191,15 @@ export function useShadowing(videoId: string) {
   useEffect(() => {
     fetchVideo();
   }, [fetchVideo]);
+
+  // Auto-sync selectedSegment when video is playing freely
+  useEffect(() => {
+    if (practiceStep === "idle" && !isLooping && activePlayingSegment) {
+      if (!selectedSegment || selectedSegment.id !== activePlayingSegment.id) {
+        setSelectedSegment(activePlayingSegment);
+      }
+    }
+  }, [activePlayingSegment, practiceStep, isLooping, selectedSegment]);
 
   // Select segment
   const handleSelectSegment = (segment: TranscriptSegment) => {
@@ -533,6 +571,8 @@ export function useShadowing(videoId: string) {
     error,
     currentPlaybackTime,
     setCurrentPlaybackTime,
+    activePlayingSegment,
+    activePlayingSegmentId: activePlayingSegment?.id,
     selectedSegment,
     setSelectedSegment: handleSelectSegment,
     playbackSpeed,

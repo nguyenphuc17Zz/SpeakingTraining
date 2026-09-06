@@ -28,6 +28,7 @@ import {
   Keyboard,
 } from "lucide-react";
 import { ZenUnifiedInputBar } from "@/components/ui/zen-unified-input-bar";
+import { useAudioRecorder, convertToWavBlob } from "@/features/audio";
 
 export default function PronunciationPracticePage() {
   // Target Selection State
@@ -37,9 +38,14 @@ export default function PronunciationPracticePage() {
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [typedAnswer, setTypedAnswer] = useState("");
 
-  // Audio Recording State
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  // Audio Recording State using shared useAudioRecorder hook
+  const {
+    isRecording,
+    startRecording: startAudioRecord,
+    stopRecording: stopAudioRecord,
+    error: micError,
+  } = useAudioRecorder();
+
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
 
@@ -53,37 +59,38 @@ export default function PronunciationPracticePage() {
   const [attemptHistory, setAttemptHistory] = useState<AttemptSummary[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (micError) {
+      setErrorMessage(micError);
+    }
+  }, [micError]);
+
   // Load Practice Targets
   useEffect(() => {
+    let isMounted = true;
     async function loadTargets() {
       try {
         const data = await pronunciationApi.getTargets(8);
+        if (!isMounted) return;
         setTargets(data);
-        if (data.length > 0 && !selectedTarget) {
-          setSelectedTarget(data[0]);
+        if (data.length > 0) {
+          setSelectedTarget((prev) => prev ?? data[0]);
         }
       } catch (err) {
         console.error("Failed to load practice targets", err);
       }
     }
     loadTargets();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const activeStreamRef = useRef<MediaStream | null>(null);
-
-  // Cleanup object URLs and active mic stream on unmount
+  // Cleanup object URLs on unmount or URL change
   useEffect(() => {
     return () => {
       if (recordedAudioUrl) {
         URL.revokeObjectURL(recordedAudioUrl);
-      }
-      if (activeStreamRef.current) {
-        activeStreamRef.current.getTracks().forEach((track) => {
-          try {
-            track.stop();
-          } catch {}
-        });
-        activeStreamRef.current = null;
       }
     };
   }, [recordedAudioUrl]);
@@ -122,51 +129,28 @@ export default function PronunciationPracticePage() {
   const startRecording = async () => {
     setErrorMessage(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      activeStreamRef.current = stream;
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      const chunks: BlobPart[] = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunks.push(e.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        const webmBlob = new Blob(chunks, { type: "audio/webm" });
-        // Convert to WAV/PCM audio blob for backend pipeline
-        const wavBlob = await convertToWavBlob(webmBlob);
-        setRecordedBlob(wavBlob);
-        const url = URL.createObjectURL(wavBlob);
-        setRecordedAudioUrl(url);
-
-        // Stop all media tracks
-        stream.getTracks().forEach((track) => {
-          try {
-            track.stop();
-          } catch {}
-        });
-        activeStreamRef.current = null;
-
-        // Automatically trigger analysis
-        await handleAnalyze(wavBlob);
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
+      await startAudioRecord();
     } catch (err: any) {
-      console.error("Failed to access microphone", err);
+      console.error("Failed to start audio recording", err);
       setErrorMessage("Không thể kết nối với Micro. Vui lòng cấp quyền truy cập micro trên trình duyệt.");
     }
   };
 
-  // Stop Recording
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
-      setIsRecording(false);
+  // Stop Recording & Auto-Analyze
+  const stopRecording = async () => {
+    try {
+      const webmBlob = await stopAudioRecord();
+      if (!webmBlob || webmBlob.size === 0) return;
+
+      const wavBlob = await convertToWavBlob(webmBlob);
+      setRecordedBlob(wavBlob);
+      const url = URL.createObjectURL(wavBlob);
+      setRecordedAudioUrl(url);
+
+      await handleAnalyze(wavBlob);
+    } catch (err: any) {
+      console.error("Failed to process recording", err);
+      setErrorMessage("Không thể xử lý âm thanh thu âm. Vui lòng thử lại.");
     }
   };
 
@@ -482,58 +466,4 @@ export default function PronunciationPracticePage() {
       </div>
     </div>
   );
-}
-
-/**
- * Converts audio/webm Blob to standard 16-bit PCM WAV Blob via browser AudioContext
- */
-async function convertToWavBlob(blob: Blob): Promise<Blob> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-  // Encode to 16kHz mono WAV
-  const targetSampleRate = 16000;
-  const offlineCtx = new OfflineAudioContext(1, (audioBuffer.duration * targetSampleRate) | 0, targetSampleRate);
-  const source = offlineCtx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.connect(offlineCtx.destination);
-  source.start();
-
-  const renderedBuffer = await offlineCtx.startRendering();
-  const pcmData = renderedBuffer.getChannelData(0);
-
-  // Build WAV container
-  const wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
-  const view = new DataView(wavBuffer);
-
-  const writeString = (offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  writeString(0, "RIFF");
-  view.setUint32(4, 36 + pcmData.length * 2, true);
-  writeString(8, "WAVE");
-  writeString(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // Mono
-  view.setUint32(24, targetSampleRate, true);
-  view.setUint32(28, targetSampleRate * 2, true);
-  view.setUint16(32, 2, true); // block align
-  view.setUint16(34, 16, true); // 16-bit
-  writeString(36, "data");
-  view.setUint32(40, pcmData.length * 2, true);
-
-  // Write PCM samples
-  let offset = 44;
-  for (let i = 0; i < pcmData.length; i++, offset += 2) {
-    const s = Math.max(-1, Math.min(1, pcmData[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-  }
-
-  await audioCtx.close();
-  return new Blob([wavBuffer], { type: "audio/wav" });
 }

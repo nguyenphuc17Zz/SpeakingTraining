@@ -15,16 +15,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
+from app.domains.learner_memory.profile_service import LearnerProfileService
 from app.domains.learning.contracts import (
     DifficultyLevel,
-    ExerciseType,
-    IndependenceLevel,
     ScaffoldingLevel,
 )
 from app.domains.learning.models import Exercise, ExerciseAttempt
-from app.domains.learner_memory.profile_service import LearnerProfileService
 from app.domains.ramp.contracts import (
-    RampAttemptFeedback,
     RampGenerationInput,
     RampProgressSnapshot,
     RampScore,
@@ -38,7 +35,6 @@ from app.domains.ramp.ramp_evaluator import RampEvaluator
 from app.domains.ramp.ramp_progression_engine import RampProgressionEngine
 from app.domains.ramp.speaking_ramp_generator import SpeakingRampGenerator
 from app.domains.ramp.stage_engine import RampStageEngine
-from app.domains.users.service import UserService
 
 
 class RampSessionService:
@@ -67,7 +63,7 @@ class RampSessionService:
         """Create and persist a new ramp session."""
         # Get learner state for defaults
         profile_svc = LearnerProfileService(self.db)
-        profile = await profile_svc.get_or_create_profile(user_id)
+        await profile_svc.get_or_create_profile(user_id)
 
         # Determine starting stage from profile or default based on session_goal
         if current_stage is not None:
@@ -170,7 +166,7 @@ class RampSessionService:
         )
 
         # Generate task spec
-        from app.domains.ramp.contracts import RampExerciseType, STAGE_EXERCISE_TYPE
+        from app.domains.ramp.contracts import RampExerciseType
         force_type = None
         if force_followup and last_response:
             force_type = RampExerciseType.SPEAK_FOLLOWUP
@@ -234,6 +230,10 @@ class RampSessionService:
             except Exception as e:
                 logger.warning(f"[RampSessionService] Audio processing failed: {e}")
 
+        profile_svc = LearnerProfileService(self.db)
+        profile = await profile_svc.get_or_create_profile(user_id)
+        measured_level = getattr(profile, "speaking_level", None) or getattr(profile, "overall_level", None) or "N3"
+
         sup_level = support_level_used if support_level_used is not None else session.support_level
 
         # Evaluate
@@ -244,6 +244,7 @@ class RampSessionService:
             audio_metrics=audio_metrics,
             response_latency_ms=response_latency_ms,
             used_hint=used_hint,
+            measured_level=measured_level,
         )
 
         # Generate follow-up if appropriate (§19 Exercise K)
@@ -511,8 +512,8 @@ class RampSessionService:
         audio_bytes = base64.b64decode(b64)
 
         from app.domains.monologue.analytics.pipeline import MonologuePipeline
-        from app.domains.speech.stt_router import stt_router
         from app.domains.speech.contracts import STTOptions
+        from app.domains.speech.stt_router import stt_router
 
         stt_res = await stt_router.transcribe(
             audio_bytes=audio_bytes,

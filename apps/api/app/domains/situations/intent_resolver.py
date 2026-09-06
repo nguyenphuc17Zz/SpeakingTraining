@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 # Generic intent keywords (small, not giant) — ORDER_FOOD now product-specific to avoid generic REQUEST overlap
 INTENT_KEYWORDS = {
     "DECLINE_BAG": [r"袋.*いりません", r"袋.*結構です", r"袋.*いらない"],

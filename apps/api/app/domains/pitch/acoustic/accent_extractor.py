@@ -16,12 +16,19 @@ class AccentPatternResult:
     drop_location: int | None
     rise_location: int | None
     confidence: float
+    mora_semitones: list[float] | None = None
 
 
 class AccentPatternExtractor:
     def extract(self, pitch_curve: PitchCurve, mora_boundaries: list[Any]) -> AccentPatternResult:
         if not pitch_curve.points or not mora_boundaries:
-            return AccentPatternResult(mora_values=[], drop_location=None, rise_location=None, confidence=0.2)
+            return AccentPatternResult(
+                mora_values=[],
+                drop_location=None,
+                rise_location=None,
+                confidence=0.2,
+                mora_semitones=[],
+            )
 
         # Aggregate normalized semitone per mora window
         mora_vals: list[float] = []
@@ -36,7 +43,13 @@ class AccentPatternExtractor:
                 mora_vals.append(float(np.mean([p.normalized_semitones for p in pts])))
 
         if not mora_vals:
-            return AccentPatternResult(mora_values=[], drop_location=None, rise_location=None, confidence=0.2)
+            return AccentPatternResult(
+                mora_values=[],
+                drop_location=None,
+                rise_location=None,
+                confidence=0.2,
+                mora_semitones=[],
+            )
 
         # Classify H/L per mora via median split + thresholds
         # Use robust threshold: high if > 0.5 semitone above median? Actually median is 0, so >0.8 => H
@@ -75,4 +88,10 @@ class AccentPatternExtractor:
         if len([v for v in mora_vals if abs(v) < 0.1]) > len(mora_vals) * 0.6:
             conf = min(conf, 0.6)  # flat contour
 
-        return AccentPatternResult(mora_values=pattern, drop_location=drop, rise_location=rise, confidence=conf)
+        return AccentPatternResult(
+            mora_values=pattern,
+            drop_location=drop,
+            rise_location=rise,
+            confidence=conf,
+            mora_semitones=mora_vals,
+        )

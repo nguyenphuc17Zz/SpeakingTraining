@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 # Generic states
 STATES = ["IDLE", "INTRO", "NPC_SPEAKING", "WAITING_FOR_USER", "USER_SPEAKING", "TRANSCRIBING", "RESOLVING_INTENT", "UPDATING_STATE", "GENERATING_RESPONSE", "SPEAKING_RESPONSE", "PAUSED", "COMPLETED", "FAILED"]
 

@@ -18,6 +18,8 @@ from app.domains.conversation_intelligence.models import (
     GrammarNote,
     SessionAnalysis,
     TurnAnalysis,
+)
+from app.domains.conversation_intelligence.models import (
     VocabularyNote as VocabularyNoteModel,
 )
 from app.domains.conversation_intelligence.service import ConversationIntelligenceService

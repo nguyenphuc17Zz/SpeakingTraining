@@ -1,6 +1,7 @@
 import hashlib
 from datetime import datetime, timezone
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 from app.domains.gamification.domain.contracts import GameEventSource, GameEventType

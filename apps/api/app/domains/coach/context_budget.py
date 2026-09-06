@@ -1,8 +1,6 @@
 """CoachContextBudget §8 — priority-based token budgeting."""
 from __future__ import annotations
 
-from typing import Any
-
 # Priority order (§8)
 BUDGET_PRIORITY = [
     "current_task",        # 1

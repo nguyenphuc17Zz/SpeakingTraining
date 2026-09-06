@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import time
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,15 +25,13 @@ from app.domains.ai.contracts import (
 from app.domains.ai.router import AIRouter
 from app.domains.learning.contracts import IndependenceLevel
 from app.domains.ramp.contracts import (
+    SUPPORT_INDEPENDENCE_MULTIPLIER,
     ElaborationSignal,
     RampAttemptFeedback,
     RampCoachingAdvice,
-    RampExerciseType,
     RampSampleAnswer,
     RampScore,
-    RampSupportLevel,
     RampTaskSpec,
-    SUPPORT_INDEPENDENCE_MULTIPLIER,
 )
 from app.domains.ramp.elaboration_engine import ElaborationEngine
 from app.domains.ramp.prompts import RampPrompts
@@ -60,6 +57,7 @@ class RampEvaluator:
         audio_metrics: dict[str, Any] | None = None,
         response_latency_ms: float | None = None,
         used_hint: bool = False,
+        measured_level: str = "N3",
     ) -> tuple[RampScore, RampAttemptFeedback]:
         """
         Returns (RampScore, RampAttemptFeedback).
@@ -85,7 +83,7 @@ class RampEvaluator:
         signals = self.elaboration_engine.detect_signals(
             transcript=transcript,
             stage=stage,
-            measured_level="N3",  # TODO: pass from session
+            measured_level=measured_level,
         )
 
         # Has reason / example (deterministic)
@@ -116,7 +114,7 @@ class RampEvaluator:
         grammar_score = ai_data.get("grammar_score", 70.0)
         completeness_ai = ai_data.get("completeness", 50.0)
         idea_quality = ai_data.get("idea_quality", 60.0)
-        errors = ai_data.get("errors", [])
+        ai_data.get("errors", [])
         correction_jp = ai_data.get("correction_jp")
         feedback_jp = ai_data.get("feedback_jp", "")
 

@@ -1,6 +1,8 @@
 from typing import Any, Protocol
+
 from pydantic import BaseModel, Field
 
+from app.domains.analytics.domain.insight_types import Insight, InsightType
 from app.domains.analytics.domain.metric_definitions import (
     ConfidenceLevel,
     MetricDefinition,
@@ -8,7 +10,6 @@ from app.domains.analytics.domain.metric_definitions import (
     MetricValue,
     TrendLabel,
 )
-from app.domains.analytics.domain.insight_types import Insight, InsightType
 
 
 class BottleneckAnalysis(BaseModel):

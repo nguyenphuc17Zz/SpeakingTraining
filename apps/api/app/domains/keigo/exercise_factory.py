@@ -5,7 +5,15 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from app.domains.keigo.social_context import Group, PersonRole, Register, Relationship, Situation, SocialContext, SpeechAct
+from app.domains.keigo.social_context import (
+    Group,
+    PersonRole,
+    Register,
+    Relationship,
+    Situation,
+    SocialContext,
+    SpeechAct,
+)
 from app.domains.keigo.transformation_engine import KeigoTransformationEngine
 
 # Scenario dimensions (small ontology, not vocabulary)

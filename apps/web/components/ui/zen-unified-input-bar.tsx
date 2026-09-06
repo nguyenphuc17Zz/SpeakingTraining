@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from "react";
 import { Mic, Send, Keyboard, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LiveAudioWaveform } from "@/components/ui/live-audio-waveform";
 
 export interface ZenUnifiedInputBarProps {
   value: string;
@@ -18,6 +19,7 @@ export interface ZenUnifiedInputBarProps {
   autoFocus?: boolean;
   submitButtonText?: string;
   showOfficeBadge?: boolean;
+  showWaveform?: boolean;
   className?: string;
   hintText?: string;
 }
@@ -35,17 +37,22 @@ export function ZenUnifiedInputBar({
   autoFocus = false,
   submitButtonText = "Gửi bài",
   showOfficeBadge = true,
+  showWaveform = true,
   className,
   hintText,
 }: ZenUnifiedInputBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastSyncedTranscriptRef = useRef<string>("");
+  const userClearedRef = useRef<boolean>(false);
 
-  // Sync speech transcript if user spoke and field is empty
+  // Sync speech transcript if user spoke and didn't explicitly clear
   useEffect(() => {
-    if (speechTranscript && !value.trim()) {
+    if (speechTranscript && speechTranscript !== lastSyncedTranscriptRef.current) {
+      lastSyncedTranscriptRef.current = speechTranscript;
+      userClearedRef.current = false;
       onChange(speechTranscript);
     }
-  }, [speechTranscript, value, onChange]);
+  }, [speechTranscript, onChange]);
 
   useEffect(() => {
     if (autoFocus && !disabled && !isEvaluating) {
@@ -53,20 +60,32 @@ export function ZenUnifiedInputBar({
     }
   }, [autoFocus, disabled, isEvaluating]);
 
+  const handleClear = () => {
+    userClearedRef.current = true;
+    lastSyncedTranscriptRef.current = speechTranscript || "";
+    onChange("");
+    inputRef.current?.focus();
+  };
+
+  const effectiveValue = userClearedRef.current && !value ? "" : (value || speechTranscript || "");
+  const hasContent = Boolean(effectiveValue.trim());
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if ((value.trim() || speechTranscript?.trim()) && !isEvaluating && !disabled) {
+      if (hasContent && !isEvaluating && !disabled) {
         onSubmit();
       }
     }
   };
 
-  const hasContent = Boolean(value.trim() || speechTranscript?.trim());
-  const effectiveValue = value || speechTranscript || "";
-
   return (
     <div className={cn("w-full space-y-1.5", className)}>
+      {showWaveform && isRecording && (
+        <div className="animate-in fade-in slide-in-from-bottom-1 duration-200">
+          <LiveAudioWaveform isRecording={isRecording} />
+        </div>
+      )}
       <div
         className={cn(
           "w-full rounded-2xl border bg-card/95 p-1.5 pl-3 shadow-xs flex items-center gap-2",
@@ -123,10 +142,10 @@ export function ZenUnifiedInputBar({
           />
 
           {/* Quick Clear button */}
-          {value.length > 0 && !disabled && !isEvaluating && (
+          {effectiveValue.length > 0 && !disabled && !isEvaluating && (
             <button
               type="button"
-              onClick={() => onChange("")}
+              onClick={handleClear}
               className="absolute right-0 text-muted-foreground/60 hover:text-foreground p-1 transition-colors"
               title="Xóa chữ đã nhập"
             >

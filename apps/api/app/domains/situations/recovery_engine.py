@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 REPAIR_PHRASES = {
     "ask_repeat": ["もう一度お願いします", "すみません、よく聞こえませんでした", "もう一度言っていただけますか"],
     "confirm": ["確認させてください", "で合っていますか"],

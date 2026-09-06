@@ -5,30 +5,28 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+# Bootstrap AI Coach Core tools (side-effect registers tools)
+import app.domains.coach.tools_impl  # noqa: F401
 from app.api.router import api_v1_router
 from app.core.config import get_settings
 from app.core.logging import logger
-
-# Active API Engine & Micro-Domain Registry
-from app.domains.personas.service import PersonaService
-from app.domains.settings.service import SettingsService
-from app.domains.users.service import UserService
-from app.infrastructure.database.base import Base
-from app.infrastructure.database.session import AsyncSessionLocal, engine
-from app.infrastructure.database.sync_schema import sync_database_schema
-from app.infrastructure.redis.client import redis_manager
-from app.shared.errors.handlers import register_error_handlers
-
 from app.domains.analytics.worker import analytics_worker
 from app.domains.conversation_intelligence.worker import analysis_worker
 from app.domains.gamification.seeds import GamificationSeeder
 from app.domains.gamification.worker import game_worker
 from app.domains.learner_memory.worker import learner_memory_worker
 from app.domains.learning.worker import learning_worker
+
+# Active API Engine & Micro-Domain Registry
+from app.domains.personas.service import PersonaService
 from app.domains.pronunciation.worker import pronunciation_worker
+from app.domains.settings.service import SettingsService
 from app.domains.shadowing.worker import shadowing_worker
-# Bootstrap AI Coach Core tools (side-effect registers tools)
-import app.domains.coach.tools_impl  # noqa: F401
+from app.domains.users.service import UserService
+from app.infrastructure.database.session import AsyncSessionLocal, engine
+from app.infrastructure.database.sync_schema import sync_database_schema
+from app.infrastructure.redis.client import redis_manager
+from app.shared.errors.handlers import register_error_handlers
 
 settings = get_settings()
 
@@ -67,6 +65,7 @@ async def lifespan(app: FastAPI):
     # Pre-warm default Whisper STT model in background so first user speech scoring is immediate
     try:
         import asyncio
+
         from app.domains.speech.model_manager import whisper_model_manager
         default_model = getattr(settings, "WHISPER_DEFAULT_MODEL", "base")
         logger.info(f"Initiating background pre-warm for Whisper model '{default_model}'...")

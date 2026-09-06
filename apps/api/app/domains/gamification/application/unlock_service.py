@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,11 +8,10 @@ from app.core.logging import logger
 from app.domains.gamification.models import (
     GameProfile,
     UnlockableDefinition,
-    UserAchievement,
     UserUnlock,
 )
 from app.domains.gamification.schemas import UnlockableDTO
-from app.shared.errors.exceptions import NotFoundException, ValidationException
+from app.shared.errors.exceptions import NotFoundException
 
 
 class UnlockService:

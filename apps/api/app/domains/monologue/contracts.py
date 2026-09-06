@@ -238,6 +238,12 @@ class SpeechMetrics(BaseModel):
     stt_confidence: float | None = None
     audio_quality: str | None = None
     word_count: int = 0
+    # International SLA Acoustic Fluency Profiler (CEFR/ACTFL standard)
+    articulation_rate_mora_sec: float | None = None
+    mean_length_of_run_mora: float | None = None
+    phonation_time_ratio: float | None = None
+    mean_pause_duration_ms: float | None = None
+    cefr_fluency_level: str | None = None
 
 
 class IdeaDensityResult(BaseModel):

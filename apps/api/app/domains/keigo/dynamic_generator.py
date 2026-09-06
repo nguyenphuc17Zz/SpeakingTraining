@@ -11,6 +11,7 @@ import json
 import random
 import uuid
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
@@ -24,15 +25,10 @@ from app.domains.ai.contracts import (
 )
 from app.domains.ai.router import AIRouter
 from app.domains.japanese.provider import get_language_provider
-from app.domains.keigo.exercise_factory import KeigoExerciseFactory, TIMER_DEFAULTS
+from app.domains.keigo.exercise_factory import KeigoExerciseFactory
 from app.domains.keigo.keigo_vocab_pool import get_all_keigo_vocab
 from app.domains.keigo.social_context import (
-    Group,
-    PersonRole,
     Register,
-    Relationship,
-    Situation,
-    SocialContext,
 )
 from app.domains.keigo.transformation_engine import KeigoTransformationEngine
 from app.domains.reflex.pressure_profiles import timer_for_level
@@ -721,7 +717,7 @@ class AIKeigoGenerator:
             resp = await self.ai_router.generate(task=AITask.KEIGO_GENERATION, request=req, user_id=user_id)
             data = json.loads(resp.text.strip())
             sentence = data.get("sentence_ja", "明日、社長にお会いします。")
-            scenario = data.get("scenario", "Đánh giá mức độ tự nhiên trong văn phòng")
+            data.get("scenario", "Đánh giá mức độ tự nhiên trong văn phòng")
             canonical = data.get("canonical_correction", sentence)
             variants = data.get("acceptable_variants", [canonical])
             trans_vi = data.get("translation_vi", "Ngày mai tôi sẽ gặp giám đốc.")

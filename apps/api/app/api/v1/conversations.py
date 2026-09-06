@@ -12,6 +12,7 @@ from app.domains.conversation.schemas import (
 from app.domains.conversation.service import ConversationService
 from app.infrastructure.database.session import get_db
 from app.shared.errors.exceptions import ValidationException
+from app.shared.validation.limits import validate_audio_payload, validate_text_input
 
 router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -44,9 +45,6 @@ async def get_conversation_session(
     """Get conversation session details and full turn history."""
     service = ConversationService(db)
     return await service.get_session(session_id)
-
-
-from app.shared.validation.limits import validate_audio_payload, validate_text_input
 
 
 @router.post("/{session_id}/audio-turn", response_model=AudioTurnResponse)

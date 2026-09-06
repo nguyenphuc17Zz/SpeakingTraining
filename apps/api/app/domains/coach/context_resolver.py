@@ -10,12 +10,10 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.analytics.application.analytics_snapshot_service import AnalyticsSnapshotService
-from app.domains.coach.context_budget import CoachContextBudget
 from app.domains.coach.contracts import CoachContext, CoachMode
 from app.domains.gamification.models import GameProfile
 from app.domains.learner_memory.models import LearnerMemory, LearnerProfile
 from app.domains.learning.models import Exercise, ExerciseAttempt, LearningGoal, LearningItem
-
 
 # Route → Mode mapping
 ROUTE_MODE_MAP: dict[str, CoachMode] = {
@@ -130,7 +128,7 @@ class CoachContextResolver:
         keywords = mode_keywords.get(mode, [])
         relevant_mems = []
         if keywords and question:
-            q_low = question.lower()
+            question.lower()
             # if question explicitly mentions はし or Uchi etc, include all
             relevant_mems = [m for m in all_mems if any(kw in (m.memory_key or "").lower() or kw in (m.statement or "").lower() for kw in keywords)] or all_mems[:5]
         else:
@@ -213,7 +211,6 @@ class CoachContextResolver:
                 # fallback: if we filtered too aggressively, take last 5 directly from DB with exercise join
                 if not filtered:
                     # try direct exercise type query
-                    from sqlalchemy.orm import selectinload
                     j_stmt = (
                         select(ExerciseAttempt)
                         .join(Exercise, Exercise.id == ExerciseAttempt.exercise_id)
@@ -338,7 +335,6 @@ class CoachContextResolver:
             pass
 
         # 7. Current exercise details
-        current_exercise = None
         current_task = None
         current_scenario = None
         learning_targets: list[str] = []
@@ -348,7 +344,6 @@ class CoachContextResolver:
             ex_res = await self.db.execute(ex_stmt)
             ex = ex_res.scalar_one_or_none()
             if ex:
-                current_exercise = ex
                 sub_mode = ex.exercise_type
                 current_task = ex.title
                 current_scenario = ex.scenario

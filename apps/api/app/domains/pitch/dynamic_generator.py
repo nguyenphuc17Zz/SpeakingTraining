@@ -10,6 +10,7 @@ import json
 import random
 import uuid
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
@@ -22,7 +23,7 @@ from app.domains.ai.contracts import (
     ResponseFormatType,
 )
 from app.domains.ai.router import AIRouter
-from app.domains.pitch.exercise_factory import PitchExerciseFactory, TIMER_DEFAULTS
+from app.domains.pitch.exercise_factory import PitchExerciseFactory
 from app.domains.pitch.resource_provider import get_pitch_provider
 from app.domains.reflex.pressure_profiles import timer_for_level
 

@@ -9,19 +9,19 @@ class MetricKey(str, Enum):
     NATURALNESS = "naturalness"
     GRAMMAR_ACCURACY = "grammar_accuracy"
     VOCABULARY_VARIETY = "vocabulary"
-    
+
     # Pronunciation Sub-dimensions
     PRONUNCIATION_OVERALL = "pronunciation_overall"
     PITCH_ACCURACY = "pitch_accuracy"
     MORA_TIMING = "mora_timing"
     INTONATION = "intonation"
-    
+
     # Conversational Dynamics
     RESPONSE_SPEED = "response_speed"
     FILLER_RATE = "filler_rate"
     SELF_CORRECTION = "self_correction"
     CONVERSATION_DEPTH = "conversation_depth"
-    
+
     # Multimodal Practice & Curriculum
     SHADOWING_SCORE = "shadowing_score"
     LEARNING_CONSISTENCY = "learning_consistency"

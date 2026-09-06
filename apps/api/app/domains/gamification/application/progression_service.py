@@ -1,15 +1,14 @@
 from datetime import datetime, timezone
-from typing import Any
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.gamification.application.achievement_engine import AchievementEngine
-from app.domains.gamification.application.anti_farming_service import AntiFarmingService
 from app.domains.gamification.application.quest_engine import QuestEngine
 from app.domains.gamification.application.streak_service import StreakService
 from app.domains.gamification.application.xp_service import XPService
 from app.domains.gamification.domain.level_curve import LevelCurve
-from app.domains.gamification.models import DailyQuestRecord, GameProfile, UserAchievement, XPTransaction
+from app.domains.gamification.models import UserAchievement, XPTransaction
 from app.domains.gamification.schemas import GameProfileDTO, XPOverviewDTO, XPTransactionDTO
 
 
@@ -52,7 +51,7 @@ class ProgressionService:
         # Total unlocked achievements count
         ach_stmt = (
             select(func.count(UserAchievement.id))
-            .where(UserAchievement.user_id == user_id, UserAchievement.is_unlocked == True)
+            .where(UserAchievement.user_id == user_id, UserAchievement.is_unlocked)
         )
         ach_res = await self.db.execute(ach_stmt)
         ach_count = int(ach_res.scalar() or 0)

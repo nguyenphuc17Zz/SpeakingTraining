@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WordDiffDisplay } from "@/features/shadowing/WordDiffDisplay";
+import { ShadowingAcousticVisualizer } from "@/features/shadowing/ShadowingAcousticVisualizer";
 import { PracticeAttemptFeedback } from "@/types/shadowing";
 import { soundFX } from "@/lib/sound-fx";
 import { cn } from "@/lib/utils";
@@ -168,6 +169,9 @@ export function ShadowingScoreDisplay({
           </div>
         </div>
       </div>
+
+      {/* 2.5 Cognitive Acoustic Lag & DTW Intonation Visualizer */}
+      <ShadowingAcousticVisualizer metrics={feedback.metrics} />
 
       {/* 3. A/B Audio Comparison Player */}
       <div className="p-2 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between gap-2">

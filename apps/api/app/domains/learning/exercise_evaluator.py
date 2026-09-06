@@ -121,6 +121,7 @@ class ExerciseEvaluator:
                     "keigo_accuracy": k_res["assessment"]["keigo_accuracy"]["score"] if k_res.get("assessment") else 0,
                     "role_accuracy": k_res["assessment"]["role_accuracy"]["score"] if k_res.get("assessment") else 0,
                     "double_keigo": k_res.get("double_keigo"),
+                    "pragmatics": k_res.get("pragmatics"),
                 }
                 # Merge into metrics
                 return ExerciseResult(

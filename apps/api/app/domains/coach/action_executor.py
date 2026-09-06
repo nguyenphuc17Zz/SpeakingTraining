@@ -7,8 +7,8 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.coach.contracts import CoachContext
-from app.domains.coach.tool_registry import coach_tool_registry
 from app.domains.coach.permissions import CoachPermissionPolicy
+from app.domains.coach.tool_registry import coach_tool_registry
 
 
 class CoachActionExecutor:

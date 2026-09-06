@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -227,6 +228,9 @@ class ReviewDecision(BaseModel):
     review_streak: int
     reason: str
     new_lifecycle: LearningItemLifecycle
+    retrievability: float | None = None
+    stability: float | None = None
+    difficulty: float | None = None
 
 
 class CurriculumUnit(BaseModel):

@@ -6,14 +6,11 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
-from app.core.logging import logger
 from app.domains.ramp.contracts import (
     ElaborationPrompt,
     ElaborationSignal,
 )
-
 
 # Reason markers in Japanese
 _REASON_MARKERS = [

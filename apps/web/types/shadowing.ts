@@ -242,6 +242,10 @@ export interface PracticeAttemptFeedback {
     target_rate_mora_sec?: number;
     tempo_score?: number;
     pitch_score?: number;
+    acoustic_lag_ms?: number | null;
+    lag_rating?: "optimal" | "too_fast" | "hesitant" | "trailing" | string | null;
+    lag_score?: number | null;
+    pitch_contour_similarity?: number | null;
     diff_tokens?: any[];
     [key: string]: any;
   };

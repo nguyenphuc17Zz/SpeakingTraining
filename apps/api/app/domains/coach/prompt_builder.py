@@ -77,7 +77,7 @@ class CoachPromptBuilder:
         system = f"{persona_guide}\\n\\n{COACH_SYSTEM_INSTRUCTION_V2}"
 
         # Select sections by budget priority (§8)
-        sections = self.budget.select_relevant_sections(ctx.current_route, question)
+        self.budget.select_relevant_sections(ctx.current_route, question)
         parts: list[str] = []
 
         # CURRENT CONTEXT (priority 1)
@@ -123,7 +123,7 @@ class CoachPromptBuilder:
         raw_metrics = ctx.metrics_summary
         wl = MODE_METRIC_WHITELIST.get(ctx.current_mode.value)
         if wl:
-            filtered_lines = [l for l in raw_metrics.splitlines() if any(k in l.split(":")[0] for k in wl)]
+            filtered_lines = [line for line in raw_metrics.splitlines() if any(k in line.split(":")[0] for k in wl)]
             if filtered_lines:
                 raw_metrics = "\n".join(filtered_lines[:6])
         trend_block = f"Bottleneck: {ctx.bottleneck_info}\nMetrics:\n{raw_metrics[:600]}\nStrengths:\n{ctx.recent_strengths[:400]}"

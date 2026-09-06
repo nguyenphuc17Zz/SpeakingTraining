@@ -1,10 +1,8 @@
-from typing import Any
 
 from app.domains.learning.contracts import (
     DifficultyLevel,
     ExerciseResult,
     ExerciseType,
-    IndependenceLevel,
     ScaffoldingLevel,
 )
 

@@ -1,4 +1,5 @@
 import asyncio
+
 from app.core.logging import logger
 from app.domains.analytics.application.analytics_snapshot_service import AnalyticsSnapshotService
 from app.domains.analytics.application.session_analytics_service import SessionAnalyticsService

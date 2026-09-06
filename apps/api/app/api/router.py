@@ -1,28 +1,28 @@
 from fastapi import APIRouter
 
 from app.api.v1.ai import router as ai_router
-from app.api.v1.analytics import router as analytics_router
 from app.api.v1.analysis import router as analysis_router
+from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audio import router as audio_router
 from app.api.v1.coach import router as coach_router
 from app.api.v1.conversations import router as conversations_router
 from app.api.v1.diagnostics import router as diagnostics_router
 from app.api.v1.game import router as game_router
 from app.api.v1.health import router as health_router
-from app.api.v1.learner import router as learner_router
 from app.api.v1.keigo import router as keigo_router
+from app.api.v1.learner import router as learner_router
 from app.api.v1.learning import router as learning_router
+from app.api.v1.monologue import router as monologue_router
 from app.api.v1.personas import router as personas_router
 from app.api.v1.pitch import router as pitch_router
-from app.api.v1.monologue import router as monologue_router
 from app.api.v1.pronunciation import router as pronunciation_router
-from app.api.v1.reflex import router as reflex_router
-from app.api.v1.situations import router as situations_router
 from app.api.v1.providers import router as providers_router
+from app.api.v1.ramp import router as ramp_router
+from app.api.v1.reflex import router as reflex_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.shadowing import router as shadowing_router
+from app.api.v1.situations import router as situations_router
 from app.api.v1.speech import router as speech_router
-from app.api.v1.ramp import router as ramp_router
 from app.api.v1.vocabulary import router as vocabulary_router
 
 api_v1_router = APIRouter(prefix="/api/v1")

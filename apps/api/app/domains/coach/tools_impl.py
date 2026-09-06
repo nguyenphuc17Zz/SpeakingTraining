@@ -6,20 +6,18 @@ from typing import Any
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
+from app.core.logging import logger
 from app.domains.analytics.application.analytics_snapshot_service import AnalyticsSnapshotService
 from app.domains.analytics.application.metric_engine import MetricEngine
 from app.domains.coach.contracts import ToolResult
-from app.domains.coach.tool_registry import coach_tool_registry, ToolDefinition
 from app.domains.coach.permissions import ToolPermission
+from app.domains.coach.tool_registry import ToolDefinition, coach_tool_registry
 from app.domains.learner_memory.models import LearnerMemory
-from app.domains.learning.learner_state_service import LearnerStateService
-from app.domains.learning.learning_item_service import LearningItemService
-from app.domains.learning.models import Exercise, ExerciseAttempt, LearningItem
-from app.domains.learning.recommendation_engine import RecommendationEngine
 from app.domains.learning.daily_plan_generator import DailyPlanGenerator
-from app.core.logging import logger
+from app.domains.learning.learning_item_service import LearningItemService
+from app.domains.learning.models import Exercise, ExerciseAttempt
+from app.domains.learning.recommendation_engine import RecommendationEngine
 
 
 # ── READ handlers ──
@@ -132,8 +130,6 @@ async def h_compare_attempts(user_id: str, db: AsyncSession, params: dict[str, A
         return ToolResult(success=True, data={"attempts": data, "comparable": comparable}, source="learning_engine", confidence=0.85 if comparable else 0.55)
     # Fallback: auto pick last 2 attempts for comparability (§35) via ComparisonEngine
     try:
-        from app.domains.analytics.application.comparison_engine import ComparisonEngine
-        from app.domains.analytics.domain.comparison_context import ComparisonContext
         # Try to get last 2 completed attempts with same context
         stmt = select(ExerciseAttempt).where(ExerciseAttempt.user_id == user_id, ExerciseAttempt.status == "completed").order_by(desc(ExerciseAttempt.completed_at)).limit(10)
         res = await db.execute(stmt)
@@ -163,7 +159,6 @@ async def h_compare_attempts(user_id: str, db: AsyncSession, params: dict[str, A
     return ToolResult(success=False, data=None, source="learning", confidence=0.0, error="Need >=2 attempt_ids")
 
 async def _get_filtered_metrics(user_id: str, db: AsyncSession, prefix: str) -> ToolResult:
-    from app.domains.analytics.application.metric_engine import MetricEngine
     me = MetricEngine(db)
     all_m = await me.get_all_metrics(user_id, period="30d")
     filtered = {k: {"value": v.value, "trend": v.trend.value, "confidence": v.confidence.value, "sample_size": v.sample_size} for k, v in all_m.items() if k.startswith(prefix)}
@@ -186,7 +181,7 @@ async def h_get_monologue_progress(user_id: str, db: AsyncSession, params: dict[
 async def h_build_practice_plan(user_id: str, db: AsyncSession, params: dict[str, Any]) -> ToolResult:
     budget = int(params.get("time_budget", params.get("duration_min", 15)))
     budget = max(5, min(60, budget))
-    goal = params.get("goal")
+    params.get("goal")
     svc = DailyPlanGenerator(db)
     plan = await svc.get_or_create_daily_plan(user_id, time_budget_minutes=budget, regenerate=False)
     # Adapt to spec §31 format
@@ -217,13 +212,13 @@ async def h_generate_exercise(user_id: str, db: AsyncSession, params: dict[str, 
             from app.domains.reflex.exercise_factory import ReflexExerciseFactory
             fac = ReflexExerciseFactory()
             if ex_type == "reflex_conjugation":
-                data = fac.generate_conjugation(verb=params.get("verb"), target_form=params.get("conjugation_target"), difficulty=difficulty, pressure_level=pressure)
+                fac.generate_conjugation(verb=params.get("verb"), target_form=params.get("conjugation_target"), difficulty=difficulty, pressure_level=pressure)
             elif ex_type == "reflex_transformation":
-                data = fac.generate_transformation(difficulty=difficulty, pressure_level=pressure)
+                fac.generate_transformation(difficulty=difficulty, pressure_level=pressure)
             elif ex_type == "reflex_context":
-                data = fac.generate_context(difficulty=difficulty, pressure_level=pressure)
+                fac.generate_context(difficulty=difficulty, pressure_level=pressure)
             else:
-                data = fac.generate_qna(difficulty=difficulty, pressure_level=pressure)
+                fac.generate_qna(difficulty=difficulty, pressure_level=pressure)
             # persist via reflex helper or generic?
             from app.api.v1.reflex import generate_reflex_exercise as gen_reflex
             ex = await gen_reflex(sub_mode=ex_type, pressure_level=pressure, difficulty=difficulty, verb=params.get("verb"), conjugation_target=params.get("conjugation_target"), timer_limit_ms=params.get("timer_limit_ms"), learning_item_key=params.get("learning_item_key"), user_id=user_id, db=db)
@@ -248,7 +243,6 @@ async def h_generate_exercise(user_id: str, db: AsyncSession, params: dict[str, 
         else:
             # generic learning generator
             from app.domains.learning.exercise_generator import ExerciseGenerator
-            from app.domains.learning.contracts import ExerciseType
             from app.domains.learning.learner_state_service import LearnerStateService
             from app.domains.learning.priority_engine import PriorityEngine
             state_svc = LearnerStateService(db)
@@ -259,7 +253,6 @@ async def h_generate_exercise(user_id: str, db: AsyncSession, params: dict[str, 
             items = await item_svc.list_items(user_id, limit=10)
             if items:
                 target = items[0]
-                from app.domains.learning.contracts import PriorityScore
                 p = PriorityEngine.calculate_item_priority(target, [])
                 gen = ExerciseGenerator(db)
                 ex = await gen.generate_exercise(user_id=user_id, priority=p, state=state, recent_signatures=[])

@@ -162,13 +162,21 @@ class KeigoEvaluator:
                 completeness=95,
                 independence=independence,
                 double_keigo=dk,
+                pragmatics=prag,
             )
-            is_perfect = assessment.overall.score >= 80 and independence == "independent" and not late_response and dk["status"] != "generally_inappropriate"
+            is_perfect = assessment.overall.score >= 80 and independence == "independent" and not late_response and dk["status"] != "generally_inappropriate" and not prag["wakimae"]["is_violation"]
             feedback = f"Chính xác! {matched or canonical} ✓"
             if dk["status"] == "context_dependent":
                 feedback += " (lưu ý: dạng này phụ thuộc ngữ cảnh)"
-            if prag["over_formal"]:
+            if prag["wakimae"]["is_violation"] and prag["wakimae"]["pedagogical_advice"]:
+                feedback += f" [{prag['wakimae']['pedagogical_advice']}]"
+            elif prag["baito_keigo"]["found"] and prag["baito_keigo"]["primary_suggestion"]:
+                feedback += f" [Lưu ý: {prag['baito_keigo']['primary_suggestion']}]"
+            elif prag["cushion_words"]["bonus_applied"]:
+                feedback += " (Rất tốt! Bạn đã sử dụng từ đệm lịch sự)"
+            elif prag["over_formal"]:
                 feedback += " — hơi trang trọng quá cho ngữ cảnh, lần sau thử ngắn gọn hơn."
+
             return {
                 "success": True,
                 "score": assessment.overall.score,
@@ -176,6 +184,7 @@ class KeigoEvaluator:
                 "feedback": feedback,
                 "evidence": [f"Matched: {matched}", f"Double-keigo: {dk['status']}", f"Pragmatics naturalness {natural:.0f}"],
                 "double_keigo": dk,
+                "pragmatics": prag,
                 "is_perfect": is_perfect,
             }
 
@@ -222,6 +231,11 @@ class KeigoEvaluator:
             if dk["status"] == "generally_inappropriate":
                 success = False
                 keigo_acc = min(keigo_acc, 35)
+            if prag["wakimae"]["is_violation"]:
+                role_acc = min(role_acc, 35)
+                ctx_fit = min(ctx_fit, 35)
+                if comp < 50 or ctx_fit < 40:
+                    success = False
             if comp < 50 or ctx_fit < 40:
                 success = False
             assessment = build_keigo_assessment(
@@ -238,6 +252,7 @@ class KeigoEvaluator:
                 completeness=comp,
                 independence=independence,
                 double_keigo=dk,
+                pragmatics=prag,
             )
             # Cap score if incomplete/context wrong
             final_score = assessment.overall.score
@@ -246,6 +261,11 @@ class KeigoEvaluator:
             if ctx_fit < 40:
                 final_score = min(final_score, 55)
             feedback = ai_eval.get("feedback", "Đánh giá AI")
+            if prag["wakimae"]["is_violation"] and prag["wakimae"]["pedagogical_advice"]:
+                feedback += f" [{prag['wakimae']['pedagogical_advice']}]"
+            elif prag["baito_keigo"]["found"] and prag["baito_keigo"]["primary_suggestion"]:
+                feedback += f" [Lưu ý: {prag['baito_keigo']['primary_suggestion']}]"
+
             evidence = ai_eval.get("evidence", [f"User: {raw}"])
             if isinstance(evidence, str):
                 evidence = [evidence]
@@ -256,7 +276,8 @@ class KeigoEvaluator:
                 "feedback": feedback,
                 "evidence": evidence,
                 "double_keigo": dk,
-                "is_perfect": success and final_score >= 80 and independence == "independent",
+                "pragmatics": prag,
+                "is_perfect": success and final_score >= 80 and independence == "independent" and not prag["wakimae"]["is_violation"],
             }
 
         # No AI, fallback deterministic fail
@@ -274,6 +295,7 @@ class KeigoEvaluator:
             completeness=40,
             independence=independence,
             double_keigo=dk,
+            pragmatics=prag,
         )
         return {
             "success": False,
@@ -282,6 +304,7 @@ class KeigoEvaluator:
             "feedback": f"Chưa chính xác. Đáp án gợi ý: {canonical or accepted[0] if accepted else '—'}",
             "evidence": [f"User: {raw}", f"Expected: {canonical}", f"Double-keigo: {dk['status']}"],
             "double_keigo": dk,
+            "pragmatics": prag,
             "is_perfect": False,
         }
 

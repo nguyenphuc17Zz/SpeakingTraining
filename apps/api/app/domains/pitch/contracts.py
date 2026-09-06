@@ -2,8 +2,6 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
-
 
 class PitchSubMode(str, Enum):
     MINIMAL_PAIR = "pitch_minimal_pair"

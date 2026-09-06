@@ -1,4 +1,7 @@
 import asyncio
+import hashlib
+import random
+import threading
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -30,11 +33,6 @@ from app.domains.providers.service import CredentialService
 from app.domains.settings.service import SettingsService
 from app.domains.users.service import UserService
 from app.shared.errors.exceptions import ValidationException
-
-
-import hashlib
-import random
-import threading
 
 
 class AIRequestDeduplicator:

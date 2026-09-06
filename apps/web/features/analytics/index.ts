@@ -5,5 +5,7 @@ export * from "./components/GoalProgressCard";
 export * from "./components/PracticeDistributionChart";
 export * from "./components/SenseiDiagnosticCard";
 export * from "./components/FourPillarsRadarCard";
+export * from "./components/ReflexEloFlowCard";
+export * from "./components/AcousticFluencyCard";
 export * from "./hooks/useAnalyticsDashboard";
 export * from "./types/analytics";

@@ -66,7 +66,7 @@ class ConstraintCompatibilityValidator:
             if c not in CONSTRAINT_POOL:
                 issues.append(f"Unknown constraint {c}")
         # genre mismatch warning (not hard fail)
-        affinity = GENRE_CONSTRAINT_AFFINITY.get(genre, [])
+        GENRE_CONSTRAINT_AFFINITY.get(genre, [])
         # allow any, but flag if completely off
         return len(issues) == 0, issues
 

@@ -218,14 +218,14 @@ export function VoicevoxEngineCard({ onEngineReload }: VoicevoxEngineCardProps) 
           </div>
           <ol className="list-decimal list-inside space-y-1 pl-1 text-[11px] leading-relaxed text-muted-foreground">
             <li>
-              Bấm nút <strong className="text-foreground">"Khởi động VOICEVOX"</strong> ở trên để hệ thống tự bật.
+              Bấm nút <strong className="text-foreground">&quot;Khởi động VOICEVOX&quot;</strong> ở trên để hệ thống tự bật.
             </li>
             <li>
               Hoặc mở thư mục <code className="font-mono text-foreground">{engine?.path || "E:\\VoiceVox"}</code> và chạy{" "}
               <code className="font-mono text-foreground font-semibold">run.exe</code>.
             </li>
             <li>
-              Quay lại đây và nhấn <strong>"Kiểm tra lại"</strong> để cập nhật danh mục giọng nói.
+              Quay lại đây và nhấn <strong>&quot;Kiểm tra lại&quot;</strong> để cập nhật danh mục giọng nói.
             </li>
           </ol>
         </div>

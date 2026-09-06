@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import base64
-import time
+import re
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
+from app.domains.audio.recording_service import AudioQualityAnalyzer
 from app.domains.monologue.ai.analyzer import MonologueAIAnalyzer
 from app.domains.monologue.analytics.pipeline import MonologuePipeline
 from app.domains.monologue.contracts import SpeechGenre
 from app.domains.monologue.scoring.speech_scoring import SpeechScoringPolicy
-from app.domains.speech.stt_router import stt_router
 from app.domains.speech.contracts import STTOptions
+from app.domains.speech.stt_router import stt_router
 
 
 class MonologueEvaluator:
@@ -44,7 +45,6 @@ class MonologueEvaluator:
         audio_bytes: bytes | None = None
         if audio_base64:
             # Strip data: prefix and whitespace, validate before decode (DoS guard)
-            import re
             b64_clean = audio_base64.strip()
             if "," in b64_clean and b64_clean.startswith("data:"):
                 b64_clean = b64_clean.split(",", 1)[1]
@@ -64,8 +64,6 @@ class MonologueEvaluator:
                 raise ValueError("Audio too large (>10MB) — please use shorter duration")
             # quick quality check
             try:
-                from app.domains.audio.recording_service import AudioQualityAnalyzer
-
                 qr = AudioQualityAnalyzer.analyze(audio_bytes)
                 has_clipping = bool(getattr(qr, "has_clipping", False))
                 snr_db = getattr(qr, "snr_db", None)

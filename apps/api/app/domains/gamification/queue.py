@@ -1,4 +1,5 @@
 import asyncio
+
 from app.core.logging import logger
 from app.domains.gamification.domain.game_event import GameEvent
 

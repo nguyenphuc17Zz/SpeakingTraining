@@ -1,18 +1,22 @@
 from datetime import datetime, timezone
-from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.logging import logger
-from app.domains.learning.contracts import DifficultyLevel, ExerciseType, LearnerLearningState, LearningItemType, PriorityScore
+from app.domains.learning.contracts import (
+    DifficultyLevel,
+    ExerciseType,
+    LearningItemType,
+    PriorityScore,
+)
 from app.domains.learning.exercise_generator import ExerciseGenerator
 from app.domains.learning.exercise_variety_policy import ExerciseVarietyPolicy
 from app.domains.learning.goal_service import GoalService
 from app.domains.learning.learner_state_service import LearnerStateService
 from app.domains.learning.learning_item_service import LearningItemService
-from app.domains.learning.models import Exercise, LearningItem, LearningPlan, LearningPlanItem
+from app.domains.learning.models import LearningPlan, LearningPlanItem
 from app.domains.learning.priority_engine import PriorityEngine
 from app.domains.learning.review_scheduler import ReviewScheduler
 

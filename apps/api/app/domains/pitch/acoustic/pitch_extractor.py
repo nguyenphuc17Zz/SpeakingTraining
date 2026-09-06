@@ -7,14 +7,12 @@ Primary: librosa.pyin (fmin 60, fmax 500), secondary: parselmouth.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 
 from app.core.logging import logger
-from app.domains.pronunciation.infrastructure.pitch_extractor import PitchExtractor as BasePitchExtractor
 from app.domains.pronunciation.contracts import PitchCurve, PitchPoint
+from app.domains.pronunciation.infrastructure.pitch_extractor import PitchExtractor as BasePitchExtractor
 
 
 class PitchExtractor:
@@ -26,13 +24,11 @@ class PitchExtractor:
         self._librosa_available = False
         self._parselmouth_available = False
         try:
-            import librosa  # type: ignore
 
             self._librosa_available = True
         except Exception:
             pass
         try:
-            import parselmouth  # type: ignore
 
             self._parselmouth_available = True
         except Exception:

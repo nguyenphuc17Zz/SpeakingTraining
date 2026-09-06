@@ -1,3 +1,12 @@
+from app.domains.analytics.contracts import (
+    AnalyticsDashboardOverview,
+    BottleneckAnalysis,
+    GoalProgressOverview,
+    PracticeDistribution,
+    WeeklyFacts,
+)
+from app.domains.analytics.domain.comparison_context import ComparisonContext
+from app.domains.analytics.domain.insight_types import Insight, InsightLifecycle, InsightType
 from app.domains.analytics.domain.metric_definitions import (
     METRIC_REGISTRY,
     ConfidenceLevel,
@@ -6,8 +15,6 @@ from app.domains.analytics.domain.metric_definitions import (
     MetricValue,
     TrendLabel,
 )
-from app.domains.analytics.domain.insight_types import Insight, InsightLifecycle, InsightType
-from app.domains.analytics.domain.comparison_context import ComparisonContext
 from app.domains.analytics.models import (
     CoachConversation,
     CoachFeedback,
@@ -16,13 +23,6 @@ from app.domains.analytics.models import (
     RecommendationRecord,
     SessionAnalyticsRecord,
     WeeklyReview,
-)
-from app.domains.analytics.contracts import (
-    AnalyticsDashboardOverview,
-    BottleneckAnalysis,
-    GoalProgressOverview,
-    PracticeDistribution,
-    WeeklyFacts,
 )
 
 __all__ = [

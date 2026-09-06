@@ -1,8 +1,6 @@
-from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.gamification.models import SkillNodeDefinition
 from app.domains.gamification.schemas import SkillNodeDTO, SkillTreeOverviewDTO
 from app.domains.learning.models import LearningItem

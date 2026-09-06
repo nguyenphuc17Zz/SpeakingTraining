@@ -159,6 +159,7 @@ function CommandPalette({ open, onClose, onAskCoach }: { open: boolean; onClose:
 }
 
 import { GlobalKeybindingsModal } from "./global-keybindings-modal";
+import { ZenHotkeyDock } from "./zen-hotkey-dock";
 import { useGlobalAudioCleanup } from "@/hooks/use-global-audio-cleanup";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -278,6 +279,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AtmosphericWeatherEngine />
       <SelectionLookupBubble />
       <AIVocabularyLookupBox />
+      <ZenHotkeyDock onOpenKeybindingsModal={() => setKeybindingsOpen(true)} />
     </div>
   );
 }

@@ -37,7 +37,7 @@ export default function QuestsPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Today's Daily ({dailyQuests.length})
+            Today&apos;s Daily ({dailyQuests.length})
           </button>
           <button
             onClick={() => setActiveTab("weekly")}

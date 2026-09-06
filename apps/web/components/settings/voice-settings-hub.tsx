@@ -29,6 +29,7 @@ import { VoiceProfile, AudioSettings, PlaybackPreset } from "@/types/audio";
 import { audioApi } from "@/features/audio/services/audio-api";
 import { useTTS } from "@/features/audio/hooks/useTTS";
 import { VoiceSelector } from "@/features/audio/components/VoiceSelector";
+import { WebSpeechStudioCard } from "./web-speech-studio-card";
 import { VoicevoxEngineCard } from "./voicevox-engine-card";
 import { STTModelManagerCard } from "@/features/audio/components/STTModelManagerCard";
 import { MicrophoneCalibrationModal } from "@/features/audio/components/MicrophoneCalibrationModal";
@@ -744,7 +745,10 @@ export function VoiceSettingsHub() {
       {/* SECTION 4: FASTER-WHISPER STT MODEL MANAGER */}
       <STTModelManagerCard />
 
-      {/* SECTION 5: VOICEVOX ENGINE CARD */}
+      {/* SECTION 5: WEB SPEECH NATIVE JAPANESE STUDIO */}
+      <WebSpeechStudioCard />
+
+      {/* SECTION 6: VOICEVOX ENGINE CARD */}
       <VoicevoxEngineCard onEngineReload={loadData} />
 
       {/* Modal: Save Custom Profile */}

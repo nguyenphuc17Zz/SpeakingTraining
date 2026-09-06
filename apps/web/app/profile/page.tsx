@@ -335,12 +335,12 @@ export default function LearnerProfilePage() {
                 <div key={e.id} className="p-3 rounded-xl bg-muted/40 border border-border/80 space-y-1.5 text-xs">
                   {e.original_snippet && (
                     <div className="text-rose-600 dark:text-rose-400 font-mono">
-                      ❌ Câu bạn nói: "{e.original_snippet}"
+                      ❌ Câu bạn nói: &quot;{e.original_snippet}&quot;
                     </div>
                   )}
                   {e.corrected_snippet && (
                     <div className="text-emerald-600 dark:text-emerald-400 font-mono">
-                      ✨ Gợi ý chuẩn: "{e.corrected_snippet}"
+                      ✨ Gợi ý chuẩn: &quot;{e.corrected_snippet}&quot;
                     </div>
                   )}
                   <div className="text-[10px] text-muted-foreground">

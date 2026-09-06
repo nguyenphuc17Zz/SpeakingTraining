@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAnalyticsDashboard } from "@/features/analytics/hooks/useAnalyticsDashboard";
+import { analyticsApi } from "@/features/analytics/services/analyticsApi";
 import {
   MetricCard,
   BottleneckCard,
@@ -11,6 +12,8 @@ import {
   PracticeDistributionChart,
   SenseiDiagnosticCard,
   FourPillarsRadarCard,
+  ReflexEloFlowCard,
+  AcousticFluencyCard,
 } from "@/features/analytics";
 import { MetricValueDTO } from "@/features/analytics/types/analytics";
 import { Badge } from "@/components/ui/badge";
@@ -37,24 +40,21 @@ export default function ProgressDashboardPage() {
   const [diagnostic, setDiagnostic] = useState<any>(null);
   const [diagnosticLoading, setDiagnosticLoading] = useState<boolean>(true);
 
-  const fetchDiagnostic = async () => {
+  const fetchDiagnostic = useCallback(async () => {
     try {
       setDiagnosticLoading(true);
-      const res = await fetch(`http://localhost:8000/api/v1/analytics/diagnostic?period=${period}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDiagnostic(data);
-      }
+      const data = await analyticsApi.getDiagnostic(period);
+      setDiagnostic(data);
     } catch (e) {
       console.warn("Failed to fetch diagnostic:", e);
     } finally {
       setDiagnosticLoading(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchDiagnostic();
-  }, [period]);
+  }, [fetchDiagnostic]);
 
   const metrics = dashboard?.metrics || {};
 
@@ -144,6 +144,12 @@ export default function ProgressDashboardPage() {
 
       {/* 3. 4-Pillar Mastery Matrix */}
       <FourPillarsRadarCard pillars={diagnostic?.pillars} />
+
+      {/* 3.1. SOTA Cognitive & Acoustic Fluency Hub */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ReflexEloFlowCard period={period} />
+        <AcousticFluencyCard metrics={metrics} diagnostic={diagnostic} />
+      </div>
 
       {/* 4. Filter Tabs & Detailed Metrics Grid */}
       <div className="space-y-4">

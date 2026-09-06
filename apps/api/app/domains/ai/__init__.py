@@ -13,6 +13,7 @@ from app.domains.ai.contracts import (
     ResponseFormat,
     ResponseFormatType,
 )
+from app.domains.ai.discovery import ModelDiscoveryService, model_discovery_service
 from app.domains.ai.errors import (
     AIProviderError,
     ProviderAuthError,
@@ -25,7 +26,6 @@ from app.domains.ai.errors import (
     ProviderUnknownError,
 )
 from app.domains.ai.health import CircuitBreakerManager, circuit_breaker_manager
-from app.domains.ai.discovery import ModelDiscoveryService, model_discovery_service
 from app.domains.ai.models import AIUsageRecord
 from app.domains.ai.prompts import BUILTIN_PROMPTS, PromptTemplate, get_prompt_template
 from app.domains.ai.registry import ModelRegistry, ProviderRegistry, provider_registry

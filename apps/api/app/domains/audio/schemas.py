@@ -1,13 +1,6 @@
 from typing import Any
+
 from pydantic import BaseModel, Field
-from app.domains.audio.contracts import (
-    AudioQualityReport,
-    AudioQualityStatus,
-    PlaybackPreset,
-    ProviderHealth,
-    VoiceCapability,
-    VoiceProfileDTO,
-)
 
 
 class VoiceProfileCreateRequest(BaseModel):

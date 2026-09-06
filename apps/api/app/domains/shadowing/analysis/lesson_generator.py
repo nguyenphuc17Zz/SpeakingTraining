@@ -1,5 +1,4 @@
 import uuid
-from typing import Any
 
 from app.domains.shadowing.contracts import (
     CandidateCategory,

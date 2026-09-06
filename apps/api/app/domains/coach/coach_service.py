@@ -5,27 +5,24 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.domains.coach.tools_impl  # noqa: F401 — bootstrap registry
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
 from app.domains.ai.router import AIRouter
+from app.domains.analytics.application.coach_intent_classifier import CoachIntentClassifier
 from app.domains.analytics.models import CoachConversation
-from app.domains.analytics.schemas import CoachAnswerDTO, CoachRecommendationDTO
 from app.domains.coach.action_executor import CoachActionExecutor
 from app.domains.coach.context_resolver import CoachContextResolver
-from app.domains.coach.contracts import CoachContext, CoachIntent, ToolResult
+from app.domains.coach.contracts import CoachContext, CoachIntent
 from app.domains.coach.memory_service import CoachMemoryService
 from app.domains.coach.planner import CoachPlanner
 from app.domains.coach.prompt_builder import CoachPromptBuilder
 from app.domains.coach.response_formatter import CoachResponseFormatter, CoachResponseMode
 from app.domains.coach.tool_registry import coach_tool_registry
-import app.domains.coach.tools_impl  # noqa: F401 — bootstrap registry
-
-from app.domains.analytics.application.coach_intent_classifier import CoachIntent as LegacyIntent, CoachIntentClassifier
 
 
 class AICoachService:

@@ -5,9 +5,9 @@ Hybrid: conjugation via JapaneseConjugationEngine, open-ended via AIRouter reuse
 
 from __future__ import annotations
 
+import difflib
 import json
 import re
-import difflib
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession

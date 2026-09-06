@@ -74,7 +74,6 @@ class FillerAnalyzer:
                     events.append(FillerEvent(token=filler, token_class=TokenClass.FILLER))
 
         total_tokens = max(1, len(tokens))
-        duration_min = 1  # will be overwritten by caller; compute per_min lazily
         # caller will compute filler_per_min from duration
         filler_ratio = round(len(events) / total_tokens, 3) if total_tokens else 0
 

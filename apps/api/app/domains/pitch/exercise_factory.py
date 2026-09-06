@@ -194,7 +194,7 @@ class PitchExerciseFactory:
     def generate_devoicing(self, difficulty: str = "normal", pressure_level: str = "normal") -> dict[str, Any]:
         item = _get_next_pitch_devoicing()
         word = item["word"]
-        entry = self.provider.lookup(word)
+        self.provider.lookup(word)
         return {
             "title": f"Devoicing: {word}",
             "objective": f"Luyện vô thanh hóa nguyên âm trong {word}",

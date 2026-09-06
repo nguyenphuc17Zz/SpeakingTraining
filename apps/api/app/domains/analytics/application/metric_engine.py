@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
-from sqlalchemy import desc, func, select
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.analytics.application.trend_analyzer import TrendAnalyzer
 from app.domains.analytics.domain.metric_definitions import (
     METRIC_REGISTRY,
     ConfidenceLevel,
@@ -10,10 +11,9 @@ from app.domains.analytics.domain.metric_definitions import (
     MetricValue,
     TrendLabel,
 )
-from app.domains.analytics.application.trend_analyzer import TrendAnalyzer
-from app.domains.conversation.models import ConversationSession, ConversationTurn
-from app.domains.conversation_intelligence.models import AnalysisCorrection, TurnAnalysis
-from app.domains.gamification.models import DailyStreakActivity, GameProfile
+from app.domains.conversation.models import ConversationSession
+from app.domains.conversation_intelligence.models import TurnAnalysis
+from app.domains.gamification.models import DailyStreakActivity
 from app.domains.learning.models import ExerciseAttempt, LearningItem
 from app.domains.pronunciation.models import PronunciationAttempt
 from app.domains.shadowing.models import ShadowingSegmentProgress
@@ -200,7 +200,7 @@ class MetricEngine:
                 quality_scores.append(round(avg_q, 1))
 
                 # Count corrections by severity / category
-                total_corrections = sum(len(a.corrections) for a in s_analyses)
+                sum(len(a.corrections) for a in s_analyses)
                 grammar_corrs = sum(
                     1 for a in s_analyses for c in a.corrections if c.category in ("grammar", "particle", "conjugation")
                 )
@@ -287,7 +287,7 @@ class MetricEngine:
 
         # Success rate
         success_scores: list[float] = [100.0 if a.success else 0.0 for a in attempts]
-        
+
         # Mastery growth
         items_stmt = select(LearningItem).where(
             LearningItem.user_id == user_id,
@@ -616,7 +616,7 @@ class MetricEngine:
         ctx_scores = []
         for a in keigo_attempts:
             mj = a.metrics_json or {}
-            keigo_mj = mj.get("keigo") or {}
+            mj.get("keigo") or {}
             # assessment not persisted, use score as proxy
             if a.score is not None:
                 nat_scores.append(float(a.score))

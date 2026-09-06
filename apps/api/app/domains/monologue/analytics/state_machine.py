@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.domains.monologue.contracts import SpeechSessionState, SPEECH_STATE_TRANSITIONS
+from app.domains.monologue.contracts import SPEECH_STATE_TRANSITIONS, SpeechSessionState
 
 
 class SpeechStateMachine:

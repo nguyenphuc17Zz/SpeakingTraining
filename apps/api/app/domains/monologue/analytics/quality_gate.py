@@ -25,7 +25,8 @@ class SpeechQualityGate:
         if speech_duration_ms is not None:
             if speech_duration_ms < 500:
                 return SpeechQualityGateResult(status="RETRY_AUDIO", reason="Audio too short (<0.5s)", has_voice=False)
-            if speech_duration_ms < 1500 and (word_count or 0) < 3:
+            min_words = 1 if target_duration_ms < 15000 else 3
+            if speech_duration_ms < 1500 and (word_count or 0) < min_words:
                 return SpeechQualityGateResult(status="RETRY_AUDIO", reason="Speech too short", stt_confidence=stt_confidence, has_voice=False)
         else:
             # fallback when duration unknown: ~0.5s at 16kHz 16-bit mono = 16000 bytes

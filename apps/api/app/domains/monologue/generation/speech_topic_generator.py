@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import random
 from typing import Any
@@ -233,7 +232,6 @@ class SpeechTopicGenerator:
             seed=seed,
         )
         # choose AITask — fall back to EXERCISE_GENERATION if new task not yet in registry
-        from app.domains.ai.contracts import AITask
 
         task = getattr(AITask, "SPEECH_GENERATION", AITask.EXERCISE_GENERATION)
         req = AIRequest(

@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.learning.curriculum_engine import CurriculumEngine
 from app.domains.learning.daily_plan_generator import DailyPlanGenerator
 from app.domains.learning.exercise_generator import ExerciseGenerator
@@ -307,9 +306,10 @@ async def get_exercise(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    session_svc = ExerciseSessionService(db)
-    stmt = select(ExerciseSessionService).where()  # query exercise
+    from sqlalchemy import select
+
     from app.domains.learning.models import Exercise
+
     ex_stmt = select(Exercise).where(Exercise.id == exercise_id, Exercise.user_id == user_id)
     res = await db.execute(ex_stmt)
     ex = res.scalar_one_or_none()
@@ -352,6 +352,7 @@ async def submit_exercise(
     # Speech monologue delegation: if exercise is speech_monologue and audio provided, route to MonologueService
     try:
         from sqlalchemy import select
+
         from app.domains.learning.models import Exercise
 
         _ex_stmt = select(Exercise).where(Exercise.id == exercise_id, Exercise.user_id == user_id)

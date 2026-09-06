@@ -132,7 +132,7 @@ export default function BossesPage() {
         </div>
       ) : filteredBosses.length === 0 ? (
         <div className="p-16 text-center text-xs text-muted-foreground border rounded-3xl">
-          Chưa có Boss nào thuộc phân loại này. Hãy bấm "Tạo Boss AI Mới"!
+          Chưa có Boss nào thuộc phân loại này. Hãy bấm &quot;Tạo Boss AI Mới&quot;!
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,16 +1,16 @@
+import zoneinfo
 from datetime import datetime, timedelta, timezone
 from typing import Any
-import zoneinfo
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
-from app.domains.gamification.domain.contracts import GameEventType, XPCategory
 from app.domains.gamification.domain.game_event import GameEvent
 from app.domains.gamification.models import DailyQuestRecord, WeeklyQuestRecord
 from app.domains.gamification.schemas import QuestDTO
-from app.domains.learning.models import LearningGoal, LearningItem
+from app.domains.learning.models import LearningItem
 from app.domains.settings.models import UserSettings
 
 

@@ -2,14 +2,13 @@ import json
 import random
 import uuid
 from typing import Any
-from sqlalchemy import select
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
 from app.domains.ai.router import AIRouter
 from app.domains.gamification.models import BossDefinition
-
 
 SAMPLE_BOSS_PROMPTS = [
     {"topic": "Thương Lượng Tăng Lương Với Trưởng Phòng Nhật", "difficulty": "hard", "level": 5},

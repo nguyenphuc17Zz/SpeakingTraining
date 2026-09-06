@@ -1,7 +1,7 @@
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.learning.contracts import CurriculumUnit, ExerciseType
 from app.domains.learning.dynamic_curriculum import AICurriculumGenerator
 from app.domains.learning.goal_service import GoalService

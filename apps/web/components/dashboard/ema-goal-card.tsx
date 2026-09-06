@@ -203,7 +203,7 @@ export function EmaGoalCard({ className }: { className?: string }) {
           </div>
         ) : (
           <p className="text-sm font-display font-black text-foreground leading-snug tracking-wide">
-            "{goalText}"
+            &quot;{goalText}&quot;
           </p>
         )}
 

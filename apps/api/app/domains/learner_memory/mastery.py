@@ -1,4 +1,3 @@
-from datetime import datetime
 from app.domains.learner_memory.models import LearnerMemory
 from app.domains.learner_memory.scorer import MemoryScorer
 

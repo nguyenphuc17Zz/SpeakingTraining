@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.domains.monologue.contracts import SpeechDurationSec, SpeechGenre
+from app.domains.monologue.contracts import SpeechGenre, SpeechTopicDomain
 
 # Genre → preferred structure (used by DiscourseStructureAnalyzer and support generation)
 GENRE_STRUCTURE: dict[SpeechGenre, list[str]] = {
@@ -67,5 +67,4 @@ GENRE_REGISTER: dict[SpeechGenre, str] = {
 ALL_GENRES: list[SpeechGenre] = list(SpeechGenre)
 
 # Conceptual topic domains — broad, not a topic list
-from app.domains.monologue.contracts import SpeechTopicDomain
 ALL_DOMAINS: list[SpeechTopicDomain] = list(SpeechTopicDomain)

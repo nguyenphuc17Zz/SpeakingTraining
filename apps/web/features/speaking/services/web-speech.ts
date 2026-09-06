@@ -48,6 +48,16 @@ export function getJapaneseWebVoices(): SpeechSynthesisVoice[] {
   });
 }
 
+export function getPreferredVoiceURI(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("hanasu-preferred-web-voice");
+}
+
+export function setPreferredJapaneseVoice(voiceURI: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("hanasu-preferred-web-voice", voiceURI);
+}
+
 /**
  * Select the best reliable local offline Japanese voice.
  * Prioritizes built-in offline OS voices (Haruka, Ichiro, Ayumi, Google 日本語, Kyoko) over flaky online/cloud voices.
@@ -56,8 +66,9 @@ export function getPreferredJapaneseVoice(preferredURI?: string): SpeechSynthesi
   const voices = getJapaneseWebVoices();
   if (voices.length === 0) return null;
 
-  if (preferredURI) {
-    const matched = voices.find((v) => v.voiceURI === preferredURI);
+  const targetURI = preferredURI || getPreferredVoiceURI();
+  if (targetURI) {
+    const matched = voices.find((v) => v.voiceURI === targetURI);
     if (matched) return matched;
   }
 

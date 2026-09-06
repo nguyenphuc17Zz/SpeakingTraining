@@ -1,12 +1,12 @@
 import math
-import re
 from typing import Any
+
 from pydantic import BaseModel, Field
 
-from app.core.logging import logger
 from app.domains.pronunciation.contracts import PronunciationResult
 from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
+from app.domains.shadowing.analysis.acoustic_lag_profiler import ShadowingLagProfiler
 
 
 class MoraDiffToken(BaseModel):
@@ -25,6 +25,11 @@ class ShadowingScoringMetrics(BaseModel):
     fluency_score: float = 0.0
     overall_score: float = 0.0
     diff_tokens: list[MoraDiffToken] = Field(default_factory=list)
+    # Cognitive Acoustic Lag & DTW Intonation metrics
+    acoustic_lag_ms: float | None = None
+    lag_rating: str | None = None
+    lag_score: float | None = None
+    pitch_contour_similarity: float | None = None
 
 
 class ShadowingEvaluationResult(BaseModel):
@@ -58,14 +63,17 @@ class ShadowingScorer:
         shadowing_mode: str = "shadow",
         playback_speed: float = 1.0,
         fallback_pron_score: float | None = None,
+        acoustic_lag_ms: float | None = None,
+        reference_pitch_semitones: list[float] | None = None,
     ) -> ShadowingEvaluationResult:
         """
         Executes end-to-end multi-dimensional Shadowing scoring:
         1. Mora & Phoneme Levenshtein Alignment (Kanji/Kana normalized)
         2. Speech Rate & Tempo matching (Mora per sec ratio)
-        3. Pitch Accent & Intonation extraction
-        4. Fluency & Pause consistency
-        5. Pedagogical feedback & actionable recommendations
+        3. Cognitive Shadowing Acoustic Lag profiling (optimal 150-400ms)
+        4. Pitch Accent & Intonation DTW contour extraction
+        5. Fluency & Pause consistency
+        6. Pedagogical feedback & actionable recommendations
         """
         clean_target = (target_text or "").strip()
         clean_user = (user_transcript or "").strip()
@@ -117,7 +125,6 @@ class ShadowingScorer:
 
         # 3. Compute Speech Rate & Tempo Score
         effective_target_dur = target_duration_sec or (num_target / 5.5)
-        # If user_duration_sec is missing or unrealistic (< 0.3s for multi-mora words, e.g. mock bytes), default gracefully
         if not user_duration_sec or user_duration_sec < 0.3:
             effective_user_dur = effective_target_dur
         else:
@@ -133,7 +140,17 @@ class ShadowingScorer:
         tempo_penalty = math.exp(-((rate_ratio - 1.0) ** 2) / (2 * (0.22 ** 2)))
         tempo_score = round(max(0.0, min(100.0, tempo_penalty * 100.0)), 1)
 
-        # 4. Pitch & Intonation Score
+        # 3.1. Acoustic Lag Profiler (Lambert 1992; Kadota 2007)
+        lag_score = None
+        lag_rating = None
+        if acoustic_lag_ms is not None:
+            lag_score = ShadowingLagProfiler.compute_lag_score(acoustic_lag_ms)
+            lag_rating = ShadowingLagProfiler.classify_lag(acoustic_lag_ms)
+            effective_timing_score = round((tempo_score * 0.60) + (lag_score * 0.40), 1)
+        else:
+            effective_timing_score = tempo_score
+
+        # 4. Pitch & Intonation Score with DTW Contour
         pitch_score = fallback_pron_score if fallback_pron_score is not None else accuracy_score
         intonation_score = fallback_pron_score if fallback_pron_score is not None else accuracy_score
         rhythm_score = fallback_pron_score if fallback_pron_score is not None else accuracy_score
@@ -145,25 +162,38 @@ class ShadowingScorer:
                 intonation_score = float(pron_result.intonation_score.score)
             if pron_result.rhythm_score and pron_result.rhythm_score.available:
                 rhythm_score = float(pron_result.rhythm_score.score)
-            if pron_result.rhythm_score and pron_result.rhythm_score.available:
-                rhythm_score = float(pron_result.rhythm_score.score)
+
+        # DTW Pitch Contour Evaluation
+        pitch_contour_sim = None
+        user_curve = None
+        if pron_result:
+            if hasattr(pron_result, "pitch_assessment") and pron_result.pitch_assessment and pron_result.pitch_assessment.pitch_curve:
+                user_curve = pron_result.pitch_assessment.pitch_curve
+            elif hasattr(pron_result, "pitch_curve") and pron_result.pitch_curve:
+                user_curve = pron_result.pitch_curve
+
+        if user_curve:
+            pitch_contour_sim = ShadowingLagProfiler.evaluate_pitch_contour(
+                user_curve, reference_pitch_semitones
+            )
+            if pitch_contour_sim is not None:
+                intonation_score = round((intonation_score * 0.6) + (pitch_contour_sim * 0.4), 1)
+
 
         pitch_combined = round((pitch_score * 0.6) + (intonation_score * 0.4), 1)
 
         # 5. Fluency & Timing Subscore
-        fluency_score = round((rhythm_score * 0.5) + (tempo_score * 0.5), 1)
+        fluency_score = round((rhythm_score * 0.5) + (effective_timing_score * 0.5), 1)
 
         # 6. Overall Weighted Score calculation based on Shadowing Mode
         if shadowing_mode == "shadow":
-            # Pure Shadowing: Tempo & Fluency are heavily weighted
             w_acc, w_tempo, w_pitch, w_fluency = 0.30, 0.25, 0.25, 0.20
         else:
-            # Listen & Shadow / Repeat: Accuracy & Pitch take precedence
             w_acc, w_tempo, w_pitch, w_fluency = 0.40, 0.15, 0.25, 0.20
 
         raw_overall = (
             (accuracy_score * w_acc)
-            + (tempo_score * w_tempo)
+            + (effective_timing_score * w_tempo)
             + (pitch_combined * w_pitch)
             + (fluency_score * w_fluency)
         )
@@ -192,6 +222,12 @@ class ShadowingScorer:
                 "practice_tip": "Đừng ngắt nguyên âm quá sớm, giữ đều hơi trong 2 nhịp.",
             })
 
+        # Analyze Acoustic Lag
+        if acoustic_lag_ms is not None and lag_rating and lag_rating != "optimal":
+            lag_issue = ShadowingLagProfiler.generate_lag_issue(acoustic_lag_ms, lag_rating)
+            if lag_issue:
+                top_issues.append(lag_issue)
+
         # Analyze Tempo / Speed
         if rate_ratio < 0.78:
             top_issues.append({
@@ -213,6 +249,8 @@ class ShadowingScorer:
             strengths.append("Độ chính xác từ vựng và âm vị xuất sắc.")
         if tempo_score >= 85:
             strengths.append(f"Tốc độ nói ({user_rate:.1f} mora/s) bám sát hoàn hảo người bản xứ.")
+        if lag_rating == "optimal" and acoustic_lag_ms is not None:
+            strengths.append(f"Độ trễ Shadowing ({acoustic_lag_ms:.0f}ms) hoàn hảo trong vùng vàng (150–400ms).")
         if pitch_combined >= 80:
             strengths.append("Ngữ điệu và cao độ tự nhiên, rõ ràng.")
 
@@ -239,7 +277,7 @@ class ShadowingScorer:
         return ShadowingEvaluationResult(
             score=overall_score,
             accuracy_score=accuracy_score,
-            timing_score=tempo_score,
+            timing_score=effective_timing_score,
             pronunciation_score=round(accuracy_score * 0.6 + pitch_combined * 0.4, 1),
             rhythm_score=fluency_score,
             feedback=feedback,
@@ -254,6 +292,10 @@ class ShadowingScorer:
                 fluency_score=fluency_score,
                 overall_score=overall_score,
                 diff_tokens=diff_tokens,
+                acoustic_lag_ms=round(acoustic_lag_ms, 1) if acoustic_lag_ms is not None else None,
+                lag_rating=lag_rating,
+                lag_score=lag_score,
+                pitch_contour_similarity=pitch_contour_sim,
             ),
             success=success,
             mastery_state=mastery_state,

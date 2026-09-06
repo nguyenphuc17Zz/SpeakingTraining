@@ -1,5 +1,5 @@
-import math
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 from app.domains.gamification.domain.balance_config import BALANCE_CONFIG

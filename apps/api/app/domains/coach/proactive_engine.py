@@ -112,6 +112,7 @@ class CoachProactiveTriggerEngine:
         if insights:
             try:
                 import uuid
+
                 from app.domains.analytics.models import InsightRecord
                 now2 = datetime.now(timezone.utc)
                 for ins in insights:

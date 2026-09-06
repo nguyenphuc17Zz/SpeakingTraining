@@ -1,16 +1,7 @@
 from datetime import datetime
 from typing import Any
-from pydantic import BaseModel, Field
 
-from app.domains.gamification.domain.contracts import (
-    AchievementRarity,
-    NotificationPriority,
-    QuestFrequency,
-    QuestStatus,
-    RankTier,
-    UnlockType,
-    XPCategory,
-)
+from pydantic import BaseModel, Field
 
 
 class GameProfileDTO(BaseModel):

@@ -12,10 +12,9 @@ from app.domains.ai.contracts import (
     AIRequest,
     ModelMetadata,
     ProviderHealth,
-    ProviderMetadata,
 )
 from app.domains.ai.discovery import model_discovery_service
-from app.domains.ai.registry import ModelRegistry, provider_registry
+from app.domains.ai.registry import provider_registry
 from app.domains.ai.router import AIRouter
 from app.domains.ai.schemas import (
     AIResponseRead,
@@ -27,10 +26,9 @@ from app.domains.ai.schemas import (
     TestConnectionResponse,
 )
 from app.domains.ai.service import AIRoutingService, AIUsageService
+from app.domains.providers.schemas import ProviderDetailRead
 from app.domains.providers.service import CredentialService
 from app.domains.users.models import User
-
-from app.domains.providers.schemas import ProviderDetailRead
 
 router = APIRouter(prefix="/ai", tags=["AI Router & Models"])
 

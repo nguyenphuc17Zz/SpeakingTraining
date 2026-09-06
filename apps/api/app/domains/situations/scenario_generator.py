@@ -8,7 +8,14 @@ import uuid
 from typing import Any
 
 from app.domains.situations.npc_generator import NPCGenerator
-from app.domains.situations.providers import ConstraintProvider, EventProvider, LocationProvider, PropProvider, RoleProvider, TaskProvider
+from app.domains.situations.providers import (
+    ConstraintProvider,
+    EventProvider,
+    LocationProvider,
+    PropProvider,
+    RoleProvider,
+    TaskProvider,
+)
 
 
 class ScenarioGenerator:

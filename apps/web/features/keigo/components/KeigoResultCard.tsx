@@ -22,6 +22,9 @@ import {
   Sparkles,
   ShieldCheck,
   Lightbulb,
+  ShieldAlert,
+  AlertCircle,
+  Scale,
 } from "lucide-react";
 import type { KeigoResult, KeigoExercise } from "../services/keigo-api";
 import { speakJapaneseText, stopWebSpeech } from "@/features/speaking/services/web-speech";
@@ -413,6 +416,109 @@ export function KeigoResultCard({
             <div className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 flex items-center gap-1.5 font-medium">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
               <span>{anatomy.pitfallWarning}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4.5 PRAGMATICS & SOCIAL POLITENESS MATRIX (Ma trận Lịch sự & Ngữ dụng Xã hội) */}
+      {result.pragmatics && (
+        <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+            <span className="flex items-center gap-1.5">
+              <Scale className="h-3.5 w-3.5 text-primary" />
+              <span>Ma Trận Lịch Sự & Ngữ Dụng Xã Hội (Politeness Matrix)</span>
+            </span>
+            {result.pragmatics.politeness_matrix && (
+              <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                Trọng số W: {result.pragmatics.politeness_matrix.total_weight_W} ({result.pragmatics.politeness_matrix.required_formality})
+              </span>
+            )}
+          </div>
+
+          {/* Politeness Matrix HUD */}
+          {result.pragmatics.politeness_matrix && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+              <div className="p-2 rounded-xl bg-card border border-border/60 flex flex-col">
+                <span className="text-[10px] text-muted-foreground font-sans">Quyền lực (P)</span>
+                <span className="font-bold text-foreground">{result.pragmatics.politeness_matrix.power_distance_P} / 5.0</span>
+              </div>
+              <div className="p-2 rounded-xl bg-card border border-border/60 flex flex-col">
+                <span className="text-[10px] text-muted-foreground font-sans">Khoảng cách (D)</span>
+                <span className="font-bold text-foreground">{result.pragmatics.politeness_matrix.social_distance_D} / 5.0</span>
+              </div>
+              <div className="p-2 rounded-xl bg-card border border-border/60 flex flex-col">
+                <span className="text-[10px] text-muted-foreground font-sans">Độ áp đặt (R)</span>
+                <span className="font-bold text-foreground">{result.pragmatics.politeness_matrix.ranking_of_imposition_R} / 5.0</span>
+              </div>
+              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex flex-col">
+                <span className="text-[10px] text-primary font-sans font-bold">Chuẩn đề xuất</span>
+                <span className="font-bold text-primary uppercase text-[11px] truncate">{result.pragmatics.politeness_matrix.required_formality}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Wakimae In-Group Humbling Violation Alert */}
+          {result.pragmatics.wakimae?.is_violation && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold">
+                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                <span>Vi phạm Kính ngữ Tương đối (相対敬語 - Wakimae)</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-rose-800 dark:text-rose-200">
+                {result.pragmatics.wakimae.pedagogical_advice || result.pragmatics.wakimae.reason}
+              </p>
+            </div>
+          )}
+
+          {/* Baito Keigo Alert */}
+          {result.pragmatics.baito_keigo?.found && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-200 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Cảnh báo: Baito Keigo (バイト敬語 / Manual Keigo)</span>
+              </div>
+              {result.pragmatics.baito_keigo.issues?.map((issue, idx) => (
+                <div key={idx} className="text-[11px] pl-5 space-y-0.5 border-l-2 border-amber-500/40">
+                  <div className="font-semibold text-foreground">
+                    Cụm từ phát hiện: <span className="font-jp text-rose-600 dark:text-rose-400">「{issue.offending_phrase}」</span>
+                  </div>
+                  <div className="text-muted-foreground">{issue.suggestion}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Cushion Words Badge */}
+          {result.pragmatics.cushion_words?.found && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                <span>Từ đệm lịch sự (クッション言葉):</span>
+                <span className="font-jp text-emerald-800 dark:text-emerald-200 font-black">
+                  {result.pragmatics.cushion_words.detected_phrases?.join("、 ")}
+                </span>
+              </div>
+              {result.pragmatics.cushion_words.bonus_applied && (
+                <Badge variant="matcha" size="sm" className="text-[10px]">
+                  + Điểm tinh tế
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Double Keigo Alert (Detailed) */}
+          {result.doubleKeigo?.is_double_keigo && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                <span>Lặp kính ngữ (二重敬語): {result.doubleKeigo.rule || "Trùng lặp yếu tố tôn kính"}</span>
+              </div>
+              {result.doubleKeigo.recommendation && (
+                <p className="text-[11px] text-muted-foreground pl-5 font-jp">
+                  {result.doubleKeigo.recommendation}
+                </p>
+              )}
             </div>
           )}
         </div>

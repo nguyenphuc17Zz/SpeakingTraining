@@ -7,9 +7,6 @@ Particularly essential for SQLite local development where create_all does not ad
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.core.logging import logger
-from app.infrastructure.database.base import Base
-
 # Import all domain models to ensure Base.metadata and ORM registries are fully populated
 import app.domains.ai.models  # noqa
 import app.domains.analytics.models  # noqa
@@ -23,6 +20,8 @@ import app.domains.providers.models  # noqa
 import app.domains.settings.models  # noqa
 import app.domains.shadowing.models  # noqa
 import app.domains.users.models  # noqa
+from app.core.logging import logger
+from app.infrastructure.database.base import Base
 
 
 async def sync_database_schema(engine: AsyncEngine) -> None:

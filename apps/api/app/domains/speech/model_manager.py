@@ -160,18 +160,18 @@ class WhisperModelManager:
 
     @classmethod
     def get_cache_dir(cls) -> "Path":
-        from pathlib import Path
         import os
+        from pathlib import Path
         return Path(os.path.expanduser("~/.cache/huggingface/hub"))
 
     @classmethod
     def is_model_downloaded(cls, model_id: str) -> bool:
-        from pathlib import Path
         import os
+        from pathlib import Path
         cache_dir = Path(os.path.expanduser("~/.cache/huggingface/hub"))
         if not cache_dir.exists():
             return False
-        
+
         m_id = model_id.lower().strip()
         patterns = [
             f"models--Systran--faster-whisper-{m_id}",
@@ -183,7 +183,7 @@ class WhisperModelManager:
                 "models--deepdml--faster-whisper-large-v3-turbo-ct2",
                 "models--Systran--faster-whisper-turbo",
             ])
-            
+
         for pattern in patterns:
             target = cache_dir / pattern
             if target.exists():
@@ -196,7 +196,7 @@ class WhisperModelManager:
         """Returns comprehensive catalog of all Whisper models with download and hardware status."""
         device, compute = self.detect_hardware()
         is_gpu = device == "cuda"
-        
+
         models_catalog = [
             {
                 "id": "tiny",

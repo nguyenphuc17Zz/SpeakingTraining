@@ -1,13 +1,12 @@
+import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
+
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import json
-from fastapi.responses import StreamingResponse
 
 from app.domains.ai.router import AIRouter
 from app.domains.analytics.application.coach_service import CoachService
@@ -20,8 +19,8 @@ from app.domains.analytics.schemas import (
     DailyBriefingDTO,
 )
 from app.domains.coach.coach_service import AICoachService
-from app.domains.coach.tool_registry import coach_tool_registry
 from app.domains.coach.proactive_engine import CoachProactiveTriggerEngine
+from app.domains.coach.tool_registry import coach_tool_registry
 from app.infrastructure.database.session import get_db
 
 router = APIRouter(prefix="/coach", tags=["coach"])
@@ -252,7 +251,7 @@ async def create_coach_plan(
     user_id: str = Depends(get_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    svc = AICoachService(db)
+    AICoachService(db)
     # delegate to tool
     from app.domains.coach.tool_registry import coach_tool_registry
     res = await coach_tool_registry.execute("build_practice_plan", {"time_budget": req.time_budget, "goal": req.goal}, user_id, db)
@@ -360,9 +359,7 @@ async def coach_chat_stream(
     db: AsyncSession = Depends(get_db),
 ):
     """Streaming Coach response (§15) — SSE with TEXT_DELTA then final JSON."""
-    import asyncio
     from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
-    from app.domains.coach.contracts import CoachIntent
     from app.domains.coach.coach_service import AICoachService
 
     # For execute actions, return single JSON via streaming wrapper
@@ -392,7 +389,6 @@ async def coach_chat_stream(
     tool_results = await svc.planner.execute_plan(tool_plan, user_id)
 
     # Map intent to task for cost control
-    from app.domains.ai.contracts import AITask
     from app.domains.coach.contracts import CoachIntent as CIntent
     task_map = {CIntent.EXPLAIN: AITask.COACH_EXPLANATION, CIntent.TEACH: AITask.COACH_EXPLANATION, CIntent.ANALYZE: AITask.COACH_INSIGHT, CIntent.PLAN: AITask.COACH_PLAN, CIntent.RECOMMEND: AITask.COACH_PLAN}
     ai_task = task_map.get(intent, AITask.COACH_CHAT if intent in (CIntent.ASK, CIntent.GENERAL, CIntent.MOTIVATE, CIntent.PRACTICE) else AITask.COACH)

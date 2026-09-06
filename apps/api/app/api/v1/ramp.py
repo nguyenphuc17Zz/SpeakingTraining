@@ -219,7 +219,8 @@ async def get_ramp_progress(
     Historical Mode 6 progress across sessions.
     §58 Progress Visualization.
     """
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
+
     from app.domains.ramp.models import RampSessionModel
 
     stmt = (
@@ -270,7 +271,7 @@ async def get_ramp_progress(
 @router.get("/stages")
 async def get_stage_metadata():
     """Return stage descriptions for UI. §69"""
-    from app.domains.ramp.contracts import STAGE_TARGET_DURATION_SEC, STAGE_EXERCISE_TYPE
+    from app.domains.ramp.contracts import STAGE_EXERCISE_TYPE, STAGE_TARGET_DURATION_SEC
     return {
         "stages": [
             {

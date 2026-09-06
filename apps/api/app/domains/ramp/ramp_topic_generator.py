@@ -32,7 +32,6 @@ from app.domains.ramp.contracts import (
 )
 from app.domains.ramp.prompts import RampPrompts
 
-
 # ---------------------------------------------------------------------------
 # Deterministic fallback topic seeds (NOT a hard-coded dataset; these are
 # parametric templates used only when AI is unavailable)
@@ -95,7 +94,6 @@ class RampTopicGenerator:
         """Generate a topic spec. AI path first, deterministic fallback guaranteed."""
 
         domain = inp.topic_domain or self._pick_domain(inp.interests, inp.topic_history)
-        desired_sec = inp.desired_duration_sec
 
         # AI path
         for attempt in range(max_retries):
@@ -149,7 +147,7 @@ class RampTopicGenerator:
             example_response=data.get("example_response"),
         )
 
-        from app.domains.ramp.contracts import RampExerciseType, STAGE_EXERCISE_TYPE
+        from app.domains.ramp.contracts import STAGE_EXERCISE_TYPE, RampExerciseType
         ex_type = STAGE_EXERCISE_TYPE.get(inp.current_stage, RampExerciseType.SPEAK_SPONTANEOUS)
 
         try:
@@ -186,7 +184,7 @@ class RampTopicGenerator:
         pool = fresh if fresh else templates
         tpl = random.choice(pool)
 
-        from app.domains.ramp.contracts import RampExerciseType, STAGE_EXERCISE_TYPE
+        from app.domains.ramp.contracts import STAGE_EXERCISE_TYPE, RampExerciseType
         ex_type = STAGE_EXERCISE_TYPE.get(inp.current_stage, RampExerciseType.SPEAK_SPONTANEOUS)
 
         scaffold = RampScaffold(

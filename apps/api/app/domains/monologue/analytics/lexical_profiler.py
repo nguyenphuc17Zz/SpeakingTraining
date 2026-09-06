@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Any
 
 
 class JapaneseLexicalResourceProvider:
@@ -38,18 +37,16 @@ class LexicalProfiler:
     def analyze(self, transcript: str) -> dict:
         # Tokenize via language provider
         lemmas: list[str] = []
-        surfaces: list[str] = []
         if self.lang:
             try:
                 toks = self.lang.analyze(transcript)
                 lemmas = [t.lemma for t in toks if t.lemma]
-                surfaces = [t.surface for t in toks]
+                [t.surface for t in toks]
             except Exception:
                 pass
         if not lemmas:
             # fallback: regex tokens
             lemmas = re.findall(r"[一-龯ぁ-んァ-ン]+|\w+", transcript)
-            surfaces = lemmas
 
         if not lemmas:
             return {
@@ -84,7 +81,7 @@ class LexicalProfiler:
             except Exception:
                 content_lemmas = lemmas
         else:
-            content_lemmas = [l for l in lemmas if l not in {"は", "が", "を", "に", "で", "と", "の", "です", "ます"}]
+            content_lemmas = [lemma for lemma in lemmas if lemma not in {"は", "が", "を", "に", "で", "と", "の", "です", "ます"}]
         cw_uniq = len(set(content_lemmas))
         cw_variety = round(cw_uniq / max(1, len(content_lemmas)), 3) if content_lemmas else 0.0
 

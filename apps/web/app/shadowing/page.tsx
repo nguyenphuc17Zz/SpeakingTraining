@@ -250,6 +250,7 @@ export default function ShadowingPage() {
                   <div>
                     <div className="relative aspect-video w-full bg-muted overflow-hidden">
                       {vid.thumbnail_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={vid.thumbnail_url}
                           alt={vid.title}
@@ -342,7 +343,7 @@ export default function ShadowingPage() {
 
             <div className="rounded-2xl bg-muted/40 border border-border/80 p-3.5 space-y-2">
               <p className="text-xs sm:text-sm text-foreground font-bold line-clamp-2">
-                "{videoToDelete.title}"
+                &quot;{videoToDelete.title}&quot;
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Video này cùng toàn bộ các câu thoại phụ đề đã trích xuất, phân đoạn nhịp câu và dữ liệu luyện tập liên quan sẽ bị xóa vĩnh viễn khỏi thư viện.

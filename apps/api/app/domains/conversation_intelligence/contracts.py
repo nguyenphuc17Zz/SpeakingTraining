@@ -73,10 +73,38 @@ class VocabularyNote(BaseModel):
     jlpt_level: str | None = Field(default=None, description="Estimated JLPT level e.g. N3, N2.")
 
 
+class AizuchiCategory(str, Enum):
+    CONTINUER = "continuer"                       # e.g., はい, ええ, うん (keeping the channel open)
+    AGREEMENT = "agreement"                       # e.g., そうですね, おっしゃる通りです, だよね, 確かに (alignment)
+    EMOTIONAL_RESONANCE = "emotional_resonance"   # e.g., 本当ですか, へえ, まじで, すごいですね (affective response)
+    UNDERSTANDING = "understanding"               # e.g., なるほど, 理解いたしました, 分かりました (state shift)
+    TURN_INITIAL_PREFACE = "turn_initial_preface" # e.g., そうですね、実は... (smooth turn transition preface)
+    NONE = "none"
+
+
+class AizuchiRegister(str, Enum):
+    CASUAL = "casual"       # うん, まじで, だよね, そうそう, わかった
+    POLITE = "polite"       # はい, そうですね, なるほど, 本当ですか, 分かりました
+    FORMAL = "formal"       # ええ, おっしゃる通りです, 承知いたしました, 理解いたしました
+    NEUTRAL = "neutral"
+
+
+class AizuchiEvaluation(BaseModel):
+    detected_token: str | None = None
+    category: AizuchiCategory = AizuchiCategory.NONE
+    formality_register: AizuchiRegister = AizuchiRegister.NEUTRAL
+    is_turn_initial_preface: bool = False
+    is_register_appropriate: bool = True
+    clause_boundary_matched: bool = False
+    feedback_vi: str | None = None
+    naturalness_bonus: int = Field(default=0, ge=0, le=10)
+
+
 class ContextNote(BaseModel):
     persona_role: str | None = None
     formality_level: str = Field(default="appropriate", description="appropriate | too_casual | too_formal | mismatched")
     observation: str = Field(description="Observation regarding persona relationship and situational context.")
+    aizuchi_evaluation: AizuchiEvaluation | None = None
 
 
 class TurnAnalysisResult(BaseModel):
@@ -91,6 +119,7 @@ class TurnAnalysisResult(BaseModel):
     priority_issues: list[CorrectionItem] = Field(default_factory=list)
     strengths: list[str] = Field(default_factory=list, description="Mandatory positive reinforcement at turn level.")
     is_suspicious_transcript: bool = Field(default=False, description="Flagged if STT confidence was poor.")
+    aizuchi: AizuchiEvaluation | None = None
     prompt_version: str = "conversation.analysis.v1"
     analyzer_version: str = "1.0.0"
     provider: str | None = None

@@ -1,6 +1,7 @@
 import base64
+import logging
 import os
-from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,8 @@ from app.domains.audio.tts_service import tts_service
 from app.domains.audio.voice_service import VoiceService
 from app.domains.users.service import UserService
 from app.infrastructure.database.session import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/audio", tags=["audio"])
 
@@ -305,6 +308,7 @@ async def start_voicevox_engine(db: AsyncSession = Depends(get_db)):
     import asyncio
     import subprocess
     import sys
+
     from app.domains.speech.adapters.voicevox import VoicevoxAdapter
 
     user_service = UserService(db)

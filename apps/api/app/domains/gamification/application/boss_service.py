@@ -1,15 +1,13 @@
-from datetime import datetime, timezone
 import json
+from datetime import datetime, timezone
 from typing import Any
-from sqlalchemy import desc, func, select
+
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
 from app.domains.ai.router import AIRouter
-from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
-from app.domains.gamification.domain.contracts import GameEventSource, GameEventType, XPCategory
-from app.domains.gamification.domain.game_event import GameEvent
 from app.domains.gamification.models import BossAttempt, BossDefinition, GameProfile
 from app.domains.gamification.schemas import BossAttemptResultDTO, BossDTO, BossStartResponseDTO
 from app.domains.learning.models import Exercise, ExerciseAttempt
@@ -164,7 +162,7 @@ class BossService:
         prev_clear_stmt = select(BossAttempt).where(
             BossAttempt.user_id == user_id,
             BossAttempt.boss_id == boss.id,
-            BossAttempt.passed == True,
+            BossAttempt.passed,
         )
         prev_clear_res = await self.db.execute(prev_clear_stmt)
         had_cleared_before = len(list(prev_clear_res.scalars().all())) > 0

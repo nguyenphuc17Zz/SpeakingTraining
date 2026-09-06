@@ -1,11 +1,7 @@
-from typing import Any
 
 from app.domains.conversation_intelligence.models import (
-    AnalysisCorrection,
-    GrammarNote,
     SessionAnalysis,
     TurnAnalysis,
-    VocabularyNote,
 )
 from app.domains.learner_memory.contracts import MemoryCandidate, MemoryType
 from app.domains.learner_memory.key_resolver import MemoryKeyResolver

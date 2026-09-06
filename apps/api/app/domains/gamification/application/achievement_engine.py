@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
-from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
-from app.domains.gamification.domain.contracts import AchievementRarity, GameEventType
 from app.domains.gamification.domain.game_event import GameEvent
 from app.domains.gamification.models import (
     AchievementDefinition,
@@ -124,7 +123,7 @@ class AchievementEngine:
             elif cond_type == "boss_cleared_count":
                 b_stmt = select(func.count(BossAttempt.id)).where(
                     BossAttempt.user_id == user_id,
-                    BossAttempt.passed == True,
+                    BossAttempt.passed,
                 )
                 b_res = await self.db.execute(b_stmt)
                 current_val = float(b_res.scalar() or 0)

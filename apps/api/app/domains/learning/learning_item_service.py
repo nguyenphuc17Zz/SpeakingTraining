@@ -16,7 +16,7 @@ from app.domains.learning.mastery_engine import MasteryEngine
 from app.domains.learning.models import LearningItem
 from app.domains.learning.priority_engine import PriorityEngine
 from app.domains.learning.review_scheduler import ReviewScheduler
-from app.shared.errors.exceptions import NotFoundException, ValidationException
+from app.shared.errors.exceptions import NotFoundException
 
 
 class LearningItemService:

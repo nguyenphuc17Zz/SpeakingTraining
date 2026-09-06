@@ -89,7 +89,7 @@ class AIUsageService:
         # 1. Single aggregate query directly in database
         agg_stmt = select(
             func.count(AIUsageRecord.id).label("total_requests"),
-            func.sum(case((AIUsageRecord.success == True, 1), else_=0)).label("successful_requests"),
+            func.sum(case((AIUsageRecord.success, 1), else_=0)).label("successful_requests"),
             func.coalesce(func.sum(AIUsageRecord.input_tokens), 0).label("total_input_tokens"),
             func.coalesce(func.sum(AIUsageRecord.output_tokens), 0).label("total_output_tokens"),
             func.coalesce(func.sum(AIUsageRecord.total_tokens), 0).label("total_tokens"),

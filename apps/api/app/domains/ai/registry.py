@@ -1,3 +1,4 @@
+from enum import Enum
 
 from app.domains.ai.adapters.gemini import GeminiAdapter
 from app.domains.ai.adapters.groq import GroqAdapter
@@ -34,10 +35,6 @@ class ProviderRegistry:
 
     def has_provider(self, provider_id: str) -> bool:
         return provider_id.lower().strip() in self._providers
-
-
-from enum import Enum
-
 
 class TaskTier(str, Enum):
     FAST = "fast"          # High speed, low latency, low cost (e.g. grammar correction, translation, quick suggestions)

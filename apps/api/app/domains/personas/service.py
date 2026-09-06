@@ -1,7 +1,7 @@
+import json
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import json
 
 from app.domains.personas.models import Persona
 from app.domains.personas.schemas import PersonaCreate, PersonaGenerateRequest, PersonaGenerateResponse, PersonaUpdate

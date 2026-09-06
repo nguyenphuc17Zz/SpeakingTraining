@@ -2,7 +2,6 @@ from typing import Any
 
 from app.domains.learning.contracts import ExerciseType, LearningItemType
 
-
 EXERCISE_TEMPLATES: dict[str, dict[str, Any]] = {
     # 1. Grammar Roleplay Template (v1)
     "roleplay.grammar.v1": {

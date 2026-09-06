@@ -28,7 +28,6 @@ class MoraAligner:
         self._mora_analyzer = JapaneseMoraAnalyzer()
         self._whisperx_available = False
         try:
-            import whisperx  # type: ignore
 
             self._whisperx_available = True
         except Exception:

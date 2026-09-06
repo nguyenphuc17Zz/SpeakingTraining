@@ -1,12 +1,11 @@
-from datetime import date, datetime, timedelta, timezone
-from typing import Any
 import zoneinfo
-from sqlalchemy import desc, func, select
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
-from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
-from app.domains.gamification.domain.contracts import GameEventType, XPCategory
 from app.domains.gamification.models import DailyStreakActivity, GameProfile
 from app.domains.settings.models import UserSettings
 from app.domains.users.models import User

@@ -26,8 +26,15 @@ class SituationalEvaluator:
 
     def _get_ai(self):
         if self._ai_router is None:
+            from app.domains.ai.contracts import (
+                AIMessage,
+                AIMessageRole,
+                AIRequest,
+                AITask,
+                ResponseFormat,
+                ResponseFormatType,
+            )
             from app.domains.ai.router import AIRouter
-            from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
 
             self._ai_router = (AIRouter, AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType)
         return self._ai_router
@@ -46,7 +53,7 @@ class SituationalEvaluator:
         independence: str = "independent",
     ) -> dict[str, Any]:
         raw = (user_transcript or "").strip()
-        norm = _norm(raw)
+        _norm(raw)
 
         # Extract situational config
         situ_cfg = {}

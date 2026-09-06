@@ -32,7 +32,7 @@ REM 0. Kill old processes first (always)
 echo [0/4] Dang dung cac tien trinh cu tren 8000/3000 (neu co)...
 call :KILL_PORT 8000 "FastAPI Backend"
 call :KILL_PORT 3000 "Next.js Web"
-ping 127.0.0.1 -n 3 >nul
+ping 127.0.0.1 -n 2 >nul
 
 REM 1. Ensure .env
 echo [1/4] Kiem tra .env...
@@ -64,9 +64,12 @@ if not exist "%WEB_DIR%\.env.local" (
 REM 2. Python venv
 echo [2/4] Kiem tra moi truong Python Backend...
 if exist "%API_DIR%\.venv\Scripts\python.exe" (
-    echo   - Da co .venv, kiem tra thu vien...
+    echo   - Da co .venv Backend (khoi dong nhanh, bo qua cai lai pip).
     set PYTHON_EXE=%API_DIR%\.venv\Scripts\python.exe
-    "%PYTHON_EXE%" -m pip install -e "%API_DIR%" >nul 2>&1
+    if /i "%~1"=="install" (
+        echo   - Dang cap nhat thu vien backend theo yeu cau...
+        "%PYTHON_EXE%" -m pip install -e "%API_DIR%"
+    )
 ) else (
     echo   - Chua co .venv, dang tao moi...
     where python >nul 2>&1
@@ -109,17 +112,21 @@ if not exist "%WEB_DIR%\node_modules" (
     popd
 ) else (
     echo   - Da co node_modules
+    if /i "%~1"=="install" (
+        echo   - Dang cap nhat thu vien frontend theo yeu cau...
+        pushd "%WEB_DIR%" && call npm install && popd
+    )
 )
 
 REM 4. Launch services
 echo [4/4] Khoi dong dich vu...
 echo   - Backend FastAPI: http://localhost:8000 ^(docs: /docs^)
 start "Hanasu AI - FastAPI Backend (8000)" cmd /k "cd /d %API_DIR% && call .venv\Scripts\activate && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
-ping 127.0.0.1 -n 4 >nul
+ping 127.0.0.1 -n 2 >nul
 
 echo   - Frontend Next.js: http://localhost:3000
 start "Hanasu AI - Next.js Web (3000)" cmd /k "cd /d %WEB_DIR% && npm run dev"
-ping 127.0.0.1 -n 5 >nul
+ping 127.0.0.1 -n 2 >nul
 
 echo.
 echo   Dang mo trinh duyet...
@@ -195,19 +202,21 @@ echo.
 call :STATUS_PORT 8000 "Backend FastAPI (8000)"
 call :STATUS_PORT 3000 "Frontend Next.js (3000)"
 echo.
-echo   [1] Auto Start (kill cu + chay het)
+echo   [1] Auto Start (kill cu + chay nhanh)
 echo   [2] Dung toan bo
 echo   [3] Khoi dong lai
 echo   [4] Xoa .next va khoi dong lai
 echo   [5] Mo browser http://localhost:3000
+echo   [6] Cap nhat / Cai lai dependencies (pip + npm)
 echo   [0] Thoat
 echo ====================================================================
-set /p CHOICE="Chon [1-5,0]: "
+set /p CHOICE="Chon [0-6]: "
 if "%CHOICE%"=="1" goto :AUTO_START
 if "%CHOICE%"=="2" goto :STOP_SERVICES
 if "%CHOICE%"=="3" goto :RESTART_SERVICES
 if "%CHOICE%"=="4" goto :CLEAN_RESTART
 if "%CHOICE%"=="5" start "" http://localhost:3000 & goto :MENU
+if "%CHOICE%"=="6" call :AUTO_START install
 if "%CHOICE%"=="0" exit /b 0
 goto :MENU
 

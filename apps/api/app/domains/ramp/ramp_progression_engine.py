@@ -10,8 +10,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
-from app.domains.learning.contracts import ExerciseResult, IndependenceLevel
 from app.domains.learning.mastery_engine import MasteryEngine
 from app.domains.ramp.contracts import (
     RampAttemptFeedback,
@@ -20,7 +18,6 @@ from app.domains.ramp.contracts import (
 )
 from app.domains.ramp.models import RampSessionModel
 from app.domains.ramp.stage_engine import RampStageEngine
-
 
 # ---------------------------------------------------------------------------
 # Derived skill keys tracked in MasteryEngine (§62)

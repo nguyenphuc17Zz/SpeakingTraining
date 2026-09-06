@@ -4,11 +4,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.domains.shadowing.contracts import (
-    CandidateCategory,
-    DifficultyReport,
-    ExtractedGrammar,
-    ExtractedVocabulary,
-    NaturalExpression,
     ShadowingCandidate,
     SpeakingDifficulty,
     TranscriptSegmentDTO,
@@ -140,6 +135,7 @@ class SegmentPracticeCompleteResponse(BaseModel):
     mastery: str = "practicing"
     mastery_delta: float = 0.0
     review_scheduled_at: datetime | None = None
+    metrics: dict[str, Any] | None = None
 
 
 class SegmentTranslateRequest(BaseModel):

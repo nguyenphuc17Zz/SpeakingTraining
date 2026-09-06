@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import re
-import time
 from typing import Any
 
+from app.core.logging import logger
+from app.domains.japanese.provider import get_language_provider
 from app.domains.monologue.analytics.discourse_analyzer import DiscourseStructureAnalyzer
 from app.domains.monologue.analytics.filler_analyzer import FillerAnalyzer
 from app.domains.monologue.analytics.idea_density import IdeaDensityAnalyzer
@@ -15,6 +15,7 @@ from app.domains.monologue.analytics.quality_gate import SpeechQualityGate
 from app.domains.monologue.analytics.rate_analyzer import SpeechRateAnalyzer
 from app.domains.monologue.analytics.self_repair_analyzer import SelfRepairAnalyzer
 from app.domains.monologue.contracts import SpeechGenre
+from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
 
 
 class MonologuePipeline:
@@ -26,6 +27,13 @@ class MonologuePipeline:
         self.repair_analyzer = SelfRepairAnalyzer()
         self.lexical_profiler = LexicalProfiler()
         self.discourse_analyzer = DiscourseStructureAnalyzer()
+        try:
+            self.mora_analyzer: JapaneseMoraAnalyzer | None = JapaneseMoraAnalyzer()
+            self.lang_provider = get_language_provider()
+        except Exception as e:
+            logger.debug(f"[MonologuePipeline] Language/mora init failed: {e}")
+            self.mora_analyzer = None
+            self.lang_provider = None
 
     async def analyze_transcript(
         self,
@@ -68,22 +76,16 @@ class MonologuePipeline:
 
         # 5. Rate (mora via provider if available) — no char-count fallback (hard error)
         mora_count = None
-        try:
-            from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
+        if self.mora_analyzer and self.lang_provider:
+            try:
+                reading = self.lang_provider.get_reading(transcript) or transcript
+                moras = self.mora_analyzer.segment_moras(reading)
+                mora_count = len(moras)
+            except Exception as e:
+                logger.debug(f"[MonologuePipeline] mora count failed: {e}")
+                mora_count = None
 
-            ma = JapaneseMoraAnalyzer()
-            from app.domains.japanese.provider import get_language_provider
-
-            lang = get_language_provider()
-            reading = lang.get_reading(transcript) or transcript
-            moras = ma.segment_moras(reading)
-            mora_count = len(moras)
-        except Exception as e:
-            from app.core.logging import logger
-            logger.debug(f"[MonologuePipeline] mora count failed: {e}")
-            mora_count = None
-
-        rate = SpeechRateAnalyzer.analyze(transcript, speech_duration_ms, mora_count, words)  # type: ignore
+        rate = SpeechRateAnalyzer.analyze(transcript, speech_duration_ms, mora_count, words, pause_events)  # type: ignore
 
         # 6. Idea density
         idea = IdeaDensityAnalyzer.analyze(transcript)
@@ -123,6 +125,11 @@ class MonologuePipeline:
             "total_tokens": rate["total_tokens"],
             "mora_count": mora_count,
             "rate_quality": rate["rate_quality"],
+            "articulation_rate_mora_sec": rate.get("articulation_rate_mora_sec"),
+            "phonation_time_ratio": rate.get("phonation_time_ratio"),
+            "mean_length_of_run_mora": rate.get("mean_length_of_run_mora"),
+            "mean_pause_duration_ms": rate.get("mean_pause_duration_ms"),
+            "cefr_fluency_level": rate.get("cefr_fluency_level"),
             "pause_events": [e.model_dump() if hasattr(e, "model_dump") else e for e in pause_events],
             "pause_summary": pause_summary,
             "filler_events": [e.model_dump() if hasattr(e, "model_dump") else e for e in filler_events],
@@ -138,6 +145,11 @@ class MonologuePipeline:
                 "chars_per_min": rate["chars_per_min"],
                 "tokens_per_min": rate["tokens_per_min"],
                 "mora_per_sec": rate["mora_per_sec"],
+                "articulation_rate_mora_sec": rate.get("articulation_rate_mora_sec"),
+                "phonation_time_ratio": rate.get("phonation_time_ratio"),
+                "mean_length_of_run_mora": rate.get("mean_length_of_run_mora"),
+                "mean_pause_duration_ms": rate.get("mean_pause_duration_ms"),
+                "cefr_fluency_level": rate.get("cefr_fluency_level"),
                 "pause_count": pause_summary["total"],
                 "filler_count": len(filler_events),
                 "filler_per_min": filler_per_min,
@@ -154,7 +166,7 @@ class MonologuePipeline:
             "discourse": discourse,
             "coherence_deterministic": coherence,
             "fluency_timeline": fluency_timeline,
-            "filler_timeline": sorted(filler_timeline, key=lambda x: x["at_ms"]),
+            "filler_timeline": filler_timeline,
             "quality_gate": quality.model_dump() if hasattr(quality, "model_dump") else quality,
         }
 

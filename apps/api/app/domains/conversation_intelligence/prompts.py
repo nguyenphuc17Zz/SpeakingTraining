@@ -1,6 +1,5 @@
 """Prompt templates and versioning for Japanese Conversation Intelligence."""
 
-import json
 from typing import Any
 
 from app.domains.conversation_intelligence.contracts import ConversationAnalysisInput

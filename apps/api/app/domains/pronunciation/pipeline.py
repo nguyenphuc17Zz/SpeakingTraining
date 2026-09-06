@@ -1,5 +1,4 @@
 import time
-from typing import Any
 
 from app.core.logging import logger
 from app.domains.pronunciation.analyzers.intonation_analyzer import IntonationAnalyzer
@@ -9,11 +8,9 @@ from app.domains.pronunciation.analyzers.pitch_analyzer import PitchAnalyzerComp
 from app.domains.pronunciation.analyzers.rhythm_analyzer import RhythmAnalyzer
 from app.domains.pronunciation.contracts import (
     AnalysisConfidenceLevel,
-    AudioQualityReport,
     PronunciationAnalysisPolicy,
     PronunciationResult,
     PronunciationTarget,
-    ReferenceType,
 )
 from app.domains.pronunciation.feedback.feedback_generator import PronunciationFeedbackGenerator
 from app.domains.pronunciation.infrastructure.alignment_engine import AlignmentEngine
@@ -49,7 +46,7 @@ class PronunciationPipeline:
 
         # 1. Preprocess audio
         samples, sr, duration_sec = AudioPreprocessor.load_and_preprocess(audio_bytes)
-        duration_ms = int(duration_sec * 1000)
+        int(duration_sec * 1000)
 
         # 2. Audio Quality Validation
         quality_report = AudioQualityAnalyzer.analyze_quality(samples, sr)

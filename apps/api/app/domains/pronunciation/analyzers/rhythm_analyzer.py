@@ -1,5 +1,3 @@
-from typing import Any
-import numpy as np
 
 from app.domains.pronunciation.contracts import (
     AnalysisConfidenceLevel,
@@ -52,7 +50,7 @@ class RhythmAnalyzer:
 
         # Pause classification
         hesitation_pauses = [p for p in pauses if p[2] >= 450]  # Pause > 450ms
-        natural_pauses = [p for p in pauses if p[2] < 450]
+        [p for p in pauses if p[2] < 450]
 
         # Rate penalty
         rate_score = 95.0

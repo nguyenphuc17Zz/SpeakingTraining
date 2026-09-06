@@ -73,4 +73,9 @@ export const gameApi = {
       method: "PUT",
       body: JSON.stringify(settings),
     }),
+  generateBoss: (payload: { topic: string; difficulty: string; required_level: number }): Promise<BossDTO> =>
+    fetchJson<BossDTO>("/game/bosses/generate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };

@@ -140,15 +140,15 @@ class PyOpenJTalkProvider:
             return None
         try:
             # pyopenjtalk.extract_fullcontext returns full-context labels
-            labels = self._oj.extract_fullcontext(text)
+            self._oj.extract_fullcontext(text)
             # Parse accent: labels contain "/A:xx+yy+zz" where xx is accent position? Simplified
             # Use pyopenjtalk.g2p for reading/mora
-            g2p = self._oj.g2p(text, kana=False)  # returns phoneme?
+            self._oj.g2p(text, kana=False)  # returns phoneme?
             # Fallback to sudachi for mora
             from app.domains.japanese.provider import get_language_provider
 
             lang = get_language_provider()
-            reading = lang.get_reading(text) or text
+            lang.get_reading(text) or text
             # Estimate mora via reading length
             # For MVP, delegate to Sudachi provider for moras, but mark provenance as pyopenjtalk
             sudachi = SudachiPitchProvider()

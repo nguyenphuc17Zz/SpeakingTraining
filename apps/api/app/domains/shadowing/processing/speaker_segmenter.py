@@ -1,4 +1,5 @@
 import re
+
 from app.domains.shadowing.contracts import TranscriptSegmentDTO
 
 

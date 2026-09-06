@@ -13,9 +13,7 @@ from app.domains.speech.contracts import (
     STTResult,
     WordTimestamp,
 )
-from app.domains.speech.errors import STTProviderError, STTUnavailableError
-
-
+from app.domains.speech.errors import STTProviderError
 from app.domains.speech.model_manager import whisper_model_manager
 
 

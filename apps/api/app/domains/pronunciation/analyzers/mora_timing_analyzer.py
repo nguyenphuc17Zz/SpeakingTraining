@@ -6,7 +6,6 @@ from app.domains.pronunciation.contracts import (
     MoraUnit,
     PronunciationScoreComponent,
 )
-from app.domains.pronunciation.japanese.issue_taxonomy import JapaneseIssueType
 
 
 class MoraTimingAnalyzer:

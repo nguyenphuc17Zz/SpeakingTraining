@@ -1,8 +1,7 @@
 import io
 import math
-import struct
 import wave
-from typing import Any
+
 import numpy as np
 
 from app.core.logging import logger

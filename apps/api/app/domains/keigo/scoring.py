@@ -29,6 +29,7 @@ class KeigoAssessment:
     provenance: dict[str, Any] | None = None
     timed_out: bool = False
     late_response: bool = False
+    pragmatics: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         def d(x: Dim): return {"score": x.score, "confidence": x.confidence, "evidence": x.evidence}
@@ -47,6 +48,7 @@ class KeigoAssessment:
             "provenance": self.provenance,
             "timed_out": self.timed_out,
             "late_response": self.late_response,
+            "pragmatics": self.pragmatics,
         }
 
 
@@ -67,19 +69,58 @@ def _reaction_score(latency, timer, conf):
     if not timer:
         return Dim(75, 0.6, [f"Latency {latency:.0f}ms"])
     r = latency / timer
-    if r < 0.4: s = 95
-    elif r < 0.6: s = 85
-    elif r < 0.8: s = 72
-    elif r < 1.0: s = 58
-    else: s = 32
+    if r < 0.4:
+        s = 95
+    elif r < 0.6:
+        s = 85
+    elif r < 0.8:
+        s = 72
+    elif r < 1.0:
+        s = 58
+    else:
+        s = 32
     return Dim(float(s), 0.85, [f"Reaction {latency:.0f}ms / {timer}ms"])
 
 
-def build_keigo_assessment(sub_mode: str, *, reaction_latency_ms, timer_limit_ms, speech_confidence, role_accuracy=80, register_accuracy=80, keigo_accuracy=80, grammar=80, naturalness=80, context_fit=80, completeness=80, independence="independent", timed_out=False, late_response=False, double_keigo=None) -> KeigoAssessment:
+def build_keigo_assessment(
+    sub_mode: str,
+    *,
+    reaction_latency_ms,
+    timer_limit_ms,
+    speech_confidence,
+    role_accuracy=80,
+    register_accuracy=80,
+    keigo_accuracy=80,
+    grammar=80,
+    naturalness=80,
+    context_fit=80,
+    completeness=80,
+    independence="independent",
+    timed_out=False,
+    late_response=False,
+    double_keigo=None,
+    pragmatics=None,
+) -> KeigoAssessment:
     if timed_out:
         role = Dim(10, 0.9, ["Timed out"])
         overall = Dim(15, 0.9, ["Timed out"])
-        return KeigoAssessment(role, Dim(10,0.9,[]), Dim(0,0.9,[]), Dim(0,0.9,[]), Dim(0,0.9,[]), Dim(0,0.9,[]), Dim(10,0.9,["Timed out"]), Dim(50,0.5,[]), Dim(20,0.9,[]), overall, double_keigo, None, True, False, reaction_latency_ms, None, timer_limit_ms)
+        return KeigoAssessment(
+            role_accuracy=role,
+            register_accuracy=Dim(10, 0.9, []),
+            keigo_accuracy=Dim(0, 0.9, []),
+            grammar=Dim(0, 0.9, []),
+            naturalness=Dim(0, 0.9, []),
+            context_fit=Dim(0, 0.9, []),
+            reaction=Dim(10, 0.9, ["Timed out"]),
+            independence=Dim(50, 0.5, []),
+            completeness=Dim(20, 0.9, []),
+            overall=overall,
+            double_keigo=double_keigo,
+            provenance=None,
+            timed_out=True,
+            late_response=False,
+            pragmatics=pragmatics,
+        )
 
     def mk(v, ev=""): return Dim(float(v), 0.85, [ev])
     reaction_dim = _reaction_score(reaction_latency_ms, timer_limit_ms, speech_confidence)
@@ -122,4 +163,5 @@ def build_keigo_assessment(sub_mode: str, *, reaction_latency_ms, timer_limit_ms
         provenance=None,
         timed_out=timed_out,
         late_response=late_response,
+        pragmatics=pragmatics,
     )

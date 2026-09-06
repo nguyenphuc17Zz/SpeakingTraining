@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +54,7 @@ class GamificationNotificationService:
         """Fetches pending unread notifications ordered by priority and time."""
         stmt = (
             select(RewardNotification)
-            .where(RewardNotification.user_id == user_id, RewardNotification.is_read == False)
+            .where(RewardNotification.user_id == user_id, not RewardNotification.is_read)
             .order_by(desc(RewardNotification.created_at))
             .limit(limit)
         )

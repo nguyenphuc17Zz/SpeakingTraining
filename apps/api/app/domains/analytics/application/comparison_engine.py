@@ -1,4 +1,3 @@
-from typing import Sequence
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

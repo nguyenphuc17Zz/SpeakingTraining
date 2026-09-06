@@ -30,7 +30,7 @@ class AudioQualityAnalyzer:
 
         duration_ms = int((len(samples) / float(sample_rate)) * 1000)
         rms = float(np.sqrt(np.mean(samples**2)))
-        peak = float(np.max(np.abs(samples)))
+        float(np.max(np.abs(samples)))
 
         # Clipping analysis
         clipped_samples = np.sum(np.abs(samples) >= cls.CLIPPING_THRESHOLD)

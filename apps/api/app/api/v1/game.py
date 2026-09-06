@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +31,6 @@ from app.domains.gamification.schemas import (
 )
 from app.domains.users.service import UserService
 from app.infrastructure.database.session import get_db
-from app.shared.errors.exceptions import NotFoundException
 
 router = APIRouter(prefix="/game", tags=["Gamification & RPG"])
 
@@ -272,7 +272,6 @@ async def update_game_settings(
         show_xp_popups=settings.show_xp_popups,
     )
 
-from pydantic import BaseModel
 
 class GenerateBossRequest(BaseModel):
     topic: str | None = None

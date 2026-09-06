@@ -1,10 +1,8 @@
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
 
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.learning.models import LearningGoal
 from app.shared.errors.exceptions import NotFoundException, ValidationException
 

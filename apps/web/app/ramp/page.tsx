@@ -26,6 +26,7 @@ import {
 import dynamic from "next/dynamic";
 import { useRamp } from "@/hooks/use-ramp";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
+import { convertToWavBlob } from "@/features/audio";
 import { RampStageIndicator } from "@/features/speaking/components/RampStageIndicator";
 import { RampScaffoldPanel } from "@/features/speaking/components/RampScaffoldPanel";
 import { RampFeedbackCard } from "@/features/speaking/components/RampFeedbackCard";
@@ -118,6 +119,20 @@ export default function RampPage() {
   const recStartRef = useRef<number | null>(null);
   const phaseRef = useRef(ramp.phase);
   useEffect(() => { phaseRef.current = ramp.phase; }, [ramp.phase]);
+
+  const recorderRef = useRef(recorder);
+  useEffect(() => {
+    recorderRef.current = recorder;
+  });
+
+  // Guaranteed microphone, animation, and speech cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopWebSpeech();
+      recorderRef.current.releaseMicrophone();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   // System keybindings
   const { matchesAction } = useSystemKeybindings();
@@ -230,8 +245,13 @@ export default function RampPage() {
 
     if (blob && blob.size > 1000) {
       try {
-        audio_base64 = await blobToBase64(blob);
-      } catch (e) {}
+        const wavBlob = await convertToWavBlob(blob);
+        audio_base64 = await blobToBase64(wavBlob);
+      } catch (e) {
+        try {
+          audio_base64 = await blobToBase64(blob);
+        } catch {}
+      }
     }
 
     if (!transcriptText && !audio_base64) {

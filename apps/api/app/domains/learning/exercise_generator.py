@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
 from app.domains.ai.router import AIRouter
-from app.domains.learning.contracts import DifficultyLevel, ExerciseType, LearnerLearningState, PriorityScore, ScaffoldingLevel
+from app.domains.learning.contracts import (
+    DifficultyLevel,
+    ExerciseType,
+    LearnerLearningState,
+    PriorityScore,
+    ScaffoldingLevel,
+)
 from app.domains.learning.exercise_validator import ExerciseValidator
 from app.domains.learning.exercise_variety_policy import ExerciseVarietyPolicy
 from app.domains.learning.models import Exercise

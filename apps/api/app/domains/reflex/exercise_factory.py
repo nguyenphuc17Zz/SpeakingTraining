@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import random
+from collections import deque
 from typing import Any
 
 from app.domains.japanese.provider import get_language_provider
+from app.domains.keigo.keigo_vocab_pool import (
+    KeigoWordEntry,
+    get_all_keigo_vocab,
+    get_business_vocab_pool,
+    get_kenjougo_pool,
+    get_rule_based_pool,
+    get_sonkeigo_pool,
+)
 from app.domains.reflex.conjugation_engine import (
     ConjugationForm,
     JapaneseConjugationEngine,
@@ -15,36 +24,13 @@ from app.domains.reflex.dictionary_pool import (
     DICT_CONTEXTS,
     DICT_QNA_QUESTIONS,
     DICT_TRANSFORMATIONS,
-    EASY_VERBS,
-    HARD_VERBS,
-    NORMAL_VERBS,
     DictVerb,
-)
-from app.domains.keigo.keigo_vocab_pool import (
-    ALL_KEIGO_WORDS,
-    KeigoWordEntry,
-    get_all_keigo_vocab,
-    get_business_vocab_pool,
-    get_easy_keigo_vocab,
-    get_hard_keigo_vocab,
-    get_kenjougo_pool,
-    get_normal_keigo_vocab,
-    get_rule_based_pool,
-    get_sonkeigo_pool,
-    get_keigo_by_category,
-    search_keigo,
 )
 from app.domains.reflex.pressure_profiles import timer_for_level
 from app.domains.reflex.vocab_pool import (
     DictWord,
     get_all_vocab_words,
-    get_easy_vocab,
-    get_hard_vocab,
-    get_normal_vocab,
 )
-
-
-from collections import deque
 
 # =========================================================================
 # GLOBAL PERSISTENT EXHAUSTION QUEUES & RECENT HISTORY

@@ -10,6 +10,10 @@ export function RouteProgressBar() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
 
   const startProgress = () => {
     setLoading(true);
@@ -39,8 +43,8 @@ export function RouteProgressBar() {
 
   // Complete progress on route changes
   useEffect(() => {
-    if (loading) {
-      completeProgress();
+    if (loadingRef.current) {
+      return completeProgress();
     }
   }, [pathname, searchParams]);
 

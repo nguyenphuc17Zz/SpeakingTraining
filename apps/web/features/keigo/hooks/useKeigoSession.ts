@@ -515,6 +515,7 @@ function mapApiResult(
     masteryDeltas: api.target_mastery_delta || {},
     isPerfect: (api.score >= 80 && api.success && hintLevel === 0) || false,
     doubleKeigo: keigoMetrics.double_keigo || api.metrics?.double_keigo,
+    pragmatics: keigoMetrics.pragmatics || api.metrics?.pragmatics,
     userAudioUrl,
     canonicalAnswer: canonical,
     acceptableVariants: ex.acceptableVariants || ex.target_patterns || [],

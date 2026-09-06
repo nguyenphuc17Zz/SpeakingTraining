@@ -1,18 +1,11 @@
-from typing import Any
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
 
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
 from app.domains.ai.router import AIRouter
 from app.domains.analytics.application.analytics_snapshot_service import AnalyticsSnapshotService
-from app.domains.analytics.application.bottleneck_analyzer import BottleneckAnalyzer
-from app.domains.analytics.application.goal_analytics_service import GoalAnalyticsService
-from app.domains.analytics.application.insight_engine import InsightEngine
-from app.domains.analytics.application.metric_engine import MetricEngine
-from app.domains.analytics.application.weekly_review_service import WeeklyReviewService
-from app.domains.analytics.domain.metric_definitions import METRIC_REGISTRY, MetricKey
-from app.domains.analytics.models import InsightRecord
+from app.domains.analytics.domain.metric_definitions import METRIC_REGISTRY
 from app.domains.analytics.schemas import (
     AnalyticsDashboardDTO,
     BottleneckDTO,
@@ -20,7 +13,6 @@ from app.domains.analytics.schemas import (
     InsightDTO,
     MetricValueDTO,
     PracticeDistributionDTO,
-    WeeklyReviewDTO,
 )
 from app.domains.learning.models import ExerciseAttempt
 from app.domains.users.service import UserService
@@ -271,6 +263,7 @@ async def get_speaking_activity_heatmap(
 ):
     """Retrieves real daily speaking practice duration for the past N weeks."""
     from datetime import datetime, timedelta, timezone
+
     from app.domains.gamification.models import DailyStreakActivity
     from app.domains.learning.models import ExerciseAttempt
 

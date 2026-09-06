@@ -1,4 +1,3 @@
-from typing import Any
 
 from app.domains.pronunciation.contracts import (
     AnalysisConfidenceLevel,
@@ -6,7 +5,7 @@ from app.domains.pronunciation.contracts import (
     PhonemeAssessment,
     PronunciationScoreComponent,
 )
-from app.domains.pronunciation.japanese.issue_taxonomy import JapaneseIssueType, TAXONOMY_EXPLANATIONS
+from app.domains.pronunciation.japanese.issue_taxonomy import TAXONOMY_EXPLANATIONS, JapaneseIssueType
 from app.domains.pronunciation.japanese.mora_analyzer import JapaneseMoraAnalyzer
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
 

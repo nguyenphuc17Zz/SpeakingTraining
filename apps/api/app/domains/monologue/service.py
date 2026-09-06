@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
-from app.domains.learning.contracts import DifficultyLevel, ExerciseType, LearningItemType
+from app.domains.learner_memory.profile_service import LearnerProfileService
 from app.domains.learning.exercise_session_service import ExerciseSessionService
 from app.domains.learning.models import Exercise
-from app.domains.learner_memory.profile_service import LearnerProfileService
 from app.domains.monologue.contracts import SpeechGenerationInput, SpeechTaskSpec
 from app.domains.monologue.evaluator import MonologueEvaluator
 from app.domains.monologue.generation.speech_topic_generator import SpeechTopicGenerator
-from app.domains.users.service import UserService
 
 
 class MonologueService:
@@ -40,7 +37,7 @@ class MonologueService:
         profile = await profile_svc.get_or_create_profile(user_id)
 
         # Get recent signatures/topics for variety
-        from sqlalchemy import select, desc
+        from sqlalchemy import desc, select
 
         from app.domains.learning.models import Exercise as ExModel
 
@@ -121,8 +118,8 @@ class MonologueService:
             lkey = candidate.key
         else:
             # create on fly
+
             from app.domains.learning.models import LearningItem
-            import uuid
 
             lkey = f"speech.{spec.genre.value}.{diff_str}"
             existing = await item_svc.get_item_by_key(lkey, user_id)

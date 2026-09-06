@@ -1,6 +1,5 @@
-from datetime import datetime
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -177,7 +176,7 @@ class PronunciationResult(BaseModel):
     overall_score: float
     overall_confidence: AnalysisConfidenceLevel
     score_interpretation: str  # Excellent, Very Good, Good, Developing, Needs Attention
-    
+
     # Subscores (partial nulls supported)
     phoneme_score: PronunciationScoreComponent | None = None
     mora_timing_score: PronunciationScoreComponent | None = None
@@ -191,15 +190,15 @@ class PronunciationResult(BaseModel):
     pitch_assessment: PitchAssessment | None = None
     rhythm_assessment: RhythmAssessment | None = None
     intonation_assessment: IntonationAssessment | None = None
-    
+
     # Quality & VAD
     audio_quality: AudioQualityReport | None = None
-    
+
     # User-facing feedback
     top_issues: list[PronunciationFeedbackItem] = Field(default_factory=list)
     strengths: list[str] = Field(default_factory=list)
     practice_recommendation: str | None = None
-    
+
     # Metadata & Versioning
     engine_version: str = "1.0.0"
     scoring_version: str = "1.0.0"

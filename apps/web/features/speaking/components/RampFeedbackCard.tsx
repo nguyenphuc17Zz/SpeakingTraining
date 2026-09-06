@@ -76,7 +76,7 @@ export function RampFeedbackCard({
 
   // Sound effects on review
   useEffect(() => {
-    if (delta.stage_changed && delta.new_stage > (delta.new_stage - 1)) {
+    if (delta.stage_changed || (delta.new_milestones && delta.new_milestones.length > 0)) {
       soundFX.playVictory();
     } else if (isHighPass) {
       soundFX.playVictory();
@@ -85,7 +85,14 @@ export function RampFeedbackCard({
     } else {
       soundFX.playSuikinkutsu();
     }
-  }, [delta.stage_changed, delta.new_stage, isHighPass, isSuccess]);
+  }, [delta.stage_changed, delta.new_milestones, isHighPass, isSuccess]);
+
+  // Stop any active speech on unmount
+  useEffect(() => {
+    return () => {
+      stopWebSpeech();
+    };
+  }, []);
 
   const handlePlayAudio = (text: string) => {
     stopWebSpeech();
@@ -118,7 +125,7 @@ export function RampFeedbackCard({
       )}
 
       {/* Stage change banner */}
-      {delta.stage_changed && delta.new_stage > (delta.new_stage - 1) && (
+      {(delta.stage_changed || stageChanged) && delta.new_stage !== undefined && (
         <div className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-xs">
           <Zap className="h-4 w-4 animate-bounce" />
           <span>Thăng hạng! Bạn đã tiến lên Stage {delta.new_stage} 🎉</span>

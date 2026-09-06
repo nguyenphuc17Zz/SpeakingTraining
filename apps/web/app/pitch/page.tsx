@@ -89,18 +89,28 @@ export default function PitchPage() {
     autoNext,
     startTrigger,
   });
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
+  const {
+    phase: sessionPhase,
+    isPaused: sessionPaused,
+    setPhase: sessionSetPhase,
+    onPromptAudioFinished,
+    submitWithTranscript,
+  } = session;
 
   useEffect(() => {
-    if (session.phase === "idle" || session.phase === "summary" || showSummary) {
+    if (sessionPhase === "idle" || sessionPhase === "summary" || showSummary) {
       setSessionRemainingSec(duration * 60);
       setElapsedSec(0);
       sessionEndTimestampRef.current = null;
       sessionPausedRemainingMsRef.current = duration * 60 * 1000;
     }
-  }, [duration, session.phase, showSummary]);
+  }, [duration, sessionPhase, showSummary]);
 
   useEffect(() => {
-    const isSessionActive = session.phase !== "idle" && session.phase !== "summary" && !showSummary;
+    const isSessionActive = sessionPhase !== "idle" && sessionPhase !== "summary" && !showSummary;
     if (!isSessionActive) return;
 
     if (duration === 0) {
@@ -111,7 +121,7 @@ export default function PitchPage() {
       return () => clearInterval(interval);
     }
 
-    if (session.isPaused) {
+    if (sessionPaused) {
       if (sessionEndTimestampRef.current !== null) {
         const remaining = Math.max(0, sessionEndTimestampRef.current - Date.now());
         sessionPausedRemainingMsRef.current = remaining;
@@ -134,13 +144,13 @@ export default function PitchPage() {
         clearInterval(interval);
         sessionEndTimestampRef.current = null;
         setShowSummary(true);
-        session.setPhase("summary" as any);
+        sessionSetPhase("summary" as any);
         soundFX.playVictory();
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [session.phase, session.isPaused, showSummary, session.setPhase, duration]);
+  }, [sessionPhase, sessionPaused, showSummary, sessionSetPhase, duration]);
 
   const timerMs = PITCH_PRESSURE_LEVELS.find((p) => p.id === pressure)?.ms ?? 5000;
   const activeExercise = session.exercise;
@@ -165,17 +175,17 @@ export default function PitchPage() {
         speakJapaneseText(text, {
           rate: 1.0,
           onEnd: () => {
-            if (autoTransition) session.onPromptAudioFinished();
+            if (autoTransition) onPromptAudioFinished();
           },
           onError: () => {
-            if (autoTransition) session.onPromptAudioFinished();
+            if (autoTransition) onPromptAudioFinished();
           },
         });
       } else if (autoTransition) {
-        session.onPromptAudioFinished();
+        onPromptAudioFinished();
       }
     },
-    [activeExercise, session.onPromptAudioFinished]
+    [activeExercise, onPromptAudioFinished]
   );
 
   useEffect(() => {
@@ -193,8 +203,8 @@ export default function PitchPage() {
   useEffect(() => {
     return () => {
       stopWebSpeech();
-      session.recorder.releaseMicrophone();
-      session.speech.stopListening();
+      sessionRef.current.recorder.releaseMicrophone();
+      sessionRef.current.speech.stopListening();
     };
   }, []);
 
@@ -210,11 +220,13 @@ export default function PitchPage() {
     }
   }, [session.phase, session.result]);
 
-  const handleDirectSubmit = async () => {
-    const text = transcriptInput.trim() || session.speech.transcript.trim() || session.exercise?.canonical || " ";
-    await session.submitWithTranscript(text);
+  const speechTranscript = session.speech.transcript;
+  const canonicalExercise = session.exercise?.canonical;
+  const handleDirectSubmit = useCallback(async () => {
+    const text = transcriptInput.trim() || speechTranscript.trim() || canonicalExercise || " ";
+    await submitWithTranscript(text);
     setTranscriptInput("");
-  };
+  }, [transcriptInput, speechTranscript, canonicalExercise, submitWithTranscript]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -309,7 +321,7 @@ export default function PitchPage() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session.phase, transcriptInput, session.speech.transcript, showCheatsheet, showKeybindingsModal, matchesAction, playPromptAudio]);
+  }, [session, transcriptInput, showCheatsheet, showKeybindingsModal, matchesAction, playPromptAudio, handleDirectSubmit]);
 
   const formatSessionTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

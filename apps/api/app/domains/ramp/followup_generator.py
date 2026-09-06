@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +25,6 @@ from app.domains.ai.contracts import (
 from app.domains.ai.router import AIRouter
 from app.domains.ramp.contracts import FollowUpSpec, FollowUpType
 from app.domains.ramp.prompts import RampPrompts
-
 
 # Deterministic question patterns for fallback
 _FOLLOWUP_PATTERNS: dict[str, list[str]] = {

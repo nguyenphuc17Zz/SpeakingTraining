@@ -79,8 +79,8 @@ async def generate_pitch_exercise(
         user_id=user_id,
     )
 
-    from app.domains.learning.prompts import LearningPrompts
     from app.domains.learning.exercise_variety_policy import ExerciseVarietyPolicy
+    from app.domains.learning.prompts import LearningPrompts
 
     item_key = learning_item_key
     if not item_key:

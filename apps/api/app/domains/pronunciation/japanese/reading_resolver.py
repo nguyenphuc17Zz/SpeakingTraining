@@ -1,5 +1,6 @@
 import re
 from typing import Any
+
 from app.core.logging import logger
 
 # Try initializing SudachiPy (Industry Standard Japanese Morphological Analyzer)
@@ -89,7 +90,7 @@ class JapaneseReadingResolver:
         Converts Japanese text into structured Ruby tokens with PRECISE Okurigana separation:
         Only pure Kanji segments receive a Hiragana reading, while prefix/suffix kana (okurigana)
         and pure kana/punctuation words remain unannotated (reading=None).
-        
+
         Example:
           '住んでみたい' -> [{'text': '住', 'reading': 'す'}, {'text': 'んでみたい', 'reading': None}]
           '話します' -> [{'text': '話', 'reading': 'はな'}, {'text': 'します', 'reading': None}]

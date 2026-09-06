@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
 from typing import Any
+
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +8,7 @@ from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
 from app.domains.gamification.domain.contracts import XPCategory
 from app.domains.gamification.domain.level_curve import LevelCurve
 from app.domains.gamification.models import GameProfile, XPTransaction
-from app.shared.errors.exceptions import NotFoundException, ValidationException
+from app.shared.errors.exceptions import ValidationException
 
 
 class XPService:

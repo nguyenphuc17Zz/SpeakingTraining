@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -57,27 +57,35 @@ export default function ShadowingLessonPage() {
   const [completedScores, setCompletedScores] = useState<Record<string, number>>({});
   const [isLessonCompleted, setIsLessonCompleted] = useState(false);
 
-  const lessonSegments = (video?.recommended_segments && video.recommended_segments.length > 0)
-    ? video.segments.filter((s) => video.recommended_segments.some((r) => r.segment_id === s.id))
-    : video?.segments.slice(0, 5) || [];
+  const lessonSegments = useMemo(() => {
+    if (!video) return [];
+    if (video.recommended_segments && video.recommended_segments.length > 0) {
+      return video.segments.filter((s) => video.recommended_segments?.some((r) => r.segment_id === s.id));
+    }
+    return video.segments.slice(0, 5);
+  }, [video]);
 
   const currentSegment = lessonSegments[currentIndex] || selectedSegment;
+  const currentSegmentId = currentSegment?.id;
+  const currentSegmentStartTime = currentSegment?.start_time;
 
   useEffect(() => {
     if (currentSegment) {
       setSelectedSegment(currentSegment);
-      playerRef.current?.seekTo(currentSegment.start_time);
+      if (currentSegmentStartTime !== undefined) {
+        playerRef.current?.seekTo(currentSegmentStartTime);
+      }
     }
-  }, [currentIndex, currentSegment?.id]);
+  }, [currentIndex, currentSegment, currentSegmentStartTime, setSelectedSegment]);
 
   useEffect(() => {
-    if (lastFeedback && currentSegment) {
+    if (lastFeedback && currentSegmentId) {
       setCompletedScores((prev) => ({
         ...prev,
-        [currentSegment.id]: Math.round(lastFeedback.score),
+        [currentSegmentId]: Math.round(lastFeedback.score),
       }));
     }
-  }, [lastFeedback, currentSegment?.id]);
+  }, [lastFeedback, currentSegmentId]);
 
   const handleNext = () => {
     if (currentIndex < lessonSegments.length - 1) {

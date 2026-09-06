@@ -1,22 +1,18 @@
 from datetime import datetime, timezone
-from typing import Any
-import json
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
 from app.domains.ai.router import AIRouter
-from app.domains.conversation.models import ConversationSession, ConversationTurn
-from app.domains.conversation_intelligence.models import SessionAnalysis, TurnAnalysis
-from app.domains.learning.models import ExerciseAttempt
-from app.domains.learner_memory.level_assessor import LevelAssessor
+from app.domains.conversation.models import ConversationSession
 from app.domains.learner_memory.mastery import MasteryEstimator
 from app.domains.learner_memory.models import LearnerMemory, LearnerProfile, MemoryEvidence
 from app.domains.learner_memory.scorer import MemoryScorer
 from app.domains.learner_memory.trend_analyzer import TrendAnalyzer
+from app.domains.learning.models import ExerciseAttempt
 
 
 class LearnerProfileService:
@@ -72,7 +68,7 @@ class LearnerProfileService:
         )
         s_res = await self.db.execute(sessions_stmt)
         sessions = s_res.scalars().all()
-        session_ids = [s.id for s in sessions]
+        [s.id for s in sessions]
 
         # Fetch all studio exercise attempts
         attempts_stmt = (

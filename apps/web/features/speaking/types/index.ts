@@ -66,6 +66,27 @@ export interface VocabularyNote {
   jlpt_level?: string | null;
 }
 
+export type AizuchiCategory =
+  | "continuer"
+  | "agreement"
+  | "emotional_resonance"
+  | "understanding"
+  | "turn_initial_preface"
+  | "none";
+
+export type AizuchiRegister = "casual" | "polite" | "formal" | "neutral";
+
+export interface AizuchiEvaluation {
+  detected_token?: string | null;
+  category: AizuchiCategory;
+  formality_register: AizuchiRegister;
+  is_turn_initial_preface: boolean;
+  is_register_appropriate: boolean;
+  clause_boundary_matched: boolean;
+  feedback_vi?: string | null;
+  naturalness_bonus: number;
+}
+
 export interface TurnAnalysis {
   id: string;
   turn_id: string;
@@ -78,7 +99,9 @@ export interface TurnAnalysis {
     persona_role?: string | null;
     formality_level: string;
     observation: string;
+    aizuchi_evaluation?: AizuchiEvaluation | null;
   }> | null;
+  aizuchi?: AizuchiEvaluation | null;
   corrections: CorrectionItem[];
   grammar_notes: GrammarNote[];
   vocabulary_notes: VocabularyNote[];

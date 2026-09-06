@@ -96,6 +96,9 @@ export default function SituationsPage() {
     mode: selectedMode,
     autoNext: true,
   });
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const { onPromptAudioFinished, submitWithTranscript } = session;
 
   const activeExercise = session.exercise;
   const playedPromptExerciseIdRef = useRef<string | null>(null);
@@ -116,17 +119,17 @@ export default function SituationsPage() {
         speakJapaneseText(text, {
           rate: 1.0,
           onEnd: () => {
-            if (autoTransition) session.onPromptAudioFinished();
+            if (autoTransition) onPromptAudioFinished();
           },
           onError: () => {
-            if (autoTransition) session.onPromptAudioFinished();
+            if (autoTransition) onPromptAudioFinished();
           },
         });
       } else if (autoTransition) {
-        session.onPromptAudioFinished();
+        onPromptAudioFinished();
       }
     },
-    [activeExercise, session.onPromptAudioFinished]
+    [activeExercise, onPromptAudioFinished]
   );
 
   useEffect(() => {
@@ -144,8 +147,8 @@ export default function SituationsPage() {
   useEffect(() => {
     return () => {
       stopWebSpeech();
-      session.recorder.releaseMicrophone();
-      session.speech.stopListening();
+      sessionRef.current.recorder.releaseMicrophone();
+      sessionRef.current.speech.stopListening();
     };
   }, []);
 
@@ -172,11 +175,13 @@ export default function SituationsPage() {
     }
   }, [session.phase, session.result]);
 
-  const handleDirectSubmit = async () => {
-    const text = transcriptInput.trim() || session.speech.transcript.trim() || session.exercise?.canonical || " ";
-    await session.submitWithTranscript(text);
+  const speechTranscript = session.speech.transcript;
+  const handleDirectSubmit = useCallback(async () => {
+    const text = transcriptInput.trim() || speechTranscript.trim();
+    if (!text) return;
+    await submitWithTranscript(text);
     setTranscriptInput("");
-  };
+  }, [transcriptInput, speechTranscript, submitWithTranscript]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -259,7 +264,7 @@ export default function SituationsPage() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [session.phase, transcriptInput, isCheatsheetOpen, isKeybindingsOpen, matchesAction, playPromptAudio]);
+  }, [session, transcriptInput, isCheatsheetOpen, isKeybindingsOpen, matchesAction, playPromptAudio, handleDirectSubmit]);
 
   return (
     <div className="w-full text-foreground space-y-3">

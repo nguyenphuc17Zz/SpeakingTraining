@@ -49,6 +49,44 @@ export interface KeigoExercise {
   extra_metadata?: any;
 }
 
+export interface KeigoBaitoKeigoIssue {
+  pattern: string;
+  offending_phrase: string;
+  suggestion: string;
+}
+
+export interface KeigoPragmatics {
+  over_formal?: boolean;
+  under_formal?: boolean;
+  naturalness?: number;
+  register_fit?: number;
+  context_fit?: number;
+  wakimae?: {
+    is_violation: boolean;
+    reason?: string | null;
+    pedagogical_advice?: string | null;
+  };
+  baito_keigo?: {
+    found: boolean;
+    issues?: KeigoBaitoKeigoIssue[];
+    primary_suggestion?: string | null;
+  };
+  cushion_words?: {
+    found: boolean;
+    detected_phrases?: string[];
+    count?: number;
+    bonus_applied?: boolean;
+  };
+  politeness_matrix?: {
+    power_distance_P: number;
+    social_distance_D: number;
+    ranking_of_imposition_R: number;
+    total_weight_W: number;
+    required_formality: string;
+  };
+  pedagogical_notes?: string[];
+}
+
 export interface KeigoResult {
   exerciseId: string;
   success: boolean;
@@ -64,6 +102,7 @@ export interface KeigoResult {
   masteryDeltas: Record<string, number>;
   isPerfect: boolean;
   doubleKeigo?: any;
+  pragmatics?: KeigoPragmatics;
   userAudioUrl?: string;
   canonicalAnswer?: string;
   acceptableVariants?: string[];

@@ -2,7 +2,6 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.learning.contracts import PriorityScore
 from app.domains.learning.goal_service import GoalService
 from app.domains.learning.learner_state_service import LearnerStateService

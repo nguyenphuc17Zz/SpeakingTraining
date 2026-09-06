@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +15,7 @@ from app.domains.analytics.prompts import WEEKLY_REVIEW_SYSTEM_INSTRUCTION, WEEK
 from app.domains.analytics.schemas import WeeklyReviewDTO
 from app.domains.conversation.models import ConversationSession
 from app.domains.gamification.models import DailyStreakActivity
-from app.domains.learning.models import LearningGoal, LearningItem
+from app.domains.learning.models import LearningItem
 from app.domains.pronunciation.models import PronunciationAttempt
 
 
@@ -221,7 +222,7 @@ class WeeklyReviewService:
             f"Tuần này bạn đã hoàn thành **{facts.speaking_minutes} phút** luyện nói qua **{facts.session_count} buổi** trên **{facts.active_days_count} ngày** hoạt động.\n\n"
             f"### 🎉 Điểm sáng trong tuần:\n"
             + "\n".join(f"- {w}" for w in facts.top_wins)
-            + f"\n\n### 🎯 Trọng tâm tuần tới:\n"
+            + "\n\n### 🎯 Trọng tâm tuần tới:\n"
             + "\n".join(f"- {wk}" for wk in facts.top_weaknesses)
         )
 

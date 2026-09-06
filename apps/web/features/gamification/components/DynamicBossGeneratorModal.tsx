@@ -14,8 +14,10 @@ import {
   Crown,
 } from "lucide-react";
 import { soundFX } from "@/lib/sound-fx";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ZenLoadingState } from "@/components/ui/zen-loading-state";
+import { gameApi } from "@/features/gamification/services/gameApi";
 
 interface DynamicBossGeneratorModalProps {
   isOpen: boolean;
@@ -49,25 +51,18 @@ export function DynamicBossGeneratorModal({
     try {
       setIsGenerating(true);
       soundFX.playKatana();
-      const res = await fetch("http://localhost:8000/api/v1/game/bosses/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: finalTopic || "random",
-          difficulty,
-          required_level: requiredLevel,
-        }),
+      const createdBoss = await gameApi.generateBoss({
+        topic: finalTopic || "random",
+        difficulty,
+        required_level: requiredLevel,
       });
-      if (res.ok) {
-        const createdBoss = await res.json();
-        soundFX.playTaiko();
-        onBossCreated(createdBoss);
-        onClose();
-      } else {
-        alert("Không thể tạo Boss thử thách. Vui lòng thử lại!");
-      }
-    } catch (e) {
+      soundFX.playTaiko();
+      toast.success("Đã tạo Boss thử thách AI thành công!");
+      onBossCreated(createdBoss);
+      onClose();
+    } catch (e: any) {
       console.error("Boss generation error:", e);
+      toast.error(e?.message || "Không thể tạo Boss thử thách. Vui lòng thử lại!");
     } finally {
       setIsGenerating(false);
     }

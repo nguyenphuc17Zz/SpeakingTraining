@@ -16,5 +16,5 @@ for %%P in (8000 3000) do (
     if "!FOUND!"=="0" echo  - Khong co tien trinh tren port %%P
 )
 echo [XONG] Da dung.
-ping 127.0.0.1 -n 3 >nul
+ping 127.0.0.1 -n 2 >nul
 exit /b 0

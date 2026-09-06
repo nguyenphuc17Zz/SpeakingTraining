@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
+
 import httpx
 
 from app.core.logging import logger
 from app.domains.shadowing.contracts import ShadowingVideoMetadata
 from app.domains.shadowing.youtube.url_resolver import YoutubeUrlResolver
-from app.shared.errors.exceptions import NotFoundException, ValidationException
 
 
 class YoutubeMetadataProvider:

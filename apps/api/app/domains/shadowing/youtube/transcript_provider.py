@@ -2,10 +2,9 @@ import asyncio
 from typing import Any
 
 from app.core.logging import logger
-from app.domains.shadowing.contracts import TranscriptSource, VideoTranscriptProvider
 
 try:
-    from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound, CouldNotRetrieveTranscript
+    from youtube_transcript_api import YouTubeTranscriptApi
     _YOUTUBE_TRANSCRIPT_API_AVAILABLE = True
 except ImportError:
     _YOUTUBE_TRANSCRIPT_API_AVAILABLE = False

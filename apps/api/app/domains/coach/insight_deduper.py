@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +22,7 @@ class CoachInsightDeduper:
         return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
     async def should_surface(self, user_id: str, insight_type: str, metric_key: str | None, evidence_delta: int = 0) -> tuple[bool, str]:
-        sig = self.signature(insight_type, metric_key)
+        self.signature(insight_type, metric_key)
         cutoff = datetime.now(timezone.utc) - timedelta(hours=self.cooldown_hours)
         stmt = select(InsightRecord).where(
             InsightRecord.user_id == user_id,

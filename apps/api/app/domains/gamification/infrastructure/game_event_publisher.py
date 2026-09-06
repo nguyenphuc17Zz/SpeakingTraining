@@ -1,7 +1,7 @@
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import logger
 from app.domains.gamification.application.game_event_processor import EventProcessingResult, GameEventProcessor
 from app.domains.gamification.domain.contracts import GameEventSource, GameEventType
 from app.domains.gamification.domain.game_event import GameEvent

@@ -1,7 +1,6 @@
 from app.domains.pronunciation.contracts import MoraUnit
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
 
-
 # Phoneme mappings for standard Japanese kana
 KANA_PHONEMES: dict[str, list[str]] = {
     # Vowels

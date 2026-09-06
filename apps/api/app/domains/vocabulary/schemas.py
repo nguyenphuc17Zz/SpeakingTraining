@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -24,7 +24,7 @@ class AlternativeItem(BaseModel):
 
 
 class BestMatch(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
+    model_config = ConfigDict(protected_namespaces=(), populate_by_name=True)
 
     expression: str = Field(description="Từ hoặc cụm từ chuẩn xác (dạng kanji/từ điển phù hợp)")
     reading: str = Field(description="Cách đọc Hiragana / Furigana")
@@ -34,8 +34,9 @@ class BestMatch(BaseModel):
         description="Từ loại (Danh từ, Động từ nhóm 1/2/3, Tính từ đuôi い/な, Phó từ, Quán dụng ngữ, v.v.)",
     )
     jlpt_level: str = Field(default="N3", description="Cấp độ ước tính (N5, N4, N3, N2, N1)")
-    register: str = Field(
+    speech_register: str = Field(
         default="Polite",
+        alias="register",
         description="Sắc thái / Phong cách giao tiếp (Casual / Thân mật, Polite / Lịch sự, Business Keigo / Kính ngữ công sở)",
     )
     naturalness_score: int = Field(
@@ -83,7 +84,7 @@ class VocabularyLookupResponse(BaseModel):
 
 
 class SaveVocabularyNotebookRequest(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
+    model_config = ConfigDict(protected_namespaces=(), populate_by_name=True)
 
     expression: str = Field(..., description="Từ hoặc cụm từ")
     reading: str = Field(default="", description="Cách đọc Hiragana")
@@ -92,8 +93,12 @@ class SaveVocabularyNotebookRequest(BaseModel):
     context: str = Field(default="", description="Câu văn mẫu / ngữ cảnh trích xuất")
     jlpt_level: str = Field(default="N3", description="Cấp độ JLPT")
     part_of_speech: str = Field(default="Từ vựng", description="Từ loại")
-    register: str = Field(default="Polite", description="Sắc thái giao tiếp")
+    speech_register: str = Field(default="Polite", alias="register", description="Sắc thái giao tiếp")
     tags: list[str] = Field(default_factory=list, description="Thẻ phân loại")
+
+    @property
+    def register(self) -> str:
+        return self.speech_register
 
 
 class SaveVocabularyNotebookResponse(BaseModel):

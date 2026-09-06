@@ -1,6 +1,5 @@
 import hashlib
 import json
-import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -17,6 +16,7 @@ from app.domains.ai.contracts import (
     ResponseFormatType,
 )
 from app.domains.ai.router import AIRouter
+from app.domains.conversation_intelligence.analyzers.aizuchi_analyzer import AizuchiAnalyzer
 from app.domains.conversation_intelligence.analyzers.context_analyzer import ContextAnalyzer
 from app.domains.conversation_intelligence.analyzers.correction_analyzer import CorrectionAnalyzer
 from app.domains.conversation_intelligence.analyzers.feedback_prioritizer import FeedbackPrioritizer
@@ -72,20 +72,68 @@ class AnalysisOrchestrator:
         clean_text = input_data.current_user_transcript.strip()
         is_suspicious = bool(input_data.stt_confidence is not None and input_data.stt_confidence < 0.6)
 
-        # 1. Cost-aware Short Utterance Bypass
-        if clean_text in self.TRIVIAL_UTTERANCES or len(clean_text) <= 2:
+        # 1. Cost-aware Short Utterance & Standalone Aizuchi SLA Engine
+        if clean_text in self.TRIVIAL_UTTERANCES or len(clean_text) <= 2 or AizuchiAnalyzer.is_standalone_aizuchi(clean_text):
+            aizuchi_eval, aizuchi_corrections = AizuchiAnalyzer.evaluate(
+                user_transcript=clean_text,
+                persona_role=input_data.persona_role,
+                previous_turns=input_data.previous_turns,
+            )
+
+            if not aizuchi_eval.is_register_appropriate:
+                # Politeness/Register violation in short utterance (e.g. "うん" to interviewer)
+                return TurnAnalysisResult(
+                    turn_id=input_data.current_turn_id,
+                    session_id=input_data.session_id,
+                    overall_quality_score=68,
+                    communicative_success=True,
+                    strengths=["Phản hồi đúng nhịp nhưng cần lưu ý văn phong tôn kính."],
+                    corrections=aizuchi_corrections,
+                    grammar_points=[],
+                    vocabulary_notes=[],
+                    context_notes=[
+                        ContextNote(
+                            persona_role=input_data.persona_role,
+                            formality_level="too_casual",
+                            observation=aizuchi_eval.feedback_vi or "Cần chú ý kính ngữ với đối tác.",
+                            aizuchi_evaluation=aizuchi_eval,
+                        )
+                    ],
+                    priority_issues=aizuchi_corrections,
+                    is_suspicious_transcript=is_suspicious,
+                    aizuchi=aizuchi_eval,
+                    prompt_version=PROMPT_VERSION_TURN_ANALYSIS,
+                    analyzer_version="1.0.0",
+                    analyzed_at=datetime.now(timezone.utc),
+                )
+
+            # Appropriate Standalone Aizuchi
+            score = 95 if not aizuchi_eval.clause_boundary_matched else min(100, 95 + aizuchi_eval.naturalness_bonus)
+            feedback_msg = aizuchi_eval.feedback_vi or "Phản xạ tự nhiên và tương tác tốt trong hội thoại."
+            context_notes = []
+            if aizuchi_eval.detected_token:
+                context_notes.append(
+                    ContextNote(
+                        persona_role=input_data.persona_role,
+                        formality_level="appropriate",
+                        observation=feedback_msg,
+                        aizuchi_evaluation=aizuchi_eval,
+                    )
+                )
+
             return TurnAnalysisResult(
                 turn_id=input_data.current_turn_id,
                 session_id=input_data.session_id,
-                overall_quality_score=95,
+                overall_quality_score=score,
                 communicative_success=True,
-                strengths=["Phản xạ tự nhiên và tương tác tốt trong hội thoại."],
-                corrections=[],
+                strengths=[feedback_msg],
+                corrections=aizuchi_corrections,
                 grammar_points=[],
                 vocabulary_notes=[],
-                context_notes=[],
-                priority_issues=[],
+                context_notes=context_notes,
+                priority_issues=aizuchi_corrections,
                 is_suspicious_transcript=is_suspicious,
+                aizuchi=aizuchi_eval,
                 prompt_version=PROMPT_VERSION_TURN_ANALYSIS,
                 analyzer_version="1.0.0",
                 analyzed_at=datetime.now(timezone.utc),
@@ -198,6 +246,35 @@ class AnalysisOrchestrator:
         ]
         processed_vocab = VocabularyAnalyzer.process_vocabulary_notes(raw_vocab)
 
+        # Aizuchi & Turn-Initial Reactive Preface Layer
+        turn_aizuchi_eval, turn_aizuchi_corrections = AizuchiAnalyzer.evaluate(
+            user_transcript=clean_text,
+            persona_role=input_data.persona_role,
+            previous_turns=input_data.previous_turns,
+        )
+        if turn_aizuchi_eval.is_turn_initial_preface:
+            if turn_aizuchi_eval.is_register_appropriate:
+                quality_score = min(100, quality_score + turn_aizuchi_eval.naturalness_bonus)
+                strengths.append("Mở đầu lượt lời tự nhiên với 相槌 tiền tố (Turn Preface), tạo sự uyển chuyển khi tiếp lời.")
+                all_context_notes.append(
+                    ContextNote(
+                        persona_role=input_data.persona_role,
+                        formality_level="appropriate",
+                        observation="Sử dụng tiền tố mở đầu phản hồi (Turn-Initial Preface) giúp câu nói uyển chuyển, tự nhiên.",
+                        aizuchi_evaluation=turn_aizuchi_eval,
+                    )
+                )
+            else:
+                evaluated_corrections.extend(turn_aizuchi_corrections)
+                all_context_notes.append(
+                    ContextNote(
+                        persona_role=input_data.persona_role,
+                        formality_level="too_casual",
+                        observation="Tiền tố mở đầu chưa phù hợp với cấp trên/người phỏng vấn.",
+                        aizuchi_evaluation=turn_aizuchi_eval,
+                    )
+                )
+
         # 5. Feedback Prioritization & Budgeting
         priority_items = FeedbackPrioritizer.prioritize(
             corrections=evaluated_corrections,
@@ -217,6 +294,7 @@ class AnalysisOrchestrator:
             context_notes=all_context_notes,
             priority_issues=priority_items,
             is_suspicious_transcript=is_suspicious,
+            aizuchi=turn_aizuchi_eval,
             prompt_version=PROMPT_VERSION_TURN_ANALYSIS,
             analyzer_version="1.0.0",
             provider=provider_used,

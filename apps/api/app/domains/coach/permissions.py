@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from enum import Enum
 
-from app.domains.coach.contracts import CoachCapability
-
 
 class ToolPermission(str, Enum):
     READ = "read"

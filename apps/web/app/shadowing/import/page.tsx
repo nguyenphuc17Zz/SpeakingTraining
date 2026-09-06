@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Youtube, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
@@ -20,34 +20,37 @@ function ShadowingImportContent() {
   const [error, setError] = useState<string | null>(null);
   const hasTriggeredRef = React.useRef(false);
 
+  const handleStartImport = useCallback(
+    async (targetUrl: string) => {
+      if (!targetUrl.trim()) return;
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+        // Automatically uses default settings STT model without asking user
+        const res = await shadowingApi.importVideo(targetUrl.trim());
+
+        if (res.is_existing && res.status === "ready") {
+          soundFX.playTaiko();
+          router.push(`/shadowing/video/${res.canonical_video_id || res.video_id}`);
+        } else {
+          setActiveJobId(res.job_id);
+        }
+      } catch (e: any) {
+        setError(e.message || "Không thể khởi tạo import video. Vui lòng kiểm tra lại URL!");
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [router]
+  );
+
   useEffect(() => {
     if (initialUrl && !hasTriggeredRef.current && !activeJobId) {
       hasTriggeredRef.current = true;
       handleStartImport(initialUrl);
     }
-  }, [initialUrl]);
-
-  const handleStartImport = async (targetUrl: string) => {
-    if (!targetUrl.trim()) return;
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      // Automatically uses default settings STT model without asking user
-      const res = await shadowingApi.importVideo(targetUrl.trim());
-
-      if (res.is_existing && res.status === "ready") {
-        soundFX.playTaiko();
-        router.push(`/shadowing/video/${res.canonical_video_id || res.video_id}`);
-      } else {
-        setActiveJobId(res.job_id);
-      }
-    } catch (e: any) {
-      setError(e.message || "Không thể khởi tạo import video. Vui lòng kiểm tra lại URL!");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  }, [initialUrl, activeJobId, handleStartImport]);
 
   const handleJobCompleted = (videoId: string) => {
     router.push(`/shadowing/video/${videoId}`);

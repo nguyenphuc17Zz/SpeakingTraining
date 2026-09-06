@@ -7,7 +7,7 @@ from app.domains.pronunciation.contracts import (
     RhythmAssessment,
 )
 from app.domains.pronunciation.feedback.feedback_prioritizer import PronunciationFeedbackPrioritizer
-from app.domains.pronunciation.japanese.issue_taxonomy import JapaneseIssueType, TAXONOMY_EXPLANATIONS
+from app.domains.pronunciation.japanese.issue_taxonomy import TAXONOMY_EXPLANATIONS, JapaneseIssueType
 
 
 class PronunciationFeedbackGenerator:

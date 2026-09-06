@@ -19,7 +19,7 @@ export function DailyMissionCard() {
             <div className="flex items-center gap-2">
               <Badge variant="fuji" size="sm">
                 <Sparkles className="h-3 w-3" />
-                <span>今日のデイリーミッション (Today's Quest)</span>
+                <span>今日のデイリーミッション (Today&apos;s Quest)</span>
               </Badge>
               <Badge variant="amber" size="sm">
                 <Trophy className="h-3 w-3" />

@@ -1,5 +1,6 @@
 import re
 import unicodedata
+
 from app.domains.learner_memory.contracts import MemoryType
 
 

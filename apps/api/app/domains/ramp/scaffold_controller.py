@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 from app.domains.ramp.contracts import (
+    SUPPORT_INDEPENDENCE_MULTIPLIER,
     RampScaffold,
     RampSupportLevel,
     RampTaskSpec,
-    SUPPORT_INDEPENDENCE_MULTIPLIER,
 )
 
 

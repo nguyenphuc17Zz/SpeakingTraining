@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.coach.contracts import MemoryType
-from app.domains.learner_memory.models import LearnerMemory, MemoryEvidence
+from app.domains.learner_memory.models import LearnerMemory
 
 
 class CoachMemoryService:

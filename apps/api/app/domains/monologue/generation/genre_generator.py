@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from app.domains.monologue.contracts import SpeechGenre, SpeechTopicDomain
+from app.domains.monologue.contracts import SpeechGenre
 from app.domains.monologue.generation.genre_ontology import (
     ALL_GENRES,
     GENRE_DURATION_AFFINITY,

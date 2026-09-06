@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.gamification.domain.balance_config import BALANCE_CONFIG
-from app.domains.gamification.models import DailyStreakActivity, XPTransaction
+from app.domains.gamification.models import XPTransaction
 
 
 class AntiFarmingService:

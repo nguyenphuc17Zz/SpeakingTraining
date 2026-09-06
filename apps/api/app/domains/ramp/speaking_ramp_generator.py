@@ -9,8 +9,6 @@
 from __future__ import annotations
 
 import json
-import re
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,12 +23,10 @@ from app.domains.ai.contracts import (
 )
 from app.domains.ai.router import AIRouter
 from app.domains.ramp.contracts import (
+    STAGE_EXERCISE_TYPE,
     RampExerciseType,
     RampGenerationInput,
-    RampScaffold,
     RampTaskSpec,
-    RampTopicDomain,
-    STAGE_EXERCISE_TYPE,
 )
 from app.domains.ramp.prompts import RampPrompts
 from app.domains.ramp.ramp_topic_generator import RampTopicGenerator
@@ -226,11 +222,11 @@ class SpeakingRampGenerator:
             keywords = ["仕事", "忙しい", "会議", "疲れる"]
         base.keywords_for_production = keywords
         base.prompt_jp = (
-            f"次のキーワードをすべて使って、自然な文章を作ってください：\n"
+            "次のキーワードをすべて使って、自然な文章を作ってください：\n"
             + "、".join(f"「{k}」" for k in keywords)
         )
         base.prompt_vi = (
-            f"Hãy sử dụng tất cả các từ khóa sau để tạo câu tự nhiên:\n"
+            "Hãy sử dụng tất cả các từ khóa sau để tạo câu tự nhiên:\n"
             + "、".join(keywords)
         )
         return base

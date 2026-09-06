@@ -14,7 +14,6 @@ from app.domains.shadowing.schemas import (
     SegmentTranslateResponse,
     ShadowingJobStatusDTO,
     ShadowingVideoDetailDTO,
-    ShadowingVideoDTO,
     ShadowingVideoListResponse,
     VideoImportRequest,
     VideoImportResponse,

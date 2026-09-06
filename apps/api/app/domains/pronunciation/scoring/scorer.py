@@ -1,4 +1,3 @@
-from typing import Any
 
 from app.domains.pronunciation.contracts import (
     AnalysisConfidenceLevel,

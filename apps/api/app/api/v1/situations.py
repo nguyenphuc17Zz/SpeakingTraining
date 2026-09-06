@@ -10,9 +10,9 @@ from app.domains.learning.exercise_session_service import ExerciseSessionService
 from app.domains.learning.learning_item_service import LearningItemService
 from app.domains.learning.models import Exercise
 from app.domains.learning.schemas import ExerciseDTO, ExerciseResultDTO
+from app.domains.reflex.pressure_profiles import PRESSURE_PROFILES, timer_for_level
 from app.domains.situations.dynamic_generator import AISituationsGenerator
 from app.domains.situations.scenario_generator import ScenarioGenerator
-from app.domains.reflex.pressure_profiles import PRESSURE_PROFILES, timer_for_level
 from app.domains.users.service import UserService
 from app.infrastructure.database.session import get_db
 from app.shared.errors.exceptions import ValidationException
@@ -86,8 +86,8 @@ async def generate_situational_exercise(
         user_id=user_id,
     )
 
-    from app.domains.learning.prompts import LearningPrompts
     from app.domains.learning.exercise_variety_policy import ExerciseVarietyPolicy
+    from app.domains.learning.prompts import LearningPrompts
 
     item_key = None
     item_service = LearningItemService(db)

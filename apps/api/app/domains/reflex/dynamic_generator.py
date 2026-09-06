@@ -10,6 +10,7 @@ import json
 import random
 import uuid
 from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
@@ -24,7 +25,6 @@ from app.domains.ai.contracts import (
 from app.domains.ai.router import AIRouter
 from app.domains.japanese.provider import get_language_provider
 from app.domains.reflex.conjugation_engine import (
-    ConjugationForm,
     JapaneseConjugationEngine,
 )
 from app.domains.reflex.exercise_factory import ReflexExerciseFactory

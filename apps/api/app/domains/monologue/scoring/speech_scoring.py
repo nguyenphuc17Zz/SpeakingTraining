@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from app.domains.monologue.contracts import SpeechGenre
 
 # Default general speech weights §38

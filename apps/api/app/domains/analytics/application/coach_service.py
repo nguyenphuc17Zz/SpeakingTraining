@@ -3,7 +3,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any
-from sqlalchemy import desc, select
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
@@ -11,8 +12,7 @@ from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask
 from app.domains.ai.router import AIRouter
 from app.domains.analytics.application.coach_context_builder import CoachContextBuilder
 from app.domains.analytics.application.coach_intent_classifier import CoachIntent, CoachIntentClassifier
-from app.domains.analytics.domain.metric_definitions import MetricKey
-from app.domains.analytics.models import CoachConversation, CoachFeedback
+from app.domains.analytics.models import CoachConversation
 from app.domains.analytics.prompts import (
     COACH_GENERAL_USER_PROMPT,
     COACH_SYSTEM_INSTRUCTION,

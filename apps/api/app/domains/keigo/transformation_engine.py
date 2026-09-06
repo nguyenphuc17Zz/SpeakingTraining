@@ -200,7 +200,7 @@ class KeigoTransformationEngine:
             from app.domains.reflex.conjugation_engine import JapaneseConjugationEngine
 
             ce = JapaneseConjugationEngine()
-            vc = ce.identify_verb_class(lemma)
+            ce.identify_verb_class(lemma)
             if lemma.endswith("する"):
                 base = lemma[:-2]
                 son = f"ご{base}になる" if base else "なさる"

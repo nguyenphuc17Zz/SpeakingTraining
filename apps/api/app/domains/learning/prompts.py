@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from app.domains.learning.contracts import LearnerLearningState, PriorityScore

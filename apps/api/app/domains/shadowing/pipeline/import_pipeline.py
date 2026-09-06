@@ -1,5 +1,4 @@
 import hashlib
-import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,7 +14,6 @@ from app.domains.shadowing.analysis.expression_extractor import NaturalExpressio
 from app.domains.shadowing.analysis.grammar_extractor import GrammarExtractor
 from app.domains.shadowing.analysis.vocabulary_extractor import VocabularyExtractor
 from app.domains.shadowing.contracts import (
-    TranscriptQuality,
     TranscriptSource,
     VideoStatus,
 )

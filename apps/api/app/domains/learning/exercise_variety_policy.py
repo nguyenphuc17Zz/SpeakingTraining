@@ -1,8 +1,6 @@
 import hashlib
 from typing import Any
 
-from app.domains.learning.contracts import ExerciseType
-
 
 class ExerciseVarietyPolicy:
     """Enforces speaking-first exercise distribution, session time allocation, and anti-repetition deduplication."""

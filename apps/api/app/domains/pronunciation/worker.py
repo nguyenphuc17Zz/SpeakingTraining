@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import os
 from typing import Any
 
 from sqlalchemy import select
@@ -22,10 +23,6 @@ from app.domains.pronunciation.queue import pronunciation_job_queue
 from app.domains.speech.contracts import STTOptions
 from app.domains.speech.stt_router import stt_router
 from app.infrastructure.database.session import AsyncSessionLocal
-
-
-import os
-import tempfile
 
 
 class PronunciationWorker:

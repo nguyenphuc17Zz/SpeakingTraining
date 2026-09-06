@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import logger
 from app.domains.japanese.provider import get_language_provider
 from app.domains.pitch.acoustic.accent_extractor import AccentPatternExtractor
+from app.domains.pitch.acoustic.dtw_pitch import DTWPitchEngine
 from app.domains.pitch.acoustic.mora_aligner import MoraAligner
 from app.domains.pitch.acoustic.pitch_extractor import PitchExtractor
 from app.domains.pitch.resource_provider import get_pitch_provider
@@ -33,8 +34,15 @@ class PitchEvaluator:
 
     def _get_ai_router(self):
         if self._ai_router is None:
+            from app.domains.ai.contracts import (
+                AIMessage,
+                AIMessageRole,
+                AIRequest,
+                AITask,
+                ResponseFormat,
+                ResponseFormatType,
+            )
             from app.domains.ai.router import AIRouter
-            from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
             self._ai_router = (AIRouter, AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType)
         return self._ai_router
 
@@ -145,11 +153,10 @@ class PitchEvaluator:
                 mora_score = 70
 
         # Devoicing analysis
-        devoicing_score = 80
         if exercise_type == "vowel_devoicing":
             # Heuristic: if word is です and user transcript is です, check devoicing would require acoustic; for MVP, assume voiced is okay but devoiced is better
             # We treat as tendency, not mandatory, so high score even if not devoiced
-            devoicing_score = 85
+            pass
 
         # Pitch contour analysis (if audio provided)
         accent_pattern_score = 80
@@ -157,6 +164,7 @@ class PitchEvaluator:
         contour_score = 80
         stability_score = 80
         pitch_conf = pitch_confidence or 0.85
+        dtw_summary = None
         if exercise_type == "pitch_contour" and audio_samples is not None:
             try:
                 # Extract F0
@@ -198,9 +206,15 @@ class PitchEvaluator:
                         downstep_score = 95
                     else:
                         downstep_score = 55
-                    # Contour similarity: crude via pattern match + stability
-                    contour_score = accent_pattern_score * 0.8 + 20
-                    stability_score = 85 if pattern_res.confidence > 0.8 else 65
+                    # World SOTA: Dynamic Time Warping (DTW) with Semitone Normalization
+                    observed_semitones = pattern_res.mora_semitones or []
+                    dtw_res = DTWPitchEngine.compute_pitch_contour_similarity(
+                        observed_mora_semitones=observed_semitones,
+                        expected_pattern=expected_pattern,
+                    )
+                    contour_score = dtw_res.similarity_score
+                    stability_score = 90 if dtw_res.normalized_distance < 0.6 else 80 if dtw_res.normalized_distance < 1.2 else 65
+                    dtw_summary = dtw_res.alignment_summary
                 pitch_conf = pattern_res.confidence
             except Exception as e:
                 logger.warning(f"[PitchEvaluator] acoustic failed {e}")
@@ -290,12 +304,19 @@ class PitchEvaluator:
         else:
             feedback = "⚠️ " + feedback
 
+        evidence_list = [
+            f"Lexical {'ok' if lexical_ok else 'fail'}: {raw} vs {canonical}",
+            f"Accent {accent_pattern_score:.0f}, Mora {mora_score:.0f}, Downstep {downstep_score:.0f}",
+        ]
+        if dtw_summary:
+            evidence_list.append(dtw_summary)
+
         return {
             "success": success,
             "score": assessment.overall.score,
             "assessment": assessment.to_dict(),
             "feedback": feedback,
-            "evidence": [f"Lexical {'ok' if lexical_ok else 'fail'}: {raw} vs {canonical}", f"Accent {accent_pattern_score:.0f}, Mora {mora_score:.0f}, Downstep {downstep_score:.0f}"],
+            "evidence": evidence_list,
             "pitch_assessment": assessment.to_dict(),
             "is_perfect": success and assessment.overall.score >= 85 and independence == "independent",
         }

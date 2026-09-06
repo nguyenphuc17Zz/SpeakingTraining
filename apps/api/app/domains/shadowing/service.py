@@ -1,10 +1,9 @@
 import base64
-import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import delete, desc, func, select
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -12,13 +11,11 @@ from app.core.logging import logger
 from app.domains.ai.contracts import AIMessage, AIMessageRole, AIRequest, AITask, ResponseFormat, ResponseFormatType
 from app.domains.ai.router import AIRouter
 from app.domains.learner_memory.profile_service import LearnerProfileService
-from app.domains.learning.contracts import ExerciseResult, ExerciseStatus, ExerciseType, IndependenceLevel
+from app.domains.learning.contracts import ExerciseStatus, ExerciseType, IndependenceLevel
 from app.domains.learning.exercise_evaluator import ExerciseEvaluator
 from app.domains.learning.goal_service import GoalService
 from app.domains.learning.learning_item_service import LearningItemService
-from app.domains.learning.mastery_engine import MasteryEngine
 from app.domains.learning.models import Exercise, ExerciseAttempt
-from app.domains.learning.review_scheduler import ReviewScheduler
 from app.domains.pronunciation.contracts import ReferenceType, TargetType
 from app.domains.pronunciation.japanese.reading_resolver import JapaneseReadingResolver
 from app.domains.pronunciation.service import PronunciationService
@@ -41,26 +38,24 @@ from app.domains.shadowing.models import (
     ShadowingImportJob,
     ShadowingSegment,
     ShadowingSegmentProgress,
-    ShadowingTranscript,
     ShadowingVideo,
     ShadowingVideoProgress,
 )
 from app.domains.shadowing.pipeline.import_pipeline import ImportPipeline
 from app.domains.shadowing.prompts import ShadowingPrompts
 from app.domains.shadowing.queue import shadowing_job_queue
-from app.domains.shadowing.scoring import ShadowingScorer
 from app.domains.shadowing.schemas import (
     BookmarkDTO,
     SegmentPracticeCompleteResponse,
     SegmentPracticeStartResponse,
     SegmentTranslateResponse,
     ShadowingJobStatusDTO,
-    ShadowingSegmentProgressDTO,
     ShadowingVideoDetailDTO,
     ShadowingVideoDTO,
     ShadowingVideoProgressDTO,
     VideoImportResponse,
 )
+from app.domains.shadowing.scoring import ShadowingScorer
 from app.domains.shadowing.youtube.url_resolver import YoutubeUrlResolver
 from app.domains.users.service import UserService
 from app.shared.errors.exceptions import NotFoundException, ValidationException
@@ -534,6 +529,13 @@ class ShadowingService:
         target_duration_sec = max(0.4, float(end_time - start_time)) if end_time > start_time else None
         user_duration_sec = (len(audio_bytes) / (2 * 16000)) if len(audio_bytes) > 0 else None
 
+        # Extract acoustic onset lag from pronunciation alignment if available
+        user_onset_ms: float | None = None
+        if pron_response.result:
+            alignment = getattr(pron_response.result, "alignment", None)
+            if alignment and getattr(alignment, "segments", None):
+                user_onset_ms = float(alignment.segments[0].start_ms)
+
         # 2. Run Deterministic High-Precision ShadowingScorer (Local, < 200ms, no slow LLM call)
         shadow_eval = ShadowingScorer.evaluate(
             target_text=target_text,
@@ -544,6 +546,7 @@ class ShadowingService:
             shadowing_mode=shadowing_mode,
             playback_speed=playback_speed,
             fallback_pron_score=pron_response.overall_score,
+            acoustic_lag_ms=user_onset_ms,
         )
 
         # 3. Update Attempt record
@@ -562,6 +565,10 @@ class ShadowingService:
             "playback_speed": playback_speed,
             "speech_rate_mora_sec": shadow_eval.metrics.speech_rate_mora_sec,
             "target_rate_mora_sec": shadow_eval.metrics.target_rate_mora_sec,
+            "acoustic_lag_ms": shadow_eval.metrics.acoustic_lag_ms,
+            "lag_rating": shadow_eval.metrics.lag_rating,
+            "lag_score": shadow_eval.metrics.lag_score,
+            "pitch_contour_similarity": shadow_eval.metrics.pitch_contour_similarity,
         }
 
         # 4. Synchronize Mastery & LearningItem delta
@@ -652,6 +659,7 @@ class ShadowingService:
             mastery=new_mastery_state,
             mastery_delta=mastery_delta,
             review_scheduled_at=datetime.now(timezone.utc),
+            metrics=attempt.metrics_json,
         )
 
     async def bookmark_segment(self, segment_id: str, user_id: str, note: str | None = None) -> BookmarkDTO:

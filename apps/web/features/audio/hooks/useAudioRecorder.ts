@@ -13,12 +13,22 @@ export interface UseAudioRecorderOptions {
   onError?: (err: Error) => void;
 }
 
+function isStreamValid(stream: MediaStream | null): boolean {
+  if (!stream || !stream.active) return false;
+  const tracks = stream.getAudioTracks();
+  if (tracks.length === 0) return false;
+  return tracks.some((t) => t.readyState === "live");
+}
+
 export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const [state, setState] = useState<RecordingState>("idle");
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -27,13 +37,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const lastVolumeUpdateRef = useRef<number>(0);
-
-  const isStreamValid = (stream: MediaStream | null): boolean => {
-    if (!stream || !stream.active) return false;
-    const tracks = stream.getAudioTracks();
-    if (tracks.length === 0) return false;
-    return tracks.some((t) => t.readyState === "live");
-  };
+  const currentVolumeRef = useRef<number>(0);
 
   const releaseMicrophone = useCallback(() => {
     if (animFrameRef.current) {
@@ -63,6 +67,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       audioContextRef.current = null;
     }
     analyserRef.current = null;
+    currentVolumeRef.current = 0;
     setVolumeLevel(0);
     setState("idle");
   }, []);
@@ -75,7 +80,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     const checkVolume = () => {
       if (!analyserRef.current) return;
       const now = performance.now();
-      // throttle volume updates to 100ms (was 60fps -> 6x renders)
+      // throttle volume updates to 100ms
       if (now - lastVolumeUpdateRef.current >= 100) {
         analyserRef.current.getByteFrequencyData(dataArray);
         let sum = 0;
@@ -84,7 +89,12 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
         const avg = sum / bufferLength;
         const normalized = Math.min(1.0, Math.max(0.0, avg / 128.0));
-        setVolumeLevel(normalized);
+        
+        // Only trigger state update if delta is significant to prevent unnecessary re-renders
+        if (Math.abs(normalized - currentVolumeRef.current) > 0.015 || (normalized === 0 && currentVolumeRef.current !== 0)) {
+          currentVolumeRef.current = normalized;
+          setVolumeLevel(normalized);
+        }
         lastVolumeUpdateRef.current = now;
       }
       animFrameRef.current = requestAnimationFrame(checkVolume);
@@ -146,11 +156,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             ? "Quyền truy cập Microphone bị từ chối. Hãy cấp quyền trong trình duyệt."
             : err.message || "Không thể khởi tạo Microphone.";
         setError(msg);
-        options.onError?.(new Error(msg));
+        optionsRef.current.onError?.(new Error(msg));
         return false;
       }
     },
-    [monitorVolume, options, releaseMicrophone]
+    [monitorVolume, releaseMicrophone]
   );
 
   const startRecording = useCallback(async () => {
@@ -162,7 +172,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     if (audioContextRef.current && audioContextRef.current.state === "suspended") {
       try {
         await audioContextRef.current.resume();
-      } catch (e:any) {
+      } catch (e: any) {
         setError(e?.message || "AudioContext resume failed (autoplay policy)");
         throw e;
       }
@@ -198,14 +208,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       recorder.start(100);
       mediaRecorderRef.current = recorder;
       setState("recording");
-      options.onRecordingStarted?.();
+      optionsRef.current.onRecordingStarted?.();
     } catch (e: any) {
       console.error("[useAudioRecorder] Failed to start recorder:", e);
       setState("error");
       setError(e.message || "Không thể bắt đầu ghi âm.");
-      options.onError?.(e);
+      optionsRef.current.onError?.(e);
     }
-  }, [isStreamValid, monitorVolume, options, requestPermission, selectedDeviceId]);
+  }, [monitorVolume, requestPermission, selectedDeviceId]);
 
   const stopRecording = useCallback((): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -223,7 +233,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setState("ready");
         const mimeType = recorder.mimeType || "audio/webm";
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        options.onRecordingStopped?.(blob);
+        optionsRef.current.onRecordingStopped?.(blob);
         mediaRecorderRef.current = null;
         resolve(blob);
       };
@@ -236,7 +246,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
       recorder.stop();
     });
-  }, [options]);
+  }, []);
 
   useEffect(() => {
     return () => {

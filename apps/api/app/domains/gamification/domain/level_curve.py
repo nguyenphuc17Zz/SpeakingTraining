@@ -39,7 +39,7 @@ class LevelCurve:
         """Calculates current RPG level (1..MAX_LEVEL) from total cumulative XP."""
         if total_xp <= 0:
             return 1
-        
+
         # Iterative step-up (fast since MAX_LEVEL <= 100)
         accumulated = 0
         level = 1

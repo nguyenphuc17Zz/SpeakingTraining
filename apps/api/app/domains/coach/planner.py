@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
@@ -10,9 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import logger
 from app.domains.coach.contracts import CoachContext, CoachIntent
-from app.domains.coach.tool_registry import coach_tool_registry
 from app.domains.coach.permissions import CoachPermissionPolicy
-
+from app.domains.coach.tool_registry import coach_tool_registry
 
 # Map intent → preferred tools
 INTENT_TOOL_HINTS: dict[str, list[str]] = {

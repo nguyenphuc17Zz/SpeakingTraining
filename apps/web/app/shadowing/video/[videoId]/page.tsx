@@ -32,7 +32,7 @@ import { TranscriptPanel } from "@/features/shadowing/TranscriptPanel";
 import { YoutubePlayer, YoutubePlayerRef } from "@/features/shadowing/YoutubePlayer";
 import { useShadowing } from "@/hooks/use-shadowing";
 import { useFuriganaSettings } from "@/hooks/use-furigana-settings";
-import { useShadowingKeybindings } from "@/hooks/use-shadowing-keybindings";
+import { useShadowingKeybindings } from "@/hooks/use-system-keybindings";
 import { soundFX } from "@/lib/sound-fx";
 import { TranscriptSegment } from "@/types/shadowing";
 import { cn } from "@/lib/utils";
@@ -332,11 +332,19 @@ export default function ShadowingVideoStudioPage() {
               </button>
             </div>
           )}
-        </div>
 
-        {/* Right Column (5/12 - 42%): Playlist + Studio Controls + Score Display */}
-        <div className="lg:col-span-5 space-y-3">
-          {/* Studio Controls (Speed, 4-Step Flow, CTA Button, Autopilot) */}
+          {/* Evaluation Result Card (Displays after speaking) */}
+          {lastFeedback && (
+            <ShadowingScoreDisplay
+              feedback={lastFeedback}
+              targetSentence={selectedSegment?.text}
+              onRetry={handleRetryPractice}
+              onNext={selectNextSegment}
+              onPlayReference={handlePlaySegment}
+            />
+          )}
+
+          {/* Studio Controls (Speed, 4-Step Flow, CTA Button, Autopilot, Dictation Input) */}
           <ShadowingControls
             segment={selectedSegment}
             playbackSpeed={playbackSpeed}
@@ -357,18 +365,10 @@ export default function ShadowingVideoStudioPage() {
             onApplyPedagogicalLevel={applyPedagogicalLevel}
             onSubmitTextPractice={submitTextShadowing}
           />
+        </div>
 
-          {/* Evaluation Result Card (Displays after speaking) */}
-          {lastFeedback && (
-            <ShadowingScoreDisplay
-              feedback={lastFeedback}
-              targetSentence={selectedSegment?.text}
-              onRetry={handleRetryPractice}
-              onNext={selectNextSegment}
-              onPlayReference={handlePlaySegment}
-            />
-          )}
-
+        {/* Right Column (5/12 - 42%): Playlist Panel ON TOP (Ngang tầm mắt Video) */}
+        <div className="lg:col-span-5 space-y-3">
           {/* Playlist Panel (Tabs: All, Bookmarked, Weak) */}
           <TranscriptPanel
             segments={video.segments || []}

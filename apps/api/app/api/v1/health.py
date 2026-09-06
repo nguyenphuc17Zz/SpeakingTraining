@@ -4,8 +4,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.infrastructure.database.session import get_db
-from app.infrastructure.redis.client import RedisManager, get_redis_manager
 from app.domains.analytics.worker import analytics_worker
 from app.domains.conversation_intelligence.worker import analysis_worker
 from app.domains.gamification.worker import game_worker
@@ -13,8 +11,8 @@ from app.domains.learner_memory.worker import learner_memory_worker
 from app.domains.learning.worker import learning_worker
 from app.domains.pronunciation.worker import pronunciation_worker
 from app.domains.shadowing.worker import shadowing_worker
-from app.domains.speech.model_manager import whisper_model_manager
-from app.domains.audio.cache import tts_cache
+from app.infrastructure.database.session import get_db
+from app.infrastructure.redis.client import RedisManager, get_redis_manager
 
 router = APIRouter(prefix="/health", tags=["Health"])
 

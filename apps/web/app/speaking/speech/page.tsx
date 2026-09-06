@@ -8,6 +8,7 @@ import { ZenLoadingState } from "@/components/ui/zen-loading-state";
 import { Mic, Clock, Play, Square, Trophy, Settings2, Zap, BookOpen, BarChart3, Lightbulb, AlertCircle, Sparkles, HelpCircle, Keyboard, Send, FileText } from "lucide-react";
 import { useMonologue } from "@/hooks/use-monologue";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
+import { convertToWavBlob } from "@/features/audio";
 import { toast } from "@/lib/toast";
 import { useSystemKeybindings, formatKeyDisplay } from "@/hooks/use-system-keybindings";
 
@@ -48,6 +49,11 @@ export default function SpeechPage() {
   const rafRef = useRef<number | null>(null);
   const recRafRef = useRef<number | null>(null);
   const phaseRef = useRef(mono.phase);
+  const monoRef = useRef(mono);
+  monoRef.current = mono;
+  const recorderRef = useRef(recorder);
+  recorderRef.current = recorder;
+
   const lastPrepTickRef = useRef(0);
   const lastRecTickRef = useRef(0);
 
@@ -67,7 +73,7 @@ export default function SpeechPage() {
   const startPrepCountdown = useCallback((sec: number) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setPrepLeft(sec);
-    if (sec<=0) { mono.setPhase("ready"); return; }
+    if (sec<=0) { monoRef.current.setPhase("ready"); return; }
     const t0 = performance.now();
     lastPrepTickRef.current = 0;
     const tick = (now:number) => {
@@ -89,7 +95,7 @@ export default function SpeechPage() {
           rafRef.current = requestAnimationFrame(tick);
         }
       } else if (phaseRef.current==="preparing") {
-        mono.setPhase("ready");
+        monoRef.current.setPhase("ready");
       }
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -107,14 +113,14 @@ export default function SpeechPage() {
     return ()=>{
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (recRafRef.current) cancelAnimationFrame(recRafRef.current);
-      recorder.releaseMicrophone();
+      recorderRef.current.releaseMicrophone();
     };
   },[]);
 
   // Release microphone whenever phase is idle or result
   useEffect(() => {
     if (mono.phase === "idle" || mono.phase === "result") {
-      recorder.releaseMicrophone();
+      recorderRef.current.releaseMicrophone();
     }
   }, [mono.phase]);
 
@@ -184,6 +190,12 @@ export default function SpeechPage() {
         return;
       }
       const durationMs = startedAtRef.current ? Math.round(endedAt - startedAtRef.current) : Math.round(recElapsed*1000);
+      let audioBlob = blob;
+      try {
+        audioBlob = await convertToWavBlob(blob);
+      } catch (e) {
+        audioBlob = blob;
+      }
       // Prefer multipart (keep both per user choice) to avoid 33% base64 overhead
       const basePayload = {
         user_transcript: transcriptInput.trim() || undefined,
@@ -197,11 +209,11 @@ export default function SpeechPage() {
       };
       // Use multipart for audio (efficient), fallback to base64 JSON if multipart fails
       try {
-        await (mono as any).submitMultipart(blob, basePayload);
+        await (mono as any).submitMultipart(audioBlob, basePayload);
       } catch (multipartErr:any) {
         // fallback to base64 JSON (keep both)
         try {
-          const b64 = await blobToBase64(blob);
+          const b64 = await blobToBase64(audioBlob);
           await mono.submit({ ...basePayload, audio_base64: b64 } as any);
         } catch {
           throw multipartErr;
@@ -249,6 +261,13 @@ export default function SpeechPage() {
     }
   };
 
+  const handleGenerateRef = useRef(handleGenerate);
+  handleGenerateRef.current = handleGenerate;
+  const startRecordingRef = useRef(startRecording);
+  startRecordingRef.current = startRecording;
+  const handleStopRecordingRef = useRef(handleStopRecording);
+  handleStopRecordingRef.current = handleStopRecording;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
@@ -266,9 +285,9 @@ export default function SpeechPage() {
       if (matchesAction(e, "speakingMic") || matchesAction(e, "drillReplayAudio")) {
         e.preventDefault();
         if (mono.phase === "ready") {
-          startRecording();
+          startRecordingRef.current();
         } else if (mono.phase === "recording") {
-          handleStopRecording();
+          handleStopRecordingRef.current();
         }
         return;
       }
@@ -277,11 +296,11 @@ export default function SpeechPage() {
       if (matchesAction(e, "drillSubmitOrNext")) {
         e.preventDefault();
         if (mono.phase === "idle" || !mono.exercise) {
-          handleGenerate();
+          handleGenerateRef.current();
         } else if (mono.phase === "preparing") {
-          mono.setPhase("ready");
+          monoRef.current.setPhase("ready");
         } else if (mono.phase === "result") {
-          handleGenerate();
+          handleGenerateRef.current();
         }
         return;
       }
@@ -289,13 +308,13 @@ export default function SpeechPage() {
       // Retry
       if (matchesAction(e, "drillRetry") && mono.phase === "result") {
         e.preventDefault();
-        mono.setPhase("ready");
+        monoRef.current.setPhase("ready");
         return;
       }
 
       if (e.key === "Escape") {
         if (mono.phase !== "idle") {
-          mono.setPhase("idle" as any);
+          monoRef.current.setPhase("idle" as any);
         } else {
           setShowHelp(false);
         }

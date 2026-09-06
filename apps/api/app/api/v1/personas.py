@@ -2,7 +2,13 @@
 from fastapi import APIRouter, Depends, status
 
 from app.core.dependencies import get_current_user, get_persona_service
-from app.domains.personas.schemas import PersonaCreate, PersonaGenerateRequest, PersonaGenerateResponse, PersonaRead, PersonaUpdate
+from app.domains.personas.schemas import (
+    PersonaCreate,
+    PersonaGenerateRequest,
+    PersonaGenerateResponse,
+    PersonaRead,
+    PersonaUpdate,
+)
 from app.domains.personas.service import PersonaService
 from app.domains.users.models import User
 
