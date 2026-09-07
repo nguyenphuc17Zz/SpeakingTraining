@@ -20,27 +20,21 @@ export function Card({
 }: CardProps) {
   const effectiveVariant = glass ? "glass" : variant;
   const variantStyles = {
-    default: "bg-card border-border shadow-sm",
-    washi:
-      "bg-card/90 border-border shadow-washi washi-texture backdrop-blur-sm",
-    enso:
-      "bg-card/90 border-border shadow-enso washi-texture relative overflow-hidden before:absolute before:inset-0 before:bg-enso-gradient before:opacity-50 before:pointer-events-none",
-    seigaiha:
-      "bg-card/90 border-border shadow-washi seigaiha-pattern relative overflow-hidden backdrop-blur-sm",
-    kintsugi:
-      "bg-card/95 border-kintsugi-400/40 shadow-kintsugi washi-texture relative overflow-hidden",
-    sumi:
-      "bg-card border-border shadow-sumi backdrop-blur-md",
-    glass:
-      "bg-card/75 backdrop-blur-md border-border/80 shadow-lg",
+    default: "bg-card border-border shadow-xs",
+    washi: "bg-card border-border shadow-xs",
+    enso: "bg-card border-border shadow-xs",
+    seigaiha: "bg-card border-border shadow-xs",
+    kintsugi: "bg-card border-border shadow-xs",
+    sumi: "bg-card border-border shadow-xs",
+    glass: "bg-card/90 backdrop-blur-md border-border shadow-xs",
   };
 
   return (
     <div
       className={cn(
-        "rounded-2xl border transition-all duration-200",
+        "rounded-xl border transition-colors duration-150",
         variantStyles[effectiveVariant],
-        hoverable && "hover:border-primary/30 hover:shadow-sumi hover:-translate-y-0.5 cursor-pointer",
+        hoverable && "hover:border-foreground/20 cursor-pointer",
         padded && "p-5",
         className
       )}

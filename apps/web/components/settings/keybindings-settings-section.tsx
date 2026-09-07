@@ -519,7 +519,7 @@ export const ALL_ACTION_DEFINITIONS: ActionDefinition[] = [
     label: "Đổi Giao Diện Sáng / Tối",
     category: "system",
     categoryLabel: "Hệ Thống",
-    description: "Chuyển đổi giữa chế độ màu Haru Washi và Dark Zen",
+    description: "Chuyển đổi giữa giao diện Sáng và Tối (Light / Dark mode)",
     icon: <SunMoon className="h-4 w-4 text-amber-500" />,
   },
 ];
@@ -587,7 +587,7 @@ export function KeybindingsSettingsSection() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="p-5 rounded-2xl bg-card border border-border washi-texture shadow-sm space-y-4">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">

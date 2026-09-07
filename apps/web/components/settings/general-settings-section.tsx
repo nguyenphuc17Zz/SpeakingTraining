@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useSettings } from "@/hooks/use-settings";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Globe, Clock, Volume2 } from "lucide-react";
 import { soundFX } from "@/lib/sound-fx";
@@ -59,141 +58,135 @@ export function GeneralSettingsSection() {
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-5">
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card washi-texture shadow-washi p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-enso-gradient opacity-30 pointer-events-none" />
-        <div className="relative flex items-center gap-3">
-          <span className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary shrink-0">
-            <Globe className="h-4 w-4" />
-          </span>
+    <form onSubmit={handleSave} className="space-y-6">
+      {/* Header Banner */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+            <Globe className="h-5 w-5" />
+          </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground">
-              Cài đặt chung <span className="font-jp text-xs font-normal text-muted-foreground">基本設定</span>
-            </h2>
-            <p className="text-sm text-muted-foreground">Chọn ngôn ngữ và múi giờ — dùng để tính streak và quest hằng ngày.</p>
+            <h2 className="text-sm font-semibold text-foreground">Cài đặt chung</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Cấu hình ngôn ngữ hiển thị và múi giờ phục vụ việc tính toán streak và nhiệm vụ hàng ngày.
+            </p>
           </div>
         </div>
-        <Button variant="akane" size="sm" type="submit" isLoading={saving} className="shrink-0">
+        <Button size="sm" type="submit" isLoading={saving} className="shrink-0 font-medium">
           Lưu thay đổi
         </Button>
       </div>
 
       {savedMsg && (
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Đã lưu cài đặt chung.</span>
+          <span>Đã lưu cài đặt chung thành công.</span>
         </div>
       )}
 
-      <Card variant="washi" className="p-5">
-        <CardContent className="p-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <label className="space-y-1.5">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Globe className="h-3.5 w-3.5 text-primary" /> Ngôn ngữ giao diện
-              </span>
-              <select
-                value={formData.language}
-                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                className="flex h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:border-ring"
-              >
-                {LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label} ({opt.value})
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-muted-foreground">Chọn ngôn ngữ bạn muốn hiển thị.</span>
+      {/* Settings Options Card */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-6 shadow-2xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              Ngôn ngữ giao diện
             </label>
-
-            <label className="space-y-1.5">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-primary" /> Múi giờ
-              </span>
-              <select
-                value={formData.timezone}
-                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                className="flex h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:border-ring"
-              >
-                {TIMEZONE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-muted-foreground">Dùng để tính streak, quest và lịch sử 7 ngày.</span>
-            </label>
+            <select
+              value={formData.language}
+              onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+              className="flex h-9 w-full rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+            >
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.value})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">Ngôn ngữ ưu tiên cho giao diện người dùng và điều hướng.</p>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-border space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <span>🔊 Hiệu ứng âm thanh Nhật Bản (Japanese Sound FX)</span>
-                  <span className="text-[10px] font-jp text-primary font-bold">和風効果音</span>
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Phát âm thanh Taiko, chuông gió Furin, kiếm Katana và giọt nước Zen khi hoàn thành bài học.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => soundFX.playTaiko()}
-                className="text-xs gap-1.5"
-              >
-                <span>🥁 Trống Taiko</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => soundFX.playFurin()}
-                className="text-xs gap-1.5"
-              >
-                <span>🎐 Chuông Furin</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => soundFX.playKatana()}
-                className="text-xs gap-1.5"
-              >
-                <span>⚔️ Kiếm Katana</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => soundFX.playSuikinkutsu()}
-                className="text-xs gap-1.5"
-              >
-                <span>💧 Giọt nước Zen</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => soundFX.playVictory()}
-                className="text-xs gap-1.5 text-primary border-primary/30"
-              >
-                <span>🎉 Fanfare Chiến Thắng</span>
-              </Button>
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              Múi giờ hoạt động
+            </label>
+            <select
+              value={formData.timezone}
+              onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+              className="flex h-9 w-full rounded-lg border border-border bg-background px-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+            >
+              {TIMEZONE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">Múi giờ chuẩn xác để tính chuỗi Streak và lịch sử luyện tập.</p>
           </div>
+        </div>
 
-          <div className="mt-4 p-3 rounded-xl bg-muted border border-border text-xs text-muted-foreground">
-            <p>
-              <span className="font-semibold text-foreground">Mẹo:</span> Bạn có thể đổi giao diện 4 phong cách Nhật Bản bất cứ lúc nào qua nút bấm ở thanh điều hướng trên cùng.
+        {/* Audio Effects Audition */}
+        <div className="pt-5 border-t border-border space-y-3">
+          <div>
+            <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Kiểm tra hiệu ứng âm thanh phản hồi</span>
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Âm thanh phản hồi ngắn khi hoàn thành mục tiêu, bài tập hoặc đạt combo.
             </p>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => soundFX.playTaiko()}
+              className="text-xs h-8 gap-1.5"
+            >
+              <span>🥁 Taiko</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => soundFX.playFurin()}
+              className="text-xs h-8 gap-1.5"
+            >
+              <span>🎐 Furin</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => soundFX.playKatana()}
+              className="text-xs h-8 gap-1.5"
+            >
+              <span>⚔️ Katana</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => soundFX.playSuikinkutsu()}
+              className="text-xs h-8 gap-1.5"
+            >
+              <span>💧 Zen Drop</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => soundFX.playVictory()}
+              className="text-xs h-8 gap-1.5 text-primary border-primary/30"
+            >
+              <span>✨ Success Fanfare</span>
+            </Button>
+          </div>
+        </div>
+      </div>
     </form>
   );
 }

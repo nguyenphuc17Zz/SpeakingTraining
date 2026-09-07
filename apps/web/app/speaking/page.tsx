@@ -252,14 +252,6 @@ export default function SpeakingPage() {
         </div>
       )}
 
-      {/* Speaking + Coach quick actions bar */}
-      {!isSessionActive && (
-        <div className="p-3 rounded-xl bg-card border border-border flex flex-col gap-2">
-          <span className="text-xs font-bold text-muted-foreground">🤖 AI Coach — Hỏi ngay khi đang chọn phòng</span>
-          <CoachQuickActions route={pathname || "/speaking"} onSelect={handleCoachSelect} />
-        </div>
-      )}
-
       {/* Feedback Toast Banner */}
       {feedback && !isSessionActive && (
         <div
@@ -317,40 +309,32 @@ export default function SpeakingPage() {
             onEndSession={endSession}
             onReplayVoice={replayVoice}
           />
-          <div className="p-3 rounded-xl bg-card border border-dashed flex flex-col gap-2">
-            <span className="text-xs font-bold text-muted-foreground">
-              🤖 Coach trong phiên nói — hỏi ngay không cần thoát
-            </span>
-            <CoachQuickActions route={pathname || "/speaking"} onSelect={handleCoachSelect} />
-          </div>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Header washi */}
-          <div className="relative overflow-hidden rounded-[24px] border border-border bg-card washi-texture shadow-washi p-6">
-            <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-enso-gradient opacity-40 pointer-events-none" />
-            <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          {/* Header */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2.5">
                   <span className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center text-primary">
                     <Mic className="h-5 w-5" />
                   </span>
                   <h1 className="text-xl font-bold tracking-tight text-foreground">
-                    Phòng luyện nói <span className="font-jp text-sm font-normal text-muted-foreground">会話練習</span>
+                    Phòng hội thoại
                   </h1>
                 </div>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  Chọn, tạo mới hoặc xóa đối tác hội thoại AI để luyện nói tự nhiên theo thời gian thực (Faster-Whisper, AI Router, VOICEVOX).
+                  Luyện nói trực tiếp với các nhân vật mô phỏng theo ngữ cảnh thực tế với độ trễ thấp và nhận diện giọng nói tự nhiên.
                 </p>
                 <div className="pt-1">
                   <Link
                     href="/ramp"
                     prefetch={true}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/25 text-primary text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-foreground text-xs font-semibold transition-all"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     <span>Mode 6: Phục hồi phát ngôn (Speaking Ramp) — Rèn từ 1 câu đến 60s độc lập</span>
-                    <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md font-extrabold">NEW</span>
                   </Link>
                 </div>
               </div>
@@ -363,10 +347,10 @@ export default function SpeakingPage() {
                   onClick={handleRestoreDefaults}
                   isLoading={actionLoading}
                   className="text-xs text-muted-foreground hover:text-foreground border-border"
-                  title="Khôi phục lại các đối tác mẫu mặc định của hệ thống"
+                  title="Khôi phục lại các đối tác mẫu mặc định"
                 >
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                  Khôi phục mẫu
+                  Mẫu mặc định
                 </Button>
 
                 <Button
@@ -374,38 +358,37 @@ export default function SpeakingPage() {
                   size="sm"
                   onClick={handleGenerateAI}
                   isLoading={generating}
-                  className="text-xs border-primary/30 text-foreground hover:border-primary"
+                  className="text-xs border-border text-foreground hover:bg-muted"
                 >
-                  <Wand2 className="h-4 w-4 text-primary" />
-                  Tạo ngẫu nhiên AI
+                  <Wand2 className="h-3.5 w-3.5 text-primary mr-1" />
+                  Sinh ngẫu nhiên
                 </Button>
 
                 <Button
-                  variant="akane"
                   size="sm"
                   onClick={handleOpenCreateModal}
                   className="text-xs"
                 >
-                  <Plus className="h-4 w-4" />
-                  Tạo đối tác mới
+                  <Plus className="h-4 w-4 mr-1" />
+                  Thêm đối tác
                 </Button>
               </div>
             </div>
 
             {/* Difficulty Filter Bar */}
-            <div className="relative mt-5 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="mt-5 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mr-1">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mr-1">
                   <Users className="h-3.5 w-3.5" /> Trình độ:
                 </span>
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-muted border border-border overflow-x-auto">
+                <div className="flex items-center gap-1 p-1 rounded-lg bg-muted border border-border">
                   {DIFFICULTIES.map((diff) => (
                     <button
                       key={diff}
                       onClick={() => setSelectedDifficulty(diff)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                         selectedDifficulty === diff
-                          ? "bg-primary text-primary-foreground shadow-sm"
+                          ? "bg-card text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -415,27 +398,9 @@ export default function SpeakingPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="sakura" size="sm">
-                  {filteredPersonas.length} đối tác sẵn sàng
-                </Badge>
+              <div className="text-xs text-muted-foreground">
+                {filteredPersonas.length} nhân vật khả dụng
               </div>
-            </div>
-
-            {/* System Status Ribbon */}
-            <div className="relative mt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10">
-              <span className="flex items-center gap-2.5 text-xs">
-                <span className="h-6 w-6 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center text-primary shrink-0">
-                  <Zap className="h-3.5 w-3.5" />
-                </span>
-                <span>
-                  <span className="font-semibold text-foreground">Hệ thống hội thoại sẵn sàng</span>
-                  <span className="text-muted-foreground hidden sm:inline"> — VAD → Whisper → AI Router → VOICEVOX</span>
-                </span>
-              </span>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                ⚡ Tương tác thời gian thực
-              </span>
             </div>
           </div>
 
@@ -471,46 +436,44 @@ export default function SpeakingPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPersonas.map((persona) => (
-                <Card
+                <div
                   key={persona.id}
-                  variant="washi"
-                  hoverable
-                  className="p-5 flex flex-col justify-between overflow-hidden group hover:shadow-washi transition-all duration-200"
+                  className="p-5 rounded-xl border border-border bg-card flex flex-col justify-between transition-all hover:border-foreground/20"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary via-akane-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shrink-0">
+                        <div className="h-10 w-10 rounded-xl bg-muted border border-border flex items-center justify-center text-foreground font-bold text-sm shrink-0">
                           {persona.name.charAt(0)}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-sm font-bold text-foreground block truncate">{persona.name}</span>
                             {persona.is_system && (
-                              <Badge variant="fuji" size="sm" className="text-[10px] py-0 px-1.5 h-4">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground border border-border inline-flex items-center">
                                 <Lock className="h-2.5 w-2.5 mr-0.5" /> Mẫu
-                              </Badge>
+                              </span>
                             )}
                           </div>
-                          <span className="text-xs text-primary font-medium truncate block">{persona.role}</span>
+                          <span className="text-xs text-muted-foreground truncate block">{persona.role}</span>
                         </div>
                       </div>
-                      <Badge variant="jlpt" size="sm" className="shrink-0">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border shrink-0">
                         {persona.difficulty}
-                      </Badge>
+                      </span>
                     </div>
 
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{persona.description}</p>
 
                     <div className="space-y-1.5 pt-3 border-t border-border text-xs">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-muted-foreground">Phong cách:</span>
+                        <span className="font-medium text-muted-foreground">Phong cách:</span>
                         <span className="text-foreground font-medium truncate max-w-[170px]">{persona.speaking_style}</span>
                       </div>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-muted-foreground">Tính cách:</span>
+                        <span className="font-medium text-muted-foreground">Tính cách:</span>
                         <span className="text-foreground font-medium truncate max-w-[170px]">
                           {persona.personality}
                         </span>
@@ -520,26 +483,25 @@ export default function SpeakingPage() {
 
                   <div className="pt-4 mt-4 border-t border-border flex items-center gap-2">
                     <Button
-                      variant="akane"
                       size="md"
                       className="flex-1"
                       onClick={() => handleOpenLobby(persona)}
                     >
-                      <Mic className="h-4 w-4" />
-                      Bắt đầu hội thoại
+                      <Mic className="h-4 w-4 mr-1.5" />
+                      Luyện nói
                     </Button>
 
                     <Button
                       variant="ghost"
                       size="md"
-                      className="px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      className="px-2.5 text-muted-foreground hover:text-destructive shrink-0"
                       title="Xóa đối tác này"
                       onClick={() => setDeleteTarget(persona)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           )}

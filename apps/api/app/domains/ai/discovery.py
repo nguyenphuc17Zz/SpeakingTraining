@@ -2,6 +2,7 @@ import time
 
 from app.core.logging import logger
 from app.domains.ai.contracts import AITask, ModelMetadata
+from app.domains.ai.errors import ProviderAuthError
 from app.domains.ai.registry import TASK_TIER_MAPPING, TaskTier, provider_registry
 
 
@@ -41,8 +42,14 @@ class ModelDiscoveryService:
             if models:
                 self._cache[pid] = (models, now + self.ttl_seconds)
                 return models
+        except ProviderAuthError:
+            if force_refresh:
+                raise
+            logger.warning(f"[ModelDiscoveryService] Auth error listing models for {pid}")
         except Exception as e:
             logger.warning(f"[ModelDiscoveryService] Failed to dynamically list models for {pid}: {e}")
+            if force_refresh and isinstance(e, ProviderAuthError):
+                raise
 
         # If cache had stale data, use it as fallback
         if pid in self._cache:

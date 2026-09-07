@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Float, ForeignKey, String
+from sqlalchemy import Boolean, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -31,6 +31,7 @@ class UserSettings(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     routing_mode: Mapped[str] = mapped_column(String(20), default="auto", nullable=False)  # 'auto' | 'manual'
     fallback_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     fallback_priority: Mapped[str] = mapped_column(String(255), default="gemini,groq,openrouter", nullable=False)
+    feature_routing: Mapped[str | None] = mapped_column(Text, default="{}", nullable=True)
 
     # Phase 9 Audio Experience Configurations
     default_voice_profile_id: Mapped[str | None] = mapped_column(String(36), nullable=True)

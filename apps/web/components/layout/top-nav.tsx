@@ -4,14 +4,19 @@ import React, { useState } from "react";
 import { useHealth } from "@/hooks/use-health";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { WeatherToggle } from "@/components/ui/weather-toggle";
 import { SoundToggle } from "@/components/ui/sound-toggle";
 import { GlobalFuriganaControl } from "@/components/japanese/GlobalFuriganaControl";
 import { GlobalKeybindingsModal } from "./global-keybindings-modal";
-import { Search, Command, Keyboard } from "lucide-react";
+import { Search, Command, Keyboard, Sparkles } from "lucide-react";
 import { soundFX } from "@/lib/sound-fx";
 
-export function TopNav({ onOpenCommand }: { onOpenCommand?: () => void }) {
+export function TopNav({
+  onOpenCommand,
+  onOpenCoach,
+}: {
+  onOpenCommand?: () => void;
+  onOpenCoach?: () => void;
+}) {
   const { health, dbHealth, loading } = useHealth();
   const isHealthy = health?.status === "healthy" && dbHealth?.connected;
   const [currentDate, setCurrentDate] = useState<string>("");
@@ -33,13 +38,10 @@ export function TopNav({ onOpenCommand }: { onOpenCommand?: () => void }) {
 
   return (
     <>
-      <header className="h-[58px] border-b border-border bg-card/85 backdrop-blur-md px-4 md:px-6 flex items-center justify-between shrink-0 gap-3 relative z-30">
+      <header className="h-[56px] border-b border-border/70 bg-card/90 backdrop-blur-md px-4 md:px-6 flex items-center justify-between shrink-0 gap-3 relative z-30">
         {/* Left — date + JLPT */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className="hidden sm:flex items-center gap-2 text-sm">
-            <span className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-display font-bold text-xs shadow-sm">
-              今
-            </span>
             <span className="font-medium text-foreground text-xs sm:text-sm font-jp" suppressHydrationWarning>
               {jpDate || "8月25日"}
             </span>
@@ -48,20 +50,20 @@ export function TopNav({ onOpenCommand }: { onOpenCommand?: () => void }) {
             </span>
           </span>
           <span className="hidden sm:block h-4 w-px bg-border/80" />
-          <Badge variant="kintsugi" size="sm" className="shrink-0 font-jp gap-1">
-            <span className="text-[10px]">目標</span> JLPT N3
-          </Badge>
+          <span className="text-xs font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/60 font-jp shrink-0">
+            JLPT N3
+          </span>
         </div>
 
         {/* Center — search trigger (desktop) */}
         <button
           onClick={onOpenCommand}
-          className="hidden md:flex flex-1 max-w-[420px] items-center gap-2.5 px-3.5 py-2 rounded-xl bg-muted border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors mx-4"
+          className="hidden md:flex flex-1 max-w-[380px] items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-muted/60 border border-border/70 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors mx-4"
         >
-          <Search className="h-4 w-4 shrink-0" />
-          <span className="flex-1 text-left truncate">Tìm kiếm: hội thoại, shadowing, bài học…</span>
-          <span className="hidden lg:flex items-center gap-1 text-xs bg-card border border-border px-1.5 py-0.5 rounded-md">
-            <Command className="h-3 w-3" /> K
+          <Search className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1 text-left truncate">Tìm kiếm nhanh…</span>
+          <span className="hidden lg:flex items-center gap-1 text-[10px] bg-background border border-border/80 px-1.5 py-0.5 rounded-md font-mono">
+            ⌘K
           </span>
         </button>
 
@@ -70,42 +72,48 @@ export function TopNav({ onOpenCommand }: { onOpenCommand?: () => void }) {
           {/* Mobile search */}
           <button
             onClick={onOpenCommand}
-            className="md:hidden h-9 w-9 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground"
+            className="md:hidden h-9 w-9 rounded-xl bg-muted/60 border border-border flex items-center justify-center text-muted-foreground"
             aria-label="Tìm kiếm"
           >
             <Search className="h-4 w-4" />
           </button>
 
-          <span
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-              loading
-                ? "bg-muted border-border text-muted-foreground"
-                : isHealthy
-                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400"
-            }`}
-            title={isHealthy ? "Backend đã kết nối" : "Backend chưa kết nối — chạy uvicorn app.main:app"}
+          {/* AI Coach clean trigger */}
+          <button
+            onClick={onOpenCoach}
+            className="h-8 px-2.5 rounded-lg border border-border/80 bg-muted/50 hover:bg-card hover:border-primary/40 text-xs font-semibold text-foreground flex items-center gap-1.5 transition-all shadow-xs"
+            title="Mở AI Coach (⌘J)"
           >
-            <span className={`h-2 w-2 rounded-full ${loading ? "bg-muted-foreground animate-pulse" : isHealthy ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-            <span className="hidden lg:inline">{loading ? "Đang kết nối…" : isHealthy ? "Đã kết nối" : "Ngoại tuyến"}</span>
-          </span>
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">AI Coach</span>
+            <span className="hidden xl:inline text-[10px] text-muted-foreground font-mono bg-background px-1 py-0.2 rounded border border-border/60">
+              ⌘J
+            </span>
+          </button>
 
-          {/* Global Keybindings Shortcut Button in Header */}
+          {/* Connection status indicator */}
+          <div
+            className="h-8 px-2 rounded-lg bg-muted/40 border border-border/60 flex items-center gap-1.5 text-xs text-muted-foreground"
+            title={isHealthy ? "Hệ thống sẵn sàng" : "Backend ngoại tuyến"}
+          >
+            <span className={`h-2 w-2 rounded-full ${loading ? "bg-muted-foreground animate-pulse" : isHealthy ? "bg-emerald-500" : "bg-amber-500"}`} />
+            <span className="hidden 2xl:inline text-[11px]">{isHealthy ? "Online" : "Offline"}</span>
+          </div>
+
+          {/* Keybindings Shortcut Button */}
           <button
             onClick={() => {
               soundFX.playFurin();
               setIsKeybindingsOpen(true);
             }}
-            className="h-9 px-2.5 rounded-xl border border-border bg-muted/60 hover:bg-card hover:border-primary/50 text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-all shadow-sm"
-            title="Cài đặt phím tắt hệ thống (Q, C, L...)"
+            className="h-8 w-8 rounded-lg border border-border/80 bg-muted/40 hover:bg-card hover:border-primary/40 text-muted-foreground hover:text-foreground flex items-center justify-center transition-all"
+            title="Phím tắt hệ thống (?)"
           >
-            <Keyboard className="h-4 w-4 text-primary" />
-            <span className="hidden xl:inline">Phím tắt</span>
+            <Keyboard className="h-3.5 w-3.5" />
           </button>
 
           <GlobalFuriganaControl />
           <SoundToggle />
-          <WeatherToggle />
           <ThemeToggle />
         </div>
       </header>

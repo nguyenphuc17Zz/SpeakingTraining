@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
-title Hanasu AI - Stop
+title JapS - Stop
 
-echo Dang dung Hanasu AI (8000/3000)...
+echo Dang dung JapS (8000/3000)...
 for %%P in (8000 3000) do (
     set FOUND=0
     for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%%P\>"') do (

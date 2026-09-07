@@ -185,12 +185,9 @@ const config: Config = {
         shimmer: "shimmer 1.8s infinite",
       },
       backgroundImage: {
-        "washi-grain":
-          "radial-gradient(circle at 1px 1px, rgba(30,58,95,0.035) 1px, transparent 0)",
-        "enso-gradient":
-          "conic-gradient(from 180deg at 50% 50%, transparent 0deg, rgba(16,185,129,0.08) 120deg, transparent 240deg)",
-        "kintsugi-gradient":
-          "linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0.05) 50%, transparent 100%)",
+        "washi-grain": "none",
+        "enso-gradient": "none",
+        "kintsugi-gradient": "none",
       },
     },
   },

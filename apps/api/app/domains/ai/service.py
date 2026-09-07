@@ -145,12 +145,20 @@ class AIRoutingService:
         settings = await self.settings_service.get_or_create_settings(user_id)
         priority_list = [p.strip() for p in settings.fallback_priority.split(",") if p.strip()]
 
+        feature_routing_map: dict[str, str] = {}
+        if getattr(settings, "feature_routing", None):
+            try:
+                feature_routing_map = json.loads(settings.feature_routing)
+            except Exception:
+                feature_routing_map = {}
+
         return AIRoutingPolicyRead(
             routing_mode=settings.routing_mode,
             preferred_provider=settings.default_ai_provider,
             default_model=settings.default_ai_model,
             fallback_enabled=settings.fallback_enabled,
             fallback_priority=priority_list,
+            feature_routing=feature_routing_map,
         )
 
     async def update_routing_policy(
@@ -182,14 +190,35 @@ class AIRoutingService:
         if payload.fallback_priority is not None:
             settings.fallback_priority = ",".join([p.lower().strip() for p in payload.fallback_priority if p.strip()])
 
+        if payload.feature_routing is not None:
+            current_map = {}
+            if getattr(settings, "feature_routing", None):
+                try:
+                    current_map = json.loads(settings.feature_routing)
+                except Exception:
+                    current_map = {}
+            current_map.update(payload.feature_routing)
+            # Remove any empty or "default" values so they fall back to global
+            current_map = {k: v for k, v in current_map.items() if v and v != "default"}
+            settings.feature_routing = json.dumps(current_map)
+
         await self.session.commit()
         await self.session.refresh(settings)
 
         priority_list = [p.strip() for p in settings.fallback_priority.split(",") if p.strip()]
+
+        feature_routing_map: dict[str, str] = {}
+        if getattr(settings, "feature_routing", None):
+            try:
+                feature_routing_map = json.loads(settings.feature_routing)
+            except Exception:
+                feature_routing_map = {}
+
         return AIRoutingPolicyRead(
             routing_mode=settings.routing_mode,
             preferred_provider=settings.default_ai_provider,
             default_model=settings.default_ai_model,
             fallback_enabled=settings.fallback_enabled,
             fallback_priority=priority_list,
+            feature_routing=feature_routing_map,
         )

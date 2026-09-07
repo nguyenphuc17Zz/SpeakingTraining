@@ -7,7 +7,9 @@ from app.domains.ai.contracts import (
     AIMessageRole,
     AIRequest,
     AIStreamEventType,
+    ProviderHealthStatus,
 )
+from app.domains.ai.errors import ProviderAuthError
 
 
 @pytest.mark.asyncio
@@ -193,3 +195,33 @@ async def test_gemini_list_models():
     flash_model = next(m for m in models if m.id == "gemini-2.0-flash")
     assert flash_model.context_window == 1048576
     assert flash_model.is_recommended is True
+
+
+@pytest.mark.asyncio
+async def test_gemini_detects_groq_key_mismatch():
+    adapter = GeminiAdapter()
+    with pytest.raises(ProviderAuthError) as exc_info:
+        await adapter.list_models("gsk_1234567890abcdef")
+    assert "Groq" in str(exc_info.value)
+    assert "gsk_" in str(exc_info.value)
+
+    health = await adapter.test_connection("gsk_1234567890abcdef")
+    assert health.status == ProviderHealthStatus.UNAVAILABLE
+    assert "Groq" in health.error_message
+
+
+@pytest.mark.asyncio
+async def test_gemini_list_models_raises_on_invalid_key_400():
+    def mock_400_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={"error": {"code": 400, "message": "API key not valid. Please pass a valid API key.", "status": "INVALID_ARGUMENT"}},
+        )
+
+    transport = httpx.MockTransport(mock_400_handler)
+    adapter = GeminiAdapter(transport=transport)
+
+    with pytest.raises(ProviderAuthError) as exc_info:
+        await adapter.list_models("invalid_gemini_key")
+    assert "API Key không hợp lệ" in str(exc_info.value)
+

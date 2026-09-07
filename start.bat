@@ -1,6 +1,7 @@
 @echo off
+chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
-title Hanasu AI - Auto Start
+title JapS - Japanese Speaking AI Training OS
 
 set ROOT_DIR=%~dp0
 set API_DIR=%ROOT_DIR%apps\api
@@ -24,7 +25,7 @@ REM ============================================================
 :AUTO_START
 cls
 echo ====================================================================
-echo   HANASU AI OS - AUTO START (localhost only)
+echo   JAPS - JAPANESE SPEAKING AI TRAINING OS (localhost only)
 echo ====================================================================
 echo.
 
@@ -63,9 +64,9 @@ if not exist "%WEB_DIR%\.env.local" (
 
 REM 2. Python venv
 echo [2/4] Kiem tra moi truong Python Backend...
-if exist "%API_DIR%\.venv\Scripts\python.exe" (
-    echo   - Da co .venv Backend (khoi dong nhanh, bo qua cai lai pip).
-    set PYTHON_EXE=%API_DIR%\.venv\Scripts\python.exe
+set PYTHON_EXE=%API_DIR%\.venv\Scripts\python.exe
+if exist "%PYTHON_EXE%" (
+    echo   - Da co .venv Backend ^(khoi dong nhanh, bo qua cai lai pip^).
     if /i "%~1"=="install" (
         echo   - Dang cap nhat thu vien backend theo yeu cau...
         "%PYTHON_EXE%" -m pip install -e "%API_DIR%"
@@ -84,13 +85,11 @@ if exist "%API_DIR%\.venv\Scripts\python.exe" (
         pause
         exit /b 1
     )
-    set PYTHON_EXE=%API_DIR%\.venv\Scripts\python.exe
     echo   - Cai dependencies backend...
     "%PYTHON_EXE%" -m pip install --upgrade pip >nul
     "%PYTHON_EXE%" -m pip install -e "%API_DIR%" >nul 2>&1
     echo   - Da cai xong backend deps
 )
-if not defined PYTHON_EXE set PYTHON_EXE=%API_DIR%\.venv\Scripts\python.exe
 
 REM 3. Node modules
 echo [3/4] Kiem tra thu vien Frontend...
@@ -121,11 +120,11 @@ if not exist "%WEB_DIR%\node_modules" (
 REM 4. Launch services
 echo [4/4] Khoi dong dich vu...
 echo   - Backend FastAPI: http://localhost:8000 ^(docs: /docs^)
-start "Hanasu AI - FastAPI Backend (8000)" cmd /k "cd /d %API_DIR% && call .venv\Scripts\activate && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
+start "JapS - FastAPI Backend (8000)" /D "%API_DIR%" cmd /k "call .venv\Scripts\activate.bat && python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000"
 ping 127.0.0.1 -n 2 >nul
 
 echo   - Frontend Next.js: http://localhost:3000
-start "Hanasu AI - Next.js Web (3000)" cmd /k "cd /d %WEB_DIR% && npm run dev"
+start "JapS - Next.js Web (3000)" /D "%WEB_DIR%" cmd /k "npm run dev"
 ping 127.0.0.1 -n 2 >nul
 
 echo.
@@ -152,7 +151,15 @@ REM ============================================================
 :KILL_PORT
 set PORT=%~1
 set LABEL=%~2
-powershell -NoProfile -Command "$p=%PORT%; $lab='%LABEL%'; $found=0; try { $conns = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue; $pids = @($conns | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -and $_ -gt 4 }); foreach ($tPid in $pids) { try { cmd /c \"taskkill /F /T /PID $tPid >nul 2>&1\"; Write-Host \"  - Kill $lab PID $tPid (port $p)...\"; $found=1 } catch {} } } catch {}; if ($found -eq 0) { try { $out = netstat -aon 2>$null | Select-String -Pattern \":$p\s\"; if ($out) { foreach ($line in $out) { $parts = $line.ToString().Trim() -split '\s+'; $tPid = $parts[-1]; if ($tPid -match '^\d+$' -and [int]$tPid -gt 4) { try { cmd /c \"taskkill /F /T /PID $tPid >nul 2>&1\"; Write-Host \"  - Kill $lab PID $tPid (port $p)...\"; $found=1 } catch {} } } } } catch {}; if ($found -eq 0) { Write-Host \"  - Khong co tien trinh nao tren port $p\" } }"
+set KILL_FOUND=0
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%PORT%\>"') do (
+    if not "%%a"=="0" (
+        echo   - Dung %LABEL% ^(PID %%a tren port %PORT%^)...
+        taskkill /F /T /PID %%a >nul 2>&1
+        set KILL_FOUND=1
+    )
+)
+if "!KILL_FOUND!"=="0" echo   - Khong co tien trinh nao tren port %PORT%
 exit /b 0
 
 REM ============================================================
@@ -187,7 +194,14 @@ exit /b 0
 :STATUS_PORT
 set PORT=%~1
 set LABEL=%~2
-powershell -NoProfile -Command "$p=%PORT%; $lab='%LABEL%'; try { $c = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }; if ($c) { foreach ($x in $c) { Write-Host \"  * $lab [$p]: DANG CHAY - PID $($x.OwningProcess)\" } } else { $out = netstat -aon 2>$null | Select-String -Pattern \":$p\" | Select-String -Pattern \"LISTENING\"; if ($out) { foreach ($line in $out) { $parts = $line.ToString().Trim() -split '\s+'; $pid=$parts[-1]; Write-Host \"  * $lab [$p]: DANG CHAY - PID $pid\" } } else { Write-Host \"  * $lab [$p]: DANG DUNG\" } } } catch { Write-Host \"  * $lab [$p]: DANG DUNG\" }"
+set STATUS_FOUND=0
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%PORT%\>"') do (
+    if not "%%a"=="0" (
+        echo   * %LABEL% [%PORT%]: DANG CHAY - PID %%a
+        set STATUS_FOUND=1
+    )
+)
+if "!STATUS_FOUND!"=="0" echo   * %LABEL% [%PORT%]: DANG DUNG
 exit /b 0
 
 REM ============================================================

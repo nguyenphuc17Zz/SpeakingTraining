@@ -89,6 +89,7 @@ class AIRoutingPolicyRead(BaseModel):
     default_model: str
     fallback_enabled: bool
     fallback_priority: list[str]
+    feature_routing: dict[str, str] = Field(default_factory=dict)
 
 
 class AIRoutingPolicyUpdate(BaseModel):
@@ -97,3 +98,4 @@ class AIRoutingPolicyUpdate(BaseModel):
     default_model: str | None = None
     fallback_enabled: bool | None = None
     fallback_priority: list[str] | None = None
+    feature_routing: dict[str, str] | None = None

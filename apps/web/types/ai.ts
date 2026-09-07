@@ -103,6 +103,7 @@ export interface AIRoutingPolicyRead {
   default_model: string;
   fallback_enabled: boolean;
   fallback_priority: string[];
+  feature_routing?: Record<string, string>;
 }
 
 export interface AIRoutingPolicyUpdate {
@@ -111,6 +112,7 @@ export interface AIRoutingPolicyUpdate {
   default_model?: string;
   fallback_enabled?: boolean;
   fallback_priority?: string[];
+  feature_routing?: Record<string, string>;
 }
 
 export interface AIUsageRecordRead {

@@ -87,15 +87,15 @@ function NavLink({
       <Link
         href={item.href}
         prefetch={true}
-        title={`${item.label} — ${item.jaLabel}`}
+        title={item.label}
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl border text-sm transition-all",
+          "flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all",
           isActive
-            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+            ? "bg-foreground text-background shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
         )}
       >
-        <Icon className="h-4.5 w-4.5" />
+        <Icon className="h-4 w-4" />
       </Link>
     );
   }
@@ -104,19 +104,15 @@ function NavLink({
       href={item.href}
       prefetch={true}
       className={cn(
-        "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group",
+        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all group",
         isActive
-          ? "bg-primary/10 text-primary border border-primary/15 shadow-sm"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent"
+          ? "bg-muted text-foreground font-semibold"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
       )}
     >
-      <span className="flex items-center gap-2.5">
-        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-        <span className="truncate">{item.label}</span>
-      </span>
-      <span className={cn("text-xs font-jp ml-2 shrink-0", isActive ? "text-primary/70" : "text-muted-foreground/70")}>
-        {item.jaLabel}
-      </span>
+      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+      <span className="truncate">{item.label}</span>
+      {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
     </Link>
   );
 }
@@ -155,40 +151,40 @@ export function Sidebar({
   // Collapsed rail — compact
   if (collapsed) {
     return (
-      <aside className="hidden md:flex w-[72px] shrink-0 flex-col items-center gap-3 border-r border-border bg-card/80 backdrop-blur-sm px-2 py-4 overflow-y-auto">
+      <aside className="hidden md:flex w-[64px] shrink-0 flex-col items-center gap-2.5 border-r border-border bg-card px-2 py-3 overflow-y-auto">
         {/* Brand */}
-        <Link href="/dashboard" prefetch={true} className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-emerald-600 to-teal-700 flex items-center justify-center text-white font-black text-lg shadow-md shrink-0">
-          話
+        <Link href="/dashboard" prefetch={true} className="h-9 w-9 rounded-lg bg-foreground text-background flex items-center justify-center font-bold text-xs tracking-tight shadow-sm shrink-0">
+          JS
         </Link>
-        <button onClick={onToggle} className="h-8 w-8 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground" aria-label="Mở rộng menu">
-          <PanelLeftOpen className="h-4 w-4" />
+        <button onClick={onToggle} className="h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center text-muted-foreground transition-colors" aria-label="Mở rộng menu">
+          <PanelLeftOpen className="h-3.5 w-3.5" />
         </button>
-        <div className="h-px w-8 bg-border my-1" />
-        <div className="flex flex-col gap-1.5">
+        <div className="h-px w-6 bg-border my-1" />
+        <div className="flex flex-col gap-1">
           {MAIN_ITEMS.map((it) => (
             <NavLink key={it.href} item={it} collapsed isActive={isNavActive(it.href, pathname)} />
           ))}
         </div>
-        <div className="h-px w-8 bg-border my-1" />
-        <div className="flex flex-col gap-1.5">
+        <div className="h-px w-6 bg-border my-1" />
+        <div className="flex flex-col gap-1">
           {INTEL_ITEMS.map((it) => (
             <NavLink key={it.href} item={it} collapsed isActive={pathname.startsWith(it.href)} />
           ))}
         </div>
-        <div className="h-px w-8 bg-border my-1" />
+        <div className="h-px w-6 bg-border my-1" />
         {/* Dojo hub single icon */}
         <Link
           href="/game"
           prefetch={true}
           className={cn(
-            "h-10 w-10 rounded-xl flex items-center justify-center border",
-            isDojoActive ? "bg-amber-500 text-white border-amber-600 shadow-sm" : "bg-card border-border text-muted-foreground hover:text-foreground"
+            "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
+            isDojoActive ? "bg-muted text-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
           title="Dojo / Minigame"
         >
-          <Swords className="h-5 w-5" />
+          <Swords className="h-4 w-4" />
         </Link>
-        <Link href="/settings" prefetch={true} className={cn("h-10 w-10 rounded-xl flex items-center justify-center border mt-auto", pathname.startsWith("/settings") ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground")}>
+        <Link href="/settings" prefetch={true} className={cn("h-9 w-9 rounded-lg flex items-center justify-center mt-auto transition-colors", pathname.startsWith("/settings") ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
           <Settings className="h-4 w-4" />
         </Link>
       </aside>
@@ -197,50 +193,45 @@ export function Sidebar({
 
   // Expanded
   return (
-    <aside className="hidden md:flex w-[265px] shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur-md overflow-hidden z-20">
-      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-4">
+    <aside className="hidden md:flex w-[240px] shrink-0 flex-col border-r border-border bg-card overflow-hidden z-20">
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
         {/* Brand */}
-        <div className="flex items-center justify-between px-1 pt-1">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
-            <span className="h-10 w-10 rounded-2xl bg-gradient-to-br from-primary via-emerald-600 to-teal-700 flex items-center justify-center text-white font-display font-black text-xl shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
-              話
+        <div className="flex items-center justify-between px-1.5 pt-0.5">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <span className="h-8 w-8 rounded-lg bg-foreground text-background flex items-center justify-center font-bold text-xs tracking-tight shadow-sm transition-transform group-hover:scale-105">
+              JS
             </span>
-            <span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-black text-sm tracking-tight text-foreground font-display">HANASU AI</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-primary/10 text-primary border border-primary/20">OS</span>
-              </span>
-              <span className="text-[11px] text-muted-foreground font-jp tracking-wider">にほんごスピーキング</span>
-            </span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-sm tracking-tight text-foreground">JapS</span>
+              <span className="text-[10px] text-muted-foreground font-normal mt-0.5">Japanese Speaking</span>
+            </div>
           </Link>
           <button
             onClick={onToggle}
-            className="h-8 w-8 rounded-xl bg-muted/80 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors shrink-0"
             aria-label="Thu gọn menu"
           >
-            <PanelLeftClose className="h-4 w-4" />
+            <PanelLeftClose className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        {/* Main */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between px-2 py-1">
-            <p className="text-[10px] font-extrabold tracking-widest text-muted-foreground/70 uppercase">Học tập</p>
-            <span className="text-[9px] font-jp text-muted-foreground/50">学習</span>
+        {/* Main Navigation */}
+        <div className="space-y-0.5">
+          <div className="px-2 py-1">
+            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/70 uppercase">Học tập</p>
           </div>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-0.5">
             {MAIN_ITEMS.map((it) => (
               <NavLink key={it.href} item={it} collapsed={false} isActive={isNavActive(it.href, pathname)} />
             ))}
           </nav>
         </div>
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between px-2 py-1">
-            <p className="text-[10px] font-extrabold tracking-widest text-muted-foreground/70 uppercase">Phân tích & AI</p>
-            <span className="text-[9px] font-jp text-muted-foreground/50">分析</span>
+        <div className="space-y-0.5">
+          <div className="px-2 py-1">
+            <p className="text-[11px] font-semibold tracking-wider text-muted-foreground/70 uppercase">Phân tích & Hỗ trợ</p>
           </div>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-0.5">
             {INTEL_ITEMS.map((it) => (
               <NavLink key={it.href} item={it} collapsed={false} isActive={pathname.startsWith(it.href)} />
             ))}
@@ -248,26 +239,25 @@ export function Sidebar({
         </div>
 
         {/* Dojo hub — single collapsible */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <button
             onClick={() => setDojoOpen(!dojoOpen)}
             className={cn(
-              "w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all",
-              isDojoActive ? "bg-amber-500/10 text-amber-600 border-amber-500/25 shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted border-transparent"
+              "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all",
+              isDojoActive ? "bg-muted text-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             <span className="flex items-center gap-2.5">
-              <span className={cn("h-7 w-7 rounded-lg flex items-center justify-center shadow-sm", isDojoActive ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground")}>
-                <Swords className="h-3.5 w-3.5" />
-              </span>
+              <Swords className={cn("h-4 w-4", isDojoActive ? "text-primary" : "text-muted-foreground")} />
               <span>Dojo</span>
-              <span className="text-xs font-jp text-muted-foreground/70">道場</span>
-              <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-bold border border-amber-500/30">Lv.{currentLevel}</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-muted text-muted-foreground border border-border">
+                Lv.{currentLevel}
+              </span>
             </span>
-            {dojoOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            {dojoOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
           </button>
           {dojoOpen && (
-            <nav className="ml-3 pl-3 border-l border-border/80 flex flex-col gap-0.5 mt-1">
+            <nav className="ml-3 pl-3 border-l border-border/70 flex flex-col gap-0.5 mt-1">
               {DOJO_SUB.map((it) => {
                 const Icon = it.icon;
                 const active = pathname === it.href || (it.href !== "/game" && pathname.startsWith(it.href));
@@ -277,15 +267,14 @@ export function Sidebar({
                     href={it.href}
                     prefetch={true}
                     className={cn(
-                      "flex items-center justify-between px-2.5 py-2 rounded-lg text-sm transition-colors",
-                      active ? "bg-amber-500/15 text-amber-600 border border-amber-500/25 font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                      "flex items-center justify-between px-2.5 py-1.5 rounded-md text-sm transition-colors",
+                      active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
                     <span className="flex items-center gap-2">
-                      <Icon className={cn("h-3.5 w-3.5", active ? "text-amber-500" : "text-muted-foreground")} />
+                      <Icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "text-muted-foreground")} />
                       {it.label}
                     </span>
-                    <span className="text-xs font-jp text-muted-foreground/70">{it.jaLabel}</span>
                   </Link>
                 );
               })}
@@ -293,49 +282,51 @@ export function Sidebar({
           )}
         </div>
 
-        <div className="pt-1">
+        <div className="pt-1 mt-auto">
           <Link
             href="/settings"
             prefetch={true}
             className={cn(
-              "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium border transition-colors",
-              pathname.startsWith("/settings") ? "bg-muted text-foreground border-border" : "text-muted-foreground hover:text-foreground hover:bg-muted border-transparent"
+              "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              pathname.startsWith("/settings") ? "bg-muted text-foreground font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            <span className="flex items-center gap-2.5"><Settings className="h-4 w-4" /> Cài đặt</span>
-            <span className="text-xs font-jp text-muted-foreground/70">設定</span>
+            <Settings className="h-4 w-4" />
+            <span>Cài đặt</span>
           </Link>
         </div>
       </div>
 
       {/* Footer — profile */}
-      <Link href="/game" prefetch={true} className="m-3 mt-0 block group">
-        <div className="rounded-2xl border border-border bg-card/90 p-3 flex flex-col gap-2.5 group-hover:border-primary/30 group-hover:shadow-sm transition-all washi-texture">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2.5">
-              <span className="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-display font-bold text-xs text-white shadow-sm">
-                学
+      <div className="p-3 pt-0 border-t border-border/50">
+        <Link href="/game" prefetch={true} className="block group pt-3">
+          <div className="rounded-xl border border-border bg-card p-3 flex flex-col gap-2 transition-all hover:bg-muted/40">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="h-7 w-7 rounded-md bg-muted flex items-center justify-center font-bold text-xs text-foreground">
+                  {currentLevel}
+                </span>
+                <span className="truncate">
+                  <span className="text-xs font-semibold text-foreground block truncate">{profile?.user_id ?? "Học viên"}</span>
+                  <span className="text-[11px] text-muted-foreground">{currentRank}</span>
+                </span>
               </span>
-              <span>
-                <span className="text-sm font-bold text-foreground block leading-none">Bạn học</span>
-                <span className="text-xs text-primary font-medium">Lv.{currentLevel} {currentRank}</span>
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                <Flame className="h-3 w-3" /> {currentStreak}d
               </span>
-            </span>
-            <span className="flex items-center gap-1 text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/25 text-xs font-bold">
-              <Flame className="h-3 w-3 fill-amber-500 text-amber-500" /> {currentStreak}d
-            </span>
+            </div>
+            <div className="space-y-1 pt-0.5">
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>{currentXp} XP</span>
+                <span>{progressPct}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <span className="flex justify-between text-[11px] text-muted-foreground font-medium">
-              <span>XP {currentXp}</span>
-              <span className="font-bold text-foreground">{progressPct}%</span>
-            </span>
-            <span className="h-1.5 w-full bg-muted rounded-full overflow-hidden block border border-border/40">
-              <span className="h-full bg-gradient-to-r from-primary via-amber-500 to-kintsugi-400 block rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
-            </span>
-          </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </aside>
   );
 }

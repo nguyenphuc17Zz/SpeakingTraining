@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from app.domains.ai.errors import ProviderAuthError
 
 from app.core.dependencies import (
     get_ai_router,
@@ -76,25 +77,28 @@ async def refresh_ai_models(
     current_user: User = Depends(get_current_user),
     credential_service: CredentialService = Depends(get_credential_service),
 ):
-    if provider:
-        pid = provider.lower().strip()
-        api_key = await credential_service.get_raw_key_for_provider(pid, user_id=current_user.id)
-        return await model_discovery_service.get_models_for_provider(
-            provider_id=pid,
-            api_key=api_key,
+    try:
+        if provider:
+            pid = provider.lower().strip()
+            api_key = await credential_service.get_raw_key_for_provider(pid, user_id=current_user.id)
+            return await model_discovery_service.get_models_for_provider(
+                provider_id=pid,
+                api_key=api_key,
+                force_refresh=True,
+            )
+
+        creds_map: dict[str, str] = {}
+        for pid in provider_registry.list_providers():
+            key = await credential_service.get_raw_key_for_provider(pid, user_id=current_user.id)
+            if key:
+                creds_map[pid] = key
+
+        return await model_discovery_service.get_all_models(
+            credentials_map=creds_map,
             force_refresh=True,
         )
-
-    creds_map: dict[str, str] = {}
-    for pid in provider_registry.list_providers():
-        key = await credential_service.get_raw_key_for_provider(pid, user_id=current_user.id)
-        if key:
-            creds_map[pid] = key
-
-    return await model_discovery_service.get_all_models(
-        credentials_map=creds_map,
-        force_refresh=True,
-    )
+    except ProviderAuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/health", response_model=list[ProviderHealth], summary="Get Real-time Provider Health & Circuit Breakers")

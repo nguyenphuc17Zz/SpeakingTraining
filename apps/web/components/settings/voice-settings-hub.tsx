@@ -319,43 +319,40 @@ export function VoiceSettingsHub() {
         </div>
       )}
 
-      {/* SECTION 1: HERO ACTIVE VOICE & AUDITION STUDIO */}
-      <div className="relative overflow-hidden rounded-[24px] border border-border bg-card shadow-washi washi-texture p-5 sm:p-6 space-y-5">
-        <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-enso-gradient opacity-25 pointer-events-none" />
-
-        {/* Hero Header */}
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      {/* SECTION 1: ACTIVE VOICE & AUDITION STUDIO */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
             {selectedMeta && (
               <div
-                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${selectedMeta.gradient} flex items-center justify-center font-bold text-white text-2xl shadow-md shrink-0 font-jp`}
+                className={`w-12 h-12 rounded-xl bg-muted border border-border flex items-center justify-center font-bold text-foreground text-xl shrink-0 font-jp`}
               >
                 {selectedMeta.avatarLetter}
               </div>
             )}
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold text-foreground font-jp">
+                <h2 className="text-base font-bold text-foreground font-jp">
                   {selectedVoice?.name || "Đang chọn giọng đọc"}
                 </h2>
                 {isCurrentDefault ? (
-                  <Badge variant="matcha" size="sm" className="gap-1">
-                    <Star className="h-3 w-3 fill-current" /> Giọng AI Mặc Định
-                  </Badge>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 font-semibold inline-flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-current" /> Giọng mặc định
+                  </span>
                 ) : (
-                  <Badge variant="outline" size="sm">
-                    Đang nghe thử
-                  </Badge>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border font-medium">
+                    Đang thử giọng
+                  </span>
                 )}
                 {selectedMeta && (
-                  <span className={`px-2 py-0.5 rounded-lg text-xs border font-medium ${selectedMeta.badgeClass}`}>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-foreground border border-border font-medium">
                     {selectedMeta.genderLabel} · {selectedMeta.vibeLabel}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {selectedMeta?.descriptionVi} —{" "}
-                <span className="text-primary font-medium">{selectedMeta?.recommendedFor}</span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {selectedMeta?.descriptionVi} — <span className="text-primary font-medium">{selectedMeta?.recommendedFor}</span>
               </p>
             </div>
           </div>
@@ -363,44 +360,43 @@ export function VoiceSettingsHub() {
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {!isCurrentDefault && (
               <Button
-                variant="primary"
                 size="sm"
                 onClick={() => handleSetAsDefault()}
                 disabled={savingSettings}
-                className="text-xs rounded-xl"
+                className="text-xs h-8"
               >
                 {savingSettings ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 ) : (
                   <Check className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                Đặt làm Giọng AI Chính
+                Đặt làm giọng AI chính
               </Button>
             )}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowSaveProfileModal(true)}
-              className="text-xs rounded-xl"
+              className="text-xs h-8"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5 text-primary" />
-              Lưu cấu hình giọng
+              Lưu hồ sơ
             </Button>
           </div>
         </div>
 
         {/* Audition Multi-Context Phrase Selector */}
-        <div className="space-y-2.5 pt-2 border-t border-border/70">
+        <div className="space-y-2.5 pt-3 border-t border-border">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-foreground flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              Chọn câu mẫu tiếng Nhật để nghe thử:
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Chọn câu thoại nghe thử:
             </span>
             <button
               onClick={() => setIsCustomMode(!isCustomMode)}
-              className="text-primary hover:underline font-medium text-[11px]"
+              className="text-primary hover:underline font-medium text-xs"
             >
-              {isCustomMode ? "← Dùng mẫu có sẵn" : "✏️ Tự nhập câu tùy ý"}
+              {isCustomMode ? "← Dùng câu mẫu có sẵn" : "Tự nhập câu khác"}
             </button>
           </div>
 
@@ -412,17 +408,17 @@ export function VoiceSettingsHub() {
                   <button
                     key={phrase.id}
                     onClick={() => setSelectedPhrase(phrase)}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
                       isSelected
-                        ? "bg-primary/10 border-primary text-foreground shadow-sm ring-1 ring-primary/40"
-                        : "bg-background/70 border-border text-muted-foreground hover:bg-card hover:text-foreground"
+                        ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary/20 font-semibold"
+                        : "bg-muted/40 border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
-                    <div className="flex items-center gap-1.5 text-xs font-bold">
+                    <div className="flex items-center gap-1.5 text-xs font-medium">
                       <span>{phrase.icon}</span>
                       <span className="truncate">{phrase.label}</span>
                     </div>
-                    <div className="text-[10px] text-muted-foreground truncate mt-1 font-jp">
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5 font-jp">
                       {phrase.text}
                     </div>
                   </button>
@@ -436,46 +432,45 @@ export function VoiceSettingsHub() {
                 value={customText}
                 onChange={(e) => setCustomText(e.target.value)}
                 placeholder="Nhập câu tiếng Nhật bạn muốn nghe thử (vd: 初めまして、よろしくお願いします)..."
-                className="w-full px-3.5 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-jp"
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-jp"
               />
             </div>
           )}
 
-          {/* Current Phrase Display & Romaji */}
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Current Phrase Display */}
+          <div className="p-3 rounded-lg bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
-              <div className="text-sm font-bold text-foreground font-jp tracking-wide">
+              <div className="text-sm font-semibold text-foreground font-jp tracking-wide">
                 {activeSampleText}
               </div>
               {!isCustomMode && (
                 <div className="text-[11px] text-muted-foreground italic font-sans">
                   {selectedPhrase.romaji} —{" "}
-                  <span className="text-foreground/80 not-italic">{selectedPhrase.translationVi}</span>
+                  <span className="text-foreground not-italic">{selectedPhrase.translationVi}</span>
                 </div>
               )}
             </div>
 
-            {/* Big Play / Stop Audition Button */}
+            {/* Play / Stop Button */}
             <Button
-              variant="primary"
               size="sm"
               onClick={handlePlayAudition}
               disabled={isGenerating}
-              className="h-10 px-5 rounded-xl gap-2 text-xs font-bold shrink-0 shadow-md"
+              className="h-9 px-4 rounded-lg gap-2 text-xs font-semibold shrink-0"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span>Đang tổng hợp...</span>
                 </>
               ) : isPlaying ? (
                 <>
-                  <Square className="h-4 w-4 fill-current" />
+                  <Square className="h-3.5 w-3.5 fill-current" />
                   <span>Dừng phát</span>
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 fill-current" />
+                  <Play className="h-3.5 w-3.5 fill-current" />
                   <span>Nghe thử câu này</span>
                 </>
               )}
@@ -484,13 +479,13 @@ export function VoiceSettingsHub() {
         </div>
 
         {/* Sliders: Speed & Pitch */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          <div className="p-3 rounded-xl bg-background/80 border border-border space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <span>⏱️</span> Tốc độ đọc (Speed)
+              <span className="font-medium text-foreground">
+                Tốc độ đọc (Speed)
               </span>
-              <span className="font-mono font-bold text-primary text-xs bg-primary/10 px-2 py-0.5 rounded-md">
+              <span className="font-mono font-semibold text-primary text-xs bg-primary/10 px-2 py-0.5 rounded">
                 {speed.toFixed(2)}x
               </span>
             </div>
@@ -510,12 +505,12 @@ export function VoiceSettingsHub() {
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-background/80 border border-border space-y-2">
+          <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <span>🎵</span> Cao độ giọng (Pitch)
+              <span className="font-medium text-foreground">
+                Cao độ giọng (Pitch)
               </span>
-              <span className="font-mono font-bold text-primary text-xs bg-primary/10 px-2 py-0.5 rounded-md">
+              <span className="font-mono font-semibold text-primary text-xs bg-primary/10 px-2 py-0.5 rounded">
                 {pitch > 0 ? `+${pitch.toFixed(2)}` : pitch.toFixed(2)}
               </span>
             </div>
@@ -538,11 +533,11 @@ export function VoiceSettingsHub() {
       </div>
 
       {/* SECTION 2: SMART VOICE CATALOG & FILTER */}
-      <div className="p-5 sm:p-6 rounded-[24px] border border-border bg-card shadow-sm space-y-4">
+      <div className="p-4 sm:p-5 rounded-xl border border-border bg-card space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <Volume2 className="h-5 w-5 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Volume2 className="h-4 w-4 text-primary" />
               Thư viện & Danh mục Giọng đọc Nhật Bản
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -564,18 +559,18 @@ export function VoiceSettingsHub() {
       </div>
 
       {/* SECTION 3: QUICK MICROPHONE & STT TEST + PREFERENCES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Mic Quick Test Card */}
-        <div className="p-5 rounded-[24px] border border-border bg-card shadow-sm space-y-4 flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-xl border border-border bg-card space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                  <Mic className="h-5 w-5" />
+                <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <Mic className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Kiểm tra Micro & Nhận diện STT</h3>
-                  <p className="text-xs text-muted-foreground">Faster-Whisper nhận diện tiếng Nhật</p>
+                  <h3 className="text-sm font-semibold text-foreground">Kiểm tra Micro & Nhận diện STT</h3>
+                  <p className="text-xs text-muted-foreground">Faster-Whisper nhận diện giọng nói tiếng Nhật</p>
                 </div>
               </div>
 
@@ -583,25 +578,25 @@ export function VoiceSettingsHub() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCalibratingMic(true)}
-                className="text-xs h-8 rounded-xl"
+                className="text-xs h-8"
               >
                 <Sliders className="h-3.5 w-3.5 mr-1" />
-                Cân chỉnh sâu
+                Cân chỉnh
               </Button>
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Bấm nút bên dưới và nói 1 câu (ví dụ: <code className="font-jp text-foreground">こんにちは</code>) để
+              Bấm nút bên dưới và nói thử một câu tiếng Nhật (ví dụ: <code className="font-jp text-foreground bg-muted px-1 py-0.5 rounded">こんにちは</code>) để
               kiểm tra mức âm lượng và độ nhạy của micro trước khi vào phòng luyện nói.
             </p>
 
             {/* Live Audio Level Meter */}
-            <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-2">
+            <div className="p-3 rounded-lg bg-muted/40 border border-border space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground text-[11px]">Mức âm lượng micro:</span>
                 <span className="font-mono font-bold text-xs text-foreground">{micAudioLevel}%</span>
               </div>
-              <div className="h-2.5 w-full bg-background rounded-full overflow-hidden border border-border/60">
+              <div className="h-2 w-full bg-background rounded-full overflow-hidden border border-border/60">
                 <div
                   className={`h-full transition-all duration-100 rounded-full ${
                     micAudioLevel > 75
@@ -616,7 +611,7 @@ export function VoiceSettingsHub() {
             </div>
 
             {micTestResult && (
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>{micTestResult}</span>
               </div>
@@ -626,22 +621,21 @@ export function VoiceSettingsHub() {
           <div className="pt-2">
             {!isTestingMic ? (
               <Button
-                variant="primary"
                 size="sm"
                 onClick={startMicTest}
-                className="w-full text-xs h-9 rounded-xl gap-2"
+                className="w-full text-xs h-9 gap-2 font-medium"
               >
-                <Mic className="h-4 w-4" />
-                Bắt đầu thử Micro ngay
+                <Mic className="h-4 w-4 mr-1" />
+                Bắt đầu thử Micro
               </Button>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={stopMicTest}
-                className="w-full text-xs h-9 rounded-xl gap-2 border-primary text-primary hover:bg-primary/10"
+                className="w-full text-xs h-9 gap-2 border-primary text-primary hover:bg-primary/10 font-medium"
               >
-                <Radio className="h-4 w-4 animate-pulse text-primary" />
+                <Radio className="h-4 w-4 animate-pulse text-primary mr-1" />
                 Đang lắng nghe... Bấm để dừng
               </Button>
             )}
@@ -649,22 +643,22 @@ export function VoiceSettingsHub() {
         </div>
 
         {/* Playback & Behavior Preferences */}
-        <div className="p-5 rounded-[24px] border border-border bg-card shadow-sm space-y-4">
+        <div className="p-4 sm:p-5 rounded-xl border border-border bg-card space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Zap className="h-5 w-5" />
+            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
+              <Zap className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Tùy chọn Phát âm & Hành vi</h3>
+              <h3 className="text-sm font-semibold text-foreground">Tùy chọn Phát âm & Chuyển tiếp</h3>
               <p className="text-xs text-muted-foreground">Tự động phát câu thoại và chuyển tiếp dự phòng</p>
             </div>
           </div>
 
-          <div className="space-y-3 pt-1">
+          <div className="space-y-2.5 pt-1">
             {/* Auto Play AI Response */}
-            <label className="p-3 rounded-xl bg-background/80 border border-border flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/40 transition-colors">
+            <label className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-foreground">
+                <div className="text-xs font-medium text-foreground">
                   Tự động đọc câu trả lời của AI
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -680,9 +674,9 @@ export function VoiceSettingsHub() {
             </label>
 
             {/* TTS Fallback */}
-            <label className="p-3 rounded-xl bg-background/80 border border-border flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/40 transition-colors">
+            <label className="p-3 rounded-lg bg-muted/30 border border-border flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/50 transition-colors">
               <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-foreground">
+                <div className="text-xs font-medium text-foreground">
                   Tự động chuyển tiếp dự phòng (TTS Fallback)
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -698,8 +692,8 @@ export function VoiceSettingsHub() {
             </label>
 
             {/* Speed Presets Quick Pick */}
-            <div className="p-3 rounded-xl bg-background/80 border border-border space-y-2">
-              <span className="text-xs font-semibold text-foreground block">
+            <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+              <span className="text-xs font-medium text-foreground block">
                 Gói tốc độ phát âm thanh mẫu (Presets):
               </span>
               <div className="grid grid-cols-3 gap-2">
@@ -754,9 +748,9 @@ export function VoiceSettingsHub() {
       {/* Modal: Save Custom Profile */}
       {showSaveProfileModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-card border border-border rounded-xl p-5 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Plus className="h-4 w-4 text-emerald-500" />
                 Lưu hồ sơ giọng cá nhân
               </h3>
@@ -781,7 +775,7 @@ export function VoiceSettingsHub() {
                 placeholder="VD: Zundamon Luyện N5, Metan Điềm tĩnh..."
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-rose-500"
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-primary"
               />
             </div>
 
@@ -795,7 +789,6 @@ export function VoiceSettingsHub() {
                 Hủy
               </Button>
               <Button
-                variant="primary"
                 size="sm"
                 onClick={handleCreateProfile}
                 disabled={savingProfile || !newProfileName.trim()}

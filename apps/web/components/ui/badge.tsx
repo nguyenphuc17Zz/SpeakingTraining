@@ -32,29 +32,29 @@ export function Badge({
     default: "bg-muted text-foreground border-border",
     secondary: "bg-secondary text-secondary-foreground border-transparent",
     outline: "bg-transparent text-muted-foreground border-border",
-    sakura: "bg-sakura-500/10 text-sakura-600 border-sakura-500/25 font-semibold",
-    matcha: "bg-matcha-500/10 text-matcha-600 border-matcha-500/25 font-semibold",
-    fuji: "bg-fuji-500/10 text-fuji-500 border-fuji-500/25 font-semibold",
-    amber: "bg-amber-500/10 text-amber-600 border-amber-500/25 font-semibold",
-    jlpt: "bg-gradient-to-r from-primary/10 via-accent/10 to-aizome-500/10 text-foreground border-primary/25 font-bold shadow-sm",
-    akane: "bg-primary text-primary-foreground border-primary/60 font-bold shadow-sm",
-    torii: "bg-primary/15 text-primary border-primary/30 font-bold",
-    kintsugi: "bg-kintsugi-400/15 text-kintsugi-500 border-kintsugi-400/35 font-bold shadow-[0_0_10px_rgba(212,175,55,0.1)]",
-    sumi: "bg-sumi-800/20 text-sumi-200 border-sumi-700 font-medium",
-    aizome: "bg-aizome-500/15 text-aizome-400 border-aizome-500/30 font-semibold",
-    washi: "bg-washi-100 text-foreground border-border font-medium",
-    hanko: "hanko-badge !rounded-md !px-2 !py-0.5 !text-[10px] !tracking-widest",
+    sakura: "bg-muted text-foreground border-border font-medium",
+    matcha: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-medium",
+    fuji: "bg-muted text-foreground border-border font-medium",
+    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-medium",
+    jlpt: "bg-muted text-foreground border-border font-semibold",
+    akane: "bg-primary text-primary-foreground border-primary font-medium",
+    torii: "bg-primary/10 text-primary border-primary/20 font-medium",
+    kintsugi: "bg-muted text-foreground border-border font-medium",
+    sumi: "bg-muted text-foreground border-border font-medium",
+    aizome: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-medium",
+    washi: "bg-muted text-foreground border-border font-medium",
+    hanko: "bg-muted text-muted-foreground border-border font-medium",
   };
 
   const sizeStyles = {
-    sm: "text-[11px] px-2.5 py-0.5",
-    md: "text-xs px-3 py-1",
+    sm: "text-[11px] px-2 py-0.5",
+    md: "text-xs px-2.5 py-0.5",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border font-medium tracking-wide select-none",
+        "inline-flex items-center gap-1 rounded-md border text-xs font-medium select-none",
         variantStyles[variant],
         sizeStyles[size],
         className

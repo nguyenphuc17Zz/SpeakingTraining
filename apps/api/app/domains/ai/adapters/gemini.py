@@ -258,17 +258,51 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
         if not api_key:
             return self._fallback_models()
 
+        if api_key.startswith("gsk_"):
+            raise ProviderAuthError(
+                message=(
+                    "Bạn đang dùng API Key của Groq (bắt đầu bằng 'gsk_') cho Google Gemini. "
+                    "Google Gemini yêu cầu API Key từ Google AI Studio (thường bắt đầu bằng 'AIzaSy...')."
+                ),
+                provider_id=self.provider_id,
+            )
+
         url = "https://generativelanguage.googleapis.com/v1beta/models"
         headers = {
             "x-goog-api-key": api_key,
         }
+        params = {
+            "key": api_key,
+        }
 
         try:
             async with self._build_client() as client:
-                response = await client.get(url, headers=headers)
+                response = await client.get(url, headers=headers, params=params)
+                if response.status_code in (400, 401, 403):
+                    err_msg = ""
+                    try:
+                        err_data = response.json()
+                        err_msg = err_data.get("error", {}).get("message", "")
+                    except Exception:
+                        err_msg = response.text
+                    if "API_KEY_INVALID" in err_msg or "API key not valid" in err_msg:
+                        raise ProviderAuthError(
+                            message=(
+                                "Google Gemini API báo lỗi: API Key không hợp lệ. "
+                                "Vui lòng kiểm tra lại key tại Google AI Studio (https://aistudio.google.com/app/apikey)."
+                            ),
+                            provider_id=self.provider_id,
+                        )
+                    raise ProviderAuthError(
+                        message=f"Google Gemini API error ({response.status_code}): {err_msg}",
+                        provider_id=self.provider_id,
+                    )
+
                 if response.status_code != 200:
                     return self._fallback_models()
                 data = response.json()
+        except ProviderAuthError:
+            raise
         except Exception:
             return self._fallback_models()
 
@@ -297,7 +331,7 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
             if "pro" in lower_id or "thinking" in lower_id:
                 caps.append(ModelCapability.REASONING)
 
-            is_recommended = any(rec in lower_id for rec in ("gemini-2.0-flash", "gemini-1.5-flash"))
+            is_recommended = any(rec in lower_id for rec in ("gemini-2.5", "gemini-2.0-flash", "gemini-1.5-flash"))
 
             result.append(
                 ModelMetadata(
@@ -316,9 +350,9 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
     def _fallback_models(self) -> list[ModelMetadata]:
         return [
             ModelMetadata(
-                id="gemini-2.0-flash",
+                id="gemini-2.5-flash",
                 provider_id=self.provider_id,
-                display_name="Gemini 2.0 Flash (Next-Gen Fast & Realtime)",
+                display_name="Gemini 2.5 Flash (Thế Hệ Mới Cực Nhanh)",
                 context_window=1048576,
                 capabilities=[
                     ModelCapability.TEXT,
@@ -330,10 +364,25 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
                 is_recommended=True,
             ),
             ModelMetadata(
-                id="gemini-1.5-flash",
+                id="gemini-2.5-pro",
                 provider_id=self.provider_id,
-                display_name="Gemini 1.5 Flash (Ultra Fast)",
-                context_window=1000000,
+                display_name="Gemini 2.5 Pro (Suy Luận Sâu & Ngữ Cảnh 2M)",
+                context_window=2097152,
+                capabilities=[
+                    ModelCapability.TEXT,
+                    ModelCapability.STREAMING,
+                    ModelCapability.VISION,
+                    ModelCapability.AUDIO,
+                    ModelCapability.REASONING,
+                    ModelCapability.STRUCTURED_OUTPUT,
+                ],
+                is_recommended=True,
+            ),
+            ModelMetadata(
+                id="gemini-2.0-flash",
+                provider_id=self.provider_id,
+                display_name="Gemini 2.0 Flash (Đàm Thoại Realtime Tốc Độ Cao)",
+                context_window=1048576,
                 capabilities=[
                     ModelCapability.TEXT,
                     ModelCapability.STREAMING,
@@ -344,9 +393,35 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
                 is_recommended=True,
             ),
             ModelMetadata(
+                id="gemini-2.0-flash-lite",
+                provider_id=self.provider_id,
+                display_name="Gemini 2.0 Flash Lite (Siêu Nhẹ Phản Hồi Tức Thì)",
+                context_window=1048576,
+                capabilities=[
+                    ModelCapability.TEXT,
+                    ModelCapability.STREAMING,
+                    ModelCapability.STRUCTURED_OUTPUT,
+                ],
+                is_recommended=False,
+            ),
+            ModelMetadata(
+                id="gemini-1.5-flash",
+                provider_id=self.provider_id,
+                display_name="Gemini 1.5 Flash (Chuẩn Ổn Định)",
+                context_window=1000000,
+                capabilities=[
+                    ModelCapability.TEXT,
+                    ModelCapability.STREAMING,
+                    ModelCapability.VISION,
+                    ModelCapability.AUDIO,
+                    ModelCapability.STRUCTURED_OUTPUT,
+                ],
+                is_recommended=False,
+            ),
+            ModelMetadata(
                 id="gemini-1.5-pro",
                 provider_id=self.provider_id,
-                display_name="Gemini 1.5 Pro (Deep Reasoning & Nuance)",
+                display_name="Gemini 1.5 Pro (Phân Tích Chi Tiết)",
                 context_window=2000000,
                 capabilities=[
                     ModelCapability.TEXT,
@@ -367,6 +442,19 @@ class GeminiAdapter(BaseHTTPAdapter, AIProvider):
                 status=ProviderHealthStatus.NOT_CONFIGURED,
                 is_configured=False,
                 error_message="No API Key configured",
+            )
+
+        if api_key.startswith("gsk_"):
+            return ProviderHealth(
+                provider_id=self.provider_id,
+                status=ProviderHealthStatus.UNAVAILABLE,
+                is_configured=True,
+                latency_ms=0,
+                last_checked_at=datetime.now(timezone.utc),
+                error_message=(
+                    "Khóa có tiền tố 'gsk_' là API Key của Groq, không phải Google Gemini. "
+                    "Google Gemini yêu cầu key bắt đầu bằng 'AIzaSy...' từ Google AI Studio."
+                ),
             )
 
         start_time = time.perf_counter()

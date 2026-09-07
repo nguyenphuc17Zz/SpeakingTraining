@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
-title Hanasu AI - Quick Restart
+title JapS - Quick Restart
 
 echo ====================================================================
-echo   HANASU AI - QUICK RESTART
+echo   JAPS - QUICK RESTART
 echo ====================================================================
 echo.
 echo [1/2] Dang dong cac dich vu dang chay...

@@ -134,12 +134,12 @@ export function VoicevoxEngineCard({ onEngineReload }: VoicevoxEngineCardProps) 
   const exeOk = engine?.run_exe_exists;
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-5 space-y-4">
+    <div className="rounded-xl border border-border bg-card shadow-2xs p-4 sm:p-5 space-y-4">
       {/* Header status bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${
               isLive
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                 : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
@@ -149,19 +149,19 @@ export function VoicevoxEngineCard({ onEngineReload }: VoicevoxEngineCardProps) 
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-foreground">Bộ tổng hợp giọng nói VOICEVOX</h3>
+              <h3 className="text-sm font-semibold text-foreground">Bộ tổng hợp giọng nói VOICEVOX</h3>
               <Badge
-                variant={isLive ? "matcha" : "outline"}
+                variant={isLive ? "outline" : "outline"}
                 size="sm"
-                className={isLive ? "" : "border-amber-500/40 text-amber-600 dark:text-amber-300 bg-amber-500/10"}
+                className={isLive ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" : "border-amber-500/40 text-amber-600 dark:text-amber-300 bg-amber-500/10"}
               >
                 {isLive ? `Online · ${engine?.latency_ms || 10}ms` : "Chế độ Ngoại tuyến (Fallback)"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isLive
-                ? `Đang chạy mượt mà với đầy đủ ${engine?.available_voices_count || 127} phong cách giọng đọc Nhật Bản.`
-                : "Đang dùng các giọng đọc tiếng Nhật có sẵn. Bấm 'Khởi động VOICEVOX' để mở toàn bộ 120+ giọng."}
+                ? `Đang hoạt động ổn định với ${engine?.available_voices_count || 127} phong cách giọng đọc bản địa.`
+                : "Đang dùng giọng đọc tiếng Nhật tích hợp. Bấm 'Khởi động VOICEVOX' để mở toàn bộ 120+ giọng."}
             </p>
           </div>
         </div>
@@ -169,11 +169,11 @@ export function VoicevoxEngineCard({ onEngineReload }: VoicevoxEngineCardProps) 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {!isLive && exeOk && (
             <Button
-              variant="akane"
+              variant="primary"
               size="sm"
               onClick={handleStartEngine}
               disabled={startingEngine}
-              className="text-xs h-8 rounded-xl gap-1.5 shadow-sm"
+              className="text-xs h-8 rounded-lg gap-1.5"
             >
               {startingEngine ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

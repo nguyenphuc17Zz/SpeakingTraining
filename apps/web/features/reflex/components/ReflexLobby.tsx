@@ -32,8 +32,8 @@ export const DEDICATED_MODES = [
     titleJa: "活用",
     icon: Zap,
     badgeVariant: "sakura" as const,
-    iconColor: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-    accentColor: "text-rose-600 dark:text-rose-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Chia thể động từ & tính từ phản xạ siêu tốc",
     source: "食べる",
     target: "食べさせる (Sai khiến)",
@@ -44,8 +44,8 @@ export const DEDICATED_MODES = [
     titleJa: "速答",
     icon: MessageSquare,
     badgeVariant: "matcha" as const,
-    iconColor: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-    accentColor: "text-emerald-600 dark:text-emerald-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Hỏi - đáp tức thì câu hỏi thường ngày & công việc",
     source: "週末は何を？",
     target: "映画を見ました",
@@ -56,8 +56,8 @@ export const DEDICATED_MODES = [
     titleJa: "文型変換",
     icon: Repeat,
     badgeVariant: "fuji" as const,
-    iconColor: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
-    accentColor: "text-indigo-600 dark:text-indigo-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Đổi ngữ pháp: Lịch sự ↔ Thân mật, Phủ định, Quá khứ",
     source: "行きます",
     target: "行く (Thân mật)",
@@ -68,8 +68,8 @@ export const DEDICATED_MODES = [
     titleJa: "状況対応",
     icon: Compass,
     badgeVariant: "kintsugi" as const,
-    iconColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    accentColor: "text-amber-600 dark:text-amber-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Phản xạ giao tiếp đúng vai vế và văn hóa ứng xử",
     source: "Đến muộn do trễ tàu",
     target: "大変申し訳ありません",
@@ -80,8 +80,8 @@ export const DEDICATED_MODES = [
     titleJa: "語彙",
     icon: BookText,
     badgeVariant: "fuji" as const,
-    iconColor: "text-violet-500 bg-violet-500/10 border-violet-500/20",
-    accentColor: "text-violet-600 dark:text-violet-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Nhớ nghĩa từ vựng JLPT N5-N1 theo phản xạ siêu tốc",
     source: "諦める",
     target: "bỏ cuộc 🇯🇵→🇻🇳",
@@ -92,11 +92,11 @@ export const DEDICATED_MODES = [
     titleJa: "敬語単語",
     icon: Crown,
     badgeVariant: "kintsugi" as const,
-    iconColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-    accentColor: "text-amber-600 dark:text-amber-400",
+    iconColor: "text-foreground bg-muted border-border",
+    accentColor: "text-foreground font-semibold",
     desc: "Phản xạ nhanh Tôn kính ngữ, Khiêm nhường ngữ & Từ thương mại",
     source: "食べる",
-    target: "召し上がる 👑",
+    target: "召し上がる",
   },
 ];
 
@@ -172,24 +172,23 @@ export function ReflexLobby({
       ))}
 
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 washi-texture shadow-2xs">
-        <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-enso-gradient opacity-30 pointer-events-none" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+            <span className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center text-primary shrink-0">
               <Zap className="h-5 w-5" />
             </span>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black font-jp tracking-tight text-foreground">
-                  瞬発力スピーキング
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  Phản xạ nói
                 </h1>
-                <Badge variant="sakura" size="sm" className="font-bold text-[10px]">
-                  Mode 3
-                </Badge>
+                <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                  Reflex
+                </span>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Speed Reflex Speaking — Phản xạ câu nói tiếng Nhật dưới áp lực thời gian
+              <p className="text-xs text-muted-foreground">
+                Luyện phản xạ câu nói tiếng Nhật dưới áp lực thời gian với các dạng bài thực chiến.
               </p>
             </div>
           </div>
@@ -197,10 +196,10 @@ export function ReflexLobby({
           <Button
             variant="outline"
             size="sm"
-            className="gap-1 rounded-xl border-border h-8 px-2.5 text-xs font-bold shadow-2xs hover:border-primary/40 shrink-0"
+            className="gap-1.5 rounded-lg border-border h-8 px-3 text-xs font-medium hover:bg-muted shrink-0"
             onClick={onOpenHelp}
           >
-            <Keyboard className="h-3.5 w-3.5 text-primary" />
+            <Keyboard className="h-3.5 w-3.5 text-muted-foreground" />
             <span>Phím tắt ({formatKeyDisplay(keybindings.drillToggleHelp)})</span>
           </Button>
         </div>
@@ -225,34 +224,33 @@ export function ReflexLobby({
               setSubMode("mixed");
             }}
             className={cn(
-              "w-full text-left rounded-2xl border p-3.5 transition-all duration-200 relative overflow-hidden group shadow-2xs washi-texture",
+              "w-full text-left rounded-xl border p-3.5 transition-all duration-150 relative overflow-hidden group",
               isMixedSelected
-                ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-xs"
-                : "border-border/80 bg-card hover:border-primary/40"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                : "border-border bg-card hover:border-foreground/20"
             )}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="h-8 w-8 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                <div className="h-8 w-8 rounded-lg bg-muted border border-border flex items-center justify-center text-foreground shrink-0">
                   <Shuffle className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-foreground font-jp">
-                      Mixed Adaptive (Tổng Hợp)
+                    <span className="text-xs font-bold text-foreground">
+                      Tổng hợp tự thích ứng (Mixed Adaptive)
                     </span>
-                    <Badge variant="kintsugi" size="sm" className="text-[9px] px-1.5 py-0">混合</Badge>
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    Tự động phân tích điểm yếu & luân phiên 6 dạng bài để tối đa phản xạ
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    Tự động phân tích điểm yếu & luân phiên 6 dạng bài để tối đa tốc độ phản xạ
                   </p>
                 </div>
               </div>
 
               <div
                 className={cn(
-                  "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
-                  isMixedSelected ? "border-primary bg-primary text-primary-foreground shadow-xs" : "border-muted-foreground/30 bg-background"
+                  "h-5 w-5 rounded-full border flex items-center justify-center shrink-0 transition-all",
+                  isMixedSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
                 )}
               >
                 {isMixedSelected && <Check className="h-3 w-3 stroke-[3]" />}
@@ -274,10 +272,10 @@ export function ReflexLobby({
                     setSubMode(m.id);
                   }}
                   className={cn(
-                    "text-left rounded-2xl border p-3 transition-all duration-150 relative overflow-hidden group shadow-2xs washi-texture flex flex-col justify-between space-y-2 cursor-pointer",
+                    "text-left rounded-xl border p-3 transition-all duration-150 relative overflow-hidden group flex flex-col justify-between space-y-2 cursor-pointer",
                     isSelected
-                      ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-xs"
-                      : "border-border/80 bg-card hover:border-primary/40"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : "border-border bg-card hover:border-foreground/20"
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -286,11 +284,11 @@ export function ReflexLobby({
                         <Icon className="h-3.5 w-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-foreground font-jp truncate">{m.title}</span>
-                          <Badge variant={m.badgeVariant} size="sm" className="text-[9px] px-1 py-0 shrink-0">{m.titleJa}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-foreground truncate">{m.title}</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-medium shrink-0">{m.titleJa}</span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{m.desc}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{m.desc}</p>
                       </div>
                     </div>
 
@@ -304,10 +302,10 @@ export function ReflexLobby({
                     </div>
                   </div>
 
-                  <div className="p-1.5 px-2.5 rounded-xl bg-muted/40 border border-border/60 text-[10px] flex items-center justify-between gap-1 font-medium">
-                    <span className="text-foreground/80 font-mono truncate">{m.source}</span>
+                  <div className="p-1.5 px-2.5 rounded-lg bg-muted/50 border border-border text-[11px] flex items-center justify-between gap-1 font-medium">
+                    <span className="text-muted-foreground font-mono truncate">{m.source}</span>
                     <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className={cn("font-bold truncate", m.accentColor)}>{m.target}</span>
+                    <span className={cn("truncate", m.accentColor)}>{m.target}</span>
                   </div>
 
                   {/* Filter Action Pill */}
@@ -319,9 +317,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowFormFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-[10px] font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Sliders className="h-3 w-3 text-rose-500" />
+                      <Sliders className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.selectedForms.length === 0 ? "Tất cả 50 thể (Toàn diện)" : `${filters.selectedForms.length} thể đã lọc`}</span>
                     </button>
                   )}
@@ -334,9 +332,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowQnaTopicFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <MessageSquare className="h-3 w-3 text-emerald-500" />
+                      <MessageSquare className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.customKeywords.trim() ? `"${filters.customKeywords.trim()}"` : filters.selectedQnaTopics.length === 0 ? "Ngẫu nhiên mọi chủ đề" : `${filters.selectedQnaTopics.length} chủ đề đã lọc`}</span>
                     </button>
                   )}
@@ -349,9 +347,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowTransformFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Repeat className="h-3 w-3 text-indigo-500" />
+                      <Repeat className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.selectedTransformCategories.length === 0 ? "Ngẫu nhiên 75+ dạng ngữ pháp" : `${filters.selectedTransformCategories.length} nhóm đã lọc`}</span>
                     </button>
                   )}
@@ -364,9 +362,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowContextFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Compass className="h-3 w-3 text-amber-500" />
+                      <Compass className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.selectedContextCategories.length === 0 ? "Ngẫu nhiên 60+ tình huống" : `${filters.selectedContextCategories.length} nhóm đã lọc`}</span>
                     </button>
                   )}
@@ -379,9 +377,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowVocabFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-[10px] font-bold text-violet-700 dark:text-violet-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <BookText className="h-3 w-3 text-violet-500" />
+                      <BookText className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.selectedVocabCategories.length === 0 ? "Ngẫu nhiên 500+ từ vựng" : `${filters.selectedVocabCategories.length} nhóm đã lọc`}</span>
                     </button>
                   )}
@@ -394,9 +392,9 @@ export function ReflexLobby({
                         soundFX.playFurin();
                         filters.setShowKeigoFilterModal(true);
                       }}
-                      className="w-full py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1 transition-colors"
+                      className="w-full py-1.5 rounded-lg bg-muted hover:bg-muted/80 border border-border text-[11px] font-medium text-foreground flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Crown className="h-3 w-3 text-amber-500" />
+                      <Crown className="h-3 w-3 text-muted-foreground" />
                       <span>{filters.selectedKeigoCategories.length === 0 ? "Ngẫu nhiên 80+ cặp kính ngữ" : `${filters.selectedKeigoCategories.length} nhóm đã lọc`}</span>
                     </button>
                   )}
@@ -407,7 +405,7 @@ export function ReflexLobby({
         </div>
 
         {/* Right 1 Col: Session Configuration Cockpit */}
-        <div className="space-y-3 p-3.5 rounded-2xl border border-border bg-card shadow-2xs washi-texture">
+        <div className="space-y-3 p-3.5 rounded-xl border border-border bg-card">
           {/* Pressure Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
@@ -553,9 +551,8 @@ export function ReflexLobby({
 
           {/* Big CTA Start Button */}
           <Button
-            variant="akane"
             size="lg"
-            className="w-full font-bold text-xs rounded-xl h-10 shadow-md hover:shadow-lg transition-all gap-2 cursor-pointer"
+            className="w-full font-bold text-xs rounded-xl h-10 transition-all gap-2 cursor-pointer"
             onClick={() => {
               soundFX.playTaiko();
               onStartSession();

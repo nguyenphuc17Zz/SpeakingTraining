@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 import random
 import threading
 import time
@@ -130,6 +131,62 @@ class PromptBudgetGuard:
 
 # Global singleton deduplicator
 ai_deduplicator = AIRequestDeduplicator()
+
+TASK_FEATURE_MAP: dict[AITask, str] = {
+    # 1. Speaking
+    AITask.CONVERSATION: "speaking",
+    AITask.CONVERSATION_ANALYSIS: "speaking",
+    AITask.SPEECH_GENERATION: "speaking",
+    AITask.SPEECH_EVALUATION: "speaking",
+    AITask.SPEECH_COHERENCE: "speaking",
+    AITask.SPEECH_RELEVANCE: "speaking",
+    AITask.SPEECH_NATURALNESS: "speaking",
+    AITask.SPEECH_NATIVE_UPGRADE: "speaking",
+    # 2. Reflex
+    AITask.REFLEX_GENERATION: "reflex",
+    AITask.REFLEX_EVALUATION: "reflex",
+    AITask.EXERCISE_GENERATION: "reflex",
+    AITask.EXERCISE_EVALUATION: "reflex",
+    # 3. Situations
+    AITask.SITUATIONAL_GENERATION: "situations",
+    AITask.SITUATIONAL_EVALUATION: "situations",
+    # 4. Keigo
+    AITask.KEIGO_GENERATION: "keigo",
+    AITask.KEIGO_EVALUATION: "keigo",
+    # 5. Coach
+    AITask.COACH: "coach",
+    AITask.COACH_CHAT: "coach",
+    AITask.COACH_EXPLANATION: "coach",
+    AITask.COACH_INSIGHT: "coach",
+    AITask.COACH_PLAN: "coach",
+    AITask.COACH_SEMANTIC_ANALYSIS: "coach",
+    AITask.COACH_NATIVE_UPGRADE: "coach",
+    AITask.SESSION_ANALYSIS: "coach",
+    AITask.WEEKLY_REVIEW: "coach",
+    AITask.INSIGHT_EXPLANATION: "coach",
+    AITask.RECOMMENDATION_EXPLANATION: "coach",
+    # 6. Pitch
+    AITask.PITCH_GENERATION: "pitch",
+    AITask.PITCH_EVALUATION: "pitch",
+    AITask.PITCH_FEEDBACK: "pitch",
+    AITask.PRONUNCIATION_ANALYSIS: "pitch",
+    # 7. Shadowing
+    AITask.SHADOWING_ANALYSIS: "shadowing",
+    AITask.SHADOWING_RECOMMENDATION: "shadowing",
+    AITask.TRANSLATION: "shadowing",
+}
+
+
+def resolve_feature_model(task: AITask, settings) -> str | None:
+    feature_key = TASK_FEATURE_MAP.get(task)
+    if not feature_key or not getattr(settings, "feature_routing", None):
+        return None
+    try:
+        fmap = json.loads(settings.feature_routing)
+        val = fmap.get(feature_key)
+        return val if val and val != "default" else None
+    except Exception:
+        return None
 
 
 class AIRouter:
@@ -276,7 +333,10 @@ class AIRouter:
             # Resolve model
             model = request.model
             if not model:
-                if attempt_idx == 1 and settings.default_ai_model and (provider_id == settings.default_ai_provider or routing_mode == "manual"):
+                feat_model = resolve_feature_model(task, settings)
+                if attempt_idx == 1 and feat_model:
+                    model = feat_model
+                elif attempt_idx == 1 and settings.default_ai_model and (provider_id == settings.default_ai_provider or routing_mode == "manual"):
                     model = settings.default_ai_model
                 else:
                     model = ModelRegistry.get_recommended_model_for_task(task, provider_id)
@@ -473,7 +533,10 @@ class AIRouter:
 
             model = request.model
             if not model:
-                if attempt_idx == 1 and settings.default_ai_model and (provider_id == settings.default_ai_provider or routing_mode == "manual"):
+                feat_model = resolve_feature_model(task, settings)
+                if attempt_idx == 1 and feat_model:
+                    model = feat_model
+                elif attempt_idx == 1 and settings.default_ai_model and (provider_id == settings.default_ai_provider or routing_mode == "manual"):
                     model = settings.default_ai_model
                 else:
                     model = ModelRegistry.get_recommended_model_for_task(task, provider_id)

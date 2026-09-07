@@ -81,86 +81,61 @@ const STUDIO_MODES = [
 
 export function StudioModesHub() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="h-7 w-7 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-            <Layers className="h-4 w-4" />
+          <span className="h-6 w-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+            <Layers className="h-3.5 w-3.5" />
           </span>
-          <div>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <span>5 Phòng Luyện Studio Thực Chiến</span>
-              <span className="text-xs font-semibold text-muted-foreground font-jp">実践スタジオ</span>
-            </h2>
-          </div>
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <span>Phòng Luyện Thực Chiến</span>
+            <span className="text-xs font-normal text-muted-foreground font-jp">実践スタジオ</span>
+          </h2>
         </div>
 
-        <Badge variant="kintsugi" size="sm" className="font-bold text-[10px]">
-          100% DYNAMIC AI
-        </Badge>
+        <span className="text-xs text-muted-foreground">5 chuyên đề</span>
       </div>
 
-      {/* 4 Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 Cards Grid — Minimalist Studio */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {STUDIO_MODES.map((mode) => (
-          <div
+          <Link
             key={mode.id}
-            className="p-5 rounded-3xl border border-border/80 bg-card washi-texture shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
+            href={mode.url}
+            prefetch={true}
+            onClick={() => soundFX.playKatana()}
+            className="group p-4 rounded-2xl border border-border/70 bg-card/60 hover:bg-card hover:border-primary/40 hover:shadow-xs transition-all flex flex-col justify-between relative overflow-hidden"
           >
-            <div className={cn("absolute top-0 right-0 h-32 w-32 bg-gradient-to-bl rounded-full blur-2xl pointer-events-none opacity-60", mode.accentBg)} />
-
-            <div className="space-y-3 relative z-10">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="p-2.5 rounded-2xl bg-muted/60 border border-border/80 shadow-2xs group-hover:scale-105 transition-transform">
+                <div className="h-9 w-9 rounded-xl bg-muted/50 border border-border/60 flex items-center justify-center text-foreground group-hover:scale-105 transition-transform">
                   {mode.icon}
                 </div>
-                <Badge variant="outline" size="sm" className="text-[10px] font-semibold text-muted-foreground">
-                  {mode.tag.split("&")[0]}
-                </Badge>
+                <span className="text-[10px] font-medium text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-md border border-border/50">
+                  {mode.tag.split("—")[0].trim()}
+                </span>
               </div>
 
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                  {mode.title}
+              <div>
+                <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {mode.title.replace(/^\d+\.\s*/, "")}
                 </h3>
-                <p className="text-[10px] text-muted-foreground font-jp font-medium">
+                <p className="text-[10px] text-muted-foreground font-jp">
                   {mode.jaTitle}
                 </p>
               </div>
 
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                 {mode.desc}
               </p>
-
-              {/* Sub-modes tags */}
-              <div className="flex flex-wrap gap-1 pt-1">
-                {mode.submodes.map((sub, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/60"
-                  >
-                    {sub}
-                  </span>
-                ))}
-              </div>
             </div>
 
-            {/* Launch Button */}
-            <div className="pt-4 mt-2 border-t border-border/60 relative z-10">
-              <Link href={mode.url} prefetch={true} className="w-full block">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => soundFX.playKatana()}
-                  className="w-full text-xs font-bold justify-between rounded-xl h-8.5 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shadow-2xs"
-                >
-                  <span>Vào phòng luyện</span>
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                </Button>
-              </Link>
+            <div className="pt-3 mt-3 border-t border-border/50 flex items-center justify-between text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
+              <span>Bắt đầu luyện</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

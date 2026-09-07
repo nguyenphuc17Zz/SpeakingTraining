@@ -4,9 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { TopNav } from "./top-nav";
 import { BottomNav } from "./bottom-nav";
-import { AtmosphericWeatherEngine } from "@/components/ui/atmospheric-weather-engine";
 import { useRewardNotifications, RewardToast } from "@/features/gamification";
-import { CoachFloatingButton, CoachPanel } from "@/features/coach";
+import { CoachPanel } from "@/features/coach";
 import { useCoachProactive } from "@/features/coach/hooks/useCoachProactive";
 import { SelectionLookupBubble, AIVocabularyLookupBox } from "@/features/vocabulary-lookup";
 import { Menu, X } from "lucide-react";
@@ -159,7 +158,6 @@ function CommandPalette({ open, onClose, onAskCoach }: { open: boolean; onClose:
 }
 
 import { GlobalKeybindingsModal } from "./global-keybindings-modal";
-import { ZenHotkeyDock } from "./zen-hotkey-dock";
 import { useGlobalAudioCleanup } from "@/hooks/use-global-audio-cleanup";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -250,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="h-9 w-9" />
         </div>
 
-        <TopNav onOpenCommand={() => setCmdOpen(true)} />
+        <TopNav onOpenCommand={() => setCmdOpen(true)} onOpenCoach={() => setCoachOpen(true)} />
         <main className="flex-1 overflow-y-auto bg-background">
           <div
             className={cn(
@@ -272,14 +270,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onAskCoach={(q) => setCoachOpen(true)} />
       <GlobalKeybindingsModal isOpen={keybindingsOpen} onClose={() => setKeybindingsOpen(false)} />
-      {shouldShowCoach && <CoachFloatingButton onClick={() => setCoachOpen(true)} hasNotification={insights.length > 0} />}
       <CoachPanel open={coachOpen} onClose={() => setCoachOpen(false)} route={pathname || "/dashboard"} />
       <BottomNav />
       <RewardToast notification={currentToast} onDismiss={dismissToast} />
-      <AtmosphericWeatherEngine />
       <SelectionLookupBubble />
       <AIVocabularyLookupBox />
-      <ZenHotkeyDock onOpenKeybindingsModal={() => setKeybindingsOpen(true)} />
     </div>
   );
 }

@@ -104,3 +104,28 @@ async def test_ai_generate_endpoint_with_credential(client: AsyncClient):
     assert usage_resp.status_code == 200
     usage_data = usage_resp.json()
     assert usage_data["total_requests"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_feature_routing_persistence(client: AsyncClient):
+    # Update routing policy with feature_routing map
+    update_res = await client.put(
+        "/api/v1/ai/routing",
+        json={
+            "feature_routing": {
+                "speaking": "gemini-2.0-flash",
+                "reflex": "llama-3.3-70b-versatile",
+            }
+        },
+    )
+    assert update_res.status_code == 200
+    data = update_res.json()
+    assert data["feature_routing"]["speaking"] == "gemini-2.0-flash"
+    assert data["feature_routing"]["reflex"] == "llama-3.3-70b-versatile"
+
+    # Verify retrieval
+    get_res = await client.get("/api/v1/ai/routing")
+    assert get_res.status_code == 200
+    get_data = get_res.json()
+    assert get_data["feature_routing"]["speaking"] == "gemini-2.0-flash"
+    assert get_data["feature_routing"]["reflex"] == "llama-3.3-70b-versatile"

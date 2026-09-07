@@ -122,7 +122,7 @@ export function WebSpeechStudioCard() {
   };
 
   return (
-    <Card className="p-5 md:p-6 space-y-6 border border-border/80 bg-card washi-texture shadow-washi">
+    <Card className="p-5 md:p-6 space-y-6 border border-border bg-card rounded-xl shadow-2xs">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
         <div className="flex items-center gap-3">

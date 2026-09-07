@@ -83,23 +83,21 @@ export function DailySenseiBriefingCard() {
   const activePersonaObj = SENSEI_PERSONAS.find((p) => p.id === selectedPersona) || SENSEI_PERSONAS[0];
 
   return (
-    <div className="p-6 rounded-3xl border border-border bg-card washi-texture shadow-sm space-y-4 relative overflow-hidden">
-      <div className="absolute top-0 right-0 h-44 w-44 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="p-5 rounded-2xl border border-border/70 bg-card/60 shadow-xs space-y-3.5">
       {/* Top Header: Sensei Avatar & Persona Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10 border-b border-border/60 pb-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
         <div className="flex items-center gap-3">
-          <span className="h-10 w-10 rounded-2xl bg-card border border-border flex items-center justify-center text-xl shadow-2xs">
+          <span className="h-9 w-9 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center text-lg">
             {activePersonaObj.avatar}
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-foreground">
-                Thư Đầu Ngày Từ {activePersonaObj.name} ({activePersonaObj.jpName})
+              <h3 className="text-sm font-semibold text-foreground">
+                Lời khuyên hôm nay từ {activePersonaObj.name}
               </h3>
-              <Badge variant="matcha" size="sm" className="font-bold text-[10px]">
-                DAILY BRIEFING
-              </Badge>
+              <span className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60 font-mono">
+                COACH
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground">{activePersonaObj.desc}</p>
           </div>
